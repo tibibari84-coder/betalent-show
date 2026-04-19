@@ -3,9 +3,21 @@ import type { ShowState } from "@/server/show/show-state.service";
 
 import type { PublicStageResultPayload } from "./types";
 
+const publishedInclude = {
+  entries: {
+    orderBy: { placementOrder: "asc" as const },
+    include: {
+      performance: { select: { title: true } },
+      contestant: { select: { displayName: true, username: true } },
+    },
+  },
+  season: { select: { title: true } },
+  stage: { select: { title: true } },
+};
+
 /**
- * Latest **published** result package for the current show focus (stage if present, else season).
- * Never returns DRAFT / LOCKED / internal-only packages.
+ * Latest **published** result package for the current show focus (stage if present, else season-wide).
+ * Never returns DRAFT / LOCKED packages.
  */
 export async function getPublicResultsPayloadForShowState(
   showState: ShowState,
@@ -15,58 +27,32 @@ export async function getPublicResultsPayloadForShowState(
   }
 
   const seasonId = showState.season.id;
-
-  const baseWhere = {
+  const publishedWhere = {
     status: "PUBLISHED" as const,
     seasonId,
   };
 
-  let row = null as Awaited<
-    ReturnType<typeof prisma.stageResult.findFirst>
-  > extends infer R
-    ? R
-    : never;
-
-  if (showState.stage) {
-    row = await prisma.stageResult.findFirst({
-      where: {
-        ...baseWhere,
-        stageId: showState.stage.id,
-      },
-      orderBy: { publishedAt: "desc" },
-      include: {
-        entries: {
-          orderBy: { placementOrder: "asc" },
-          include: {
-            performance: { select: { title: true } },
-            contestant: { select: { displayName: true, username: true } },
+  let row =
+    showState.stage != null
+      ? await prisma.stageResult.findFirst({
+          where: {
+            ...publishedWhere,
+            stageId: showState.stage.id,
           },
-        },
-        season: { select: { title: true } },
-        stage: { select: { title: true } },
-      },
-    });
-  }
+          orderBy: { publishedAt: "desc" },
+          include: publishedInclude,
+        })
+      : null;
 
   if (!row) {
     row = await prisma.stageResult.findFirst({
-      where: baseWhere,
+      where: publishedWhere,
       orderBy: { publishedAt: "desc" },
-      include: {
-        entries: {
-          orderBy: { placementOrder: "asc" },
-          include: {
-            performance: { select: { title: true } },
-            contestant: { select: { displayName: true, username: true } },
-          },
-        },
-        season: { select: { title: true } },
-        stage: { select: { title: true } },
-      },
+      include: publishedInclude,
     });
   }
 
-  if (!row || !row.publishedAt) {
+  if (!row?.publishedAt) {
     return null;
   }
 
@@ -86,11 +72,4 @@ export async function getPublicResultsPayloadForShowState(
       contestantHandle: e.contestant.username,
     })),
   };
-}
-
-export async function hasPublishedStageResultForCurrentFocus(
-  showState: ShowState,
-): Promise<boolean> {
-  const payload = await getPublicResultsPayloadForShowState(showState);
-  return payload !== null;
 }

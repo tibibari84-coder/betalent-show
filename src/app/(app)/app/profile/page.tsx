@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 
 import { logoutAction } from "@/server/auth/actions";
 import { getSession } from "@/server/auth/session";
+import { ADVANCEMENT_DECISION_LABEL } from "@/lib/results/decision-labels";
+import { CONTESTANT_STATUS_LABEL } from "@/lib/show/contestant-labels";
 import { getContestantByUserId } from "@/server/contestants/contestant.service";
 import { listContestantPerformances } from "@/server/performances/performance.service";
-import { CONTESTANT_STATUS_LABEL } from "@/lib/show/contestant-labels";
+import { getLatestPublishedAdvancementSummaryForContestant } from "@/server/results/advancement.service";
 
 export const metadata: Metadata = {
   title: "Profile · BETALENT",
@@ -24,6 +26,9 @@ export default async function AppProfilePage() {
   const performances = contestant
     ? await listContestantPerformances(contestant.id)
     : [];
+  const publishedAdvancement = contestant
+    ? await getLatestPublishedAdvancementSummaryForContestant(contestant.id)
+    : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -120,6 +125,26 @@ export default async function AppProfilePage() {
               </dt>
               <dd className="font-medium text-foreground">
                 {CONTESTANT_STATUS_LABEL[contestant.status]}
+              </dd>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <dt className="text-xs uppercase tracking-wide text-foreground/50">
+                Latest published advancement
+              </dt>
+              <dd className="text-foreground">
+                {publishedAdvancement ? (
+                  <>
+                    {ADVANCEMENT_DECISION_LABEL[publishedAdvancement.decision]} ·{" "}
+                    {publishedAdvancement.stageTitle}
+                    <span className="block text-xs text-foreground/55">
+                      {publishedAdvancement.decidedAt.toLocaleDateString(undefined, {
+                        dateStyle: "medium",
+                      })}
+                    </span>
+                  </>
+                ) : (
+                  "None published yet (unpublished decisions stay internal)."
+                )}
               </dd>
             </div>
             <div className="flex flex-col gap-0.5">

@@ -14,13 +14,15 @@ function createPrismaClient(): PrismaClient {
 }
 
 /**
- * `"contestant" in client` is not reliable across Prisma versions; verify the delegate.
- * Stale singletons after `prisma generate` can leave `prisma.contestant` undefined in dev.
+ * Verify delegates exist. Stale singletons after `prisma generate` can leave
+ * new models undefined on the cached client in dev.
  */
-function hasContestantDelegate(client: unknown): boolean {
-  const delegate = (client as { contestant?: { findUnique?: unknown } })
-    .contestant;
-  return typeof delegate?.findUnique === "function";
+function hasExpectedDelegates(client: unknown): boolean {
+  const c = client as Record<string, { findUnique?: unknown } | undefined>;
+  return (
+    typeof c.contestant?.findUnique === "function" &&
+    typeof c.stageResult?.findUnique === "function"
+  );
 }
 
 const PRISTINE_CLIENT_REMEDY =
@@ -28,7 +30,7 @@ const PRISTINE_CLIENT_REMEDY =
 
 function resolvePrisma(): PrismaClient {
   const cached = globalForPrisma.prisma;
-  if (cached && hasContestantDelegate(cached)) {
+  if (cached && hasExpectedDelegates(cached)) {
     return cached;
   }
 
@@ -38,10 +40,10 @@ function resolvePrisma(): PrismaClient {
   }
 
   const client = createPrismaClient();
-  if (!hasContestantDelegate(client)) {
+  if (!hasExpectedDelegates(client)) {
     void client.$disconnect().catch(() => undefined);
     throw new Error(
-      `Prisma Client is missing the Contestant model (out of date). ${PRISTINE_CLIENT_REMEDY}`,
+      `Prisma Client is out of date (missing expected models). ${PRISTINE_CLIENT_REMEDY}`,
     );
   }
 

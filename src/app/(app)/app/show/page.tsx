@@ -5,6 +5,7 @@ import {
   PERFORMANCE_STATUS_LABEL,
 } from "@/lib/show/performance-labels";
 import { listPerformancesForSeasonAndOptionalStage } from "@/server/performances/performance.service";
+import { getPublicResultsPayloadForShowState } from "@/server/results/public-results.service";
 import { resolveShowState } from "@/server/show/show-state.service";
 
 export const metadata: Metadata = {
@@ -22,6 +23,8 @@ export default async function AppShowPage() {
           take: 8,
         })
       : [];
+
+  const publishedResults = await getPublicResultsPayloadForShowState(showState);
 
   return (
     <div className="flex flex-col gap-5">
@@ -61,6 +64,14 @@ export default async function AppShowPage() {
           </dt>
           <dd className="font-medium text-foreground">
             {showState.episode?.title ?? "Not published"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase tracking-wide text-foreground/50">
+            Published stage results
+          </dt>
+          <dd className="font-medium text-foreground">
+            {publishedResults ? publishedResults.title : "None"}
           </dd>
         </div>
       </dl>
