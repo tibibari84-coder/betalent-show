@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
+import {
+  countPublishedStageResultsForSeason,
+  getPublishedStageResultsHistoryForSeason,
+} from "@/server/archive/result-history.service";
 import { getPublicResultsPayloadForShowState } from "@/server/results/public-results.service";
 import { resolveShowState } from "@/server/show/show-state.service";
 
@@ -11,6 +16,19 @@ export const metadata: Metadata = {
 export default async function AppResultsPage() {
   const showState = await resolveShowState();
   const published = await getPublicResultsPayloadForShowState(showState);
+
+  const seasonId = showState.season?.id;
+  const publishedHistoryCount =
+    seasonId != null
+      ? await countPublishedStageResultsForSeason(seasonId)
+      : 0;
+  const recentPublishedHistory =
+    seasonId != null
+      ? await getPublishedStageResultsHistoryForSeason({
+          seasonId,
+          take: 5,
+        })
+      : [];
 
   return (
     <div className="flex flex-col gap-5">
@@ -98,6 +116,48 @@ export default async function AppResultsPage() {
           </p>
         </article>
       )}
+
+      {seasonId != null ? (
+        <section className="flex flex-col gap-2 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4">
+          <h2 className="text-sm font-semibold tracking-tight">
+            Published result history (this season)
+          </h2>
+          <p className="text-xs text-foreground/65">
+            Stored{" "}
+            <code className="rounded bg-foreground/5 px-1 font-mono text-[11px]">
+              PUBLISHED
+            </code>{" "}
+            packages only — drafts never appear here.
+          </p>
+          <p className="text-sm text-foreground">
+            Total published packages:{" "}
+            <span className="font-medium">{publishedHistoryCount}</span>
+          </p>
+          {recentPublishedHistory.length === 0 ? (
+            <p className="text-xs text-foreground/55">
+              No prior published results in this season yet.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-2 text-xs text-foreground/75">
+              {recentPublishedHistory.map((h) => (
+                <li key={h.stageResultId}>
+                  <span className="font-medium text-foreground">{h.title}</span>{" "}
+                  · {h.stageTitle} ·{" "}
+                  {h.publishedAt.toLocaleDateString(undefined, {
+                    dateStyle: "medium",
+                  })}
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link
+            href="/app/archive"
+            className="text-sm font-medium text-foreground underline underline-offset-4"
+          >
+            BETALENT archive (completed seasons)
+          </Link>
+        </section>
+      ) : null}
     </div>
   );
 }

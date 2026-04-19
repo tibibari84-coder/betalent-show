@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { isArchivedSeasonStatus } from "@/lib/archive/archive-rules";
 import {
   PERFORMANCE_KIND_LABEL,
   PERFORMANCE_STATUS_LABEL,
@@ -25,6 +26,13 @@ export default async function AppShowPage() {
       : [];
 
   const publishedResults = await getPublicResultsPayloadForShowState(showState);
+
+  const seasonArchiveContext =
+    showState.season != null
+      ? isArchivedSeasonStatus(showState.season.status)
+        ? "Archive season (completed or archived)"
+        : "Live season context"
+      : "No season";
 
   return (
     <div className="flex flex-col gap-5">
@@ -73,6 +81,12 @@ export default async function AppShowPage() {
           <dd className="font-medium text-foreground">
             {publishedResults ? publishedResults.title : "None"}
           </dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase tracking-wide text-foreground/50">
+            Season context
+          </dt>
+          <dd className="font-medium text-foreground">{seasonArchiveContext}</dd>
         </div>
       </dl>
 

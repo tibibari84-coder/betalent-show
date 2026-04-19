@@ -4,6 +4,7 @@ import { logoutAction } from "@/server/auth/actions";
 import { getSession } from "@/server/auth/session";
 import { ADVANCEMENT_DECISION_LABEL } from "@/lib/results/decision-labels";
 import { CONTESTANT_STATUS_LABEL } from "@/lib/show/contestant-labels";
+import { getContestantHistorySummary } from "@/server/archive/contestant-history.service";
 import { getContestantByUserId } from "@/server/contestants/contestant.service";
 import { listContestantPerformances } from "@/server/performances/performance.service";
 import { getLatestPublishedAdvancementSummaryForContestant } from "@/server/results/advancement.service";
@@ -28,6 +29,9 @@ export default async function AppProfilePage() {
     : [];
   const publishedAdvancement = contestant
     ? await getLatestPublishedAdvancementSummaryForContestant(contestant.id)
+    : null;
+  const contestantHistory = contestant
+    ? await getContestantHistorySummary({ contestantId: contestant.id })
     : null;
 
   return (
@@ -166,6 +170,40 @@ export default async function AppProfilePage() {
                   </li>
                 ))}
               </ul>
+            ) : null}
+            {contestantHistory ? (
+              <div className="flex flex-col gap-0.5 border-t border-foreground/10 pt-4">
+                <dt className="text-xs uppercase tracking-wide text-foreground/50">
+                  Official history summary
+                </dt>
+                <dd className="space-y-1 text-xs leading-relaxed text-foreground/70">
+                  <p>
+                    Seasons with a performance:{" "}
+                    <span className="font-medium text-foreground">
+                      {contestantHistory.seasonsParticipatedCount}
+                    </span>
+                  </p>
+                  <p>
+                    Published advancement outcomes (official):{" "}
+                    <span className="font-medium text-foreground">
+                      {contestantHistory.publishedAdvancementOutcomeCount}
+                    </span>
+                  </p>
+                  <p>
+                    Historical performances (completed / archived context):{" "}
+                    <span className="font-medium text-foreground">
+                      {contestantHistory.historicalPerformanceCount}
+                    </span>
+                  </p>
+                  {contestantHistory.seasonTitlesSample.length > 0 ? (
+                    <p className="text-foreground/55">
+                      Seasons:{" "}
+                      {contestantHistory.seasonTitlesSample.join(", ")}
+                      {contestantHistory.seasonsParticipatedCount > 5 ? "…" : ""}
+                    </p>
+                  ) : null}
+                </dd>
+              </div>
             ) : null}
           </dl>
         )}
