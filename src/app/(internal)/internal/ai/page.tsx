@@ -1,25 +1,27 @@
 import type { Metadata } from "next";
 
-import { InternalResultsTools } from "@/components/results/InternalResultsTools";
+import { InternalAiTools } from "@/components/ai/InternalAiTools";
 import { InternalSessionFallback } from "@/components/internal/InternalSessionFallback";
 import { AppContainer } from "@/components/shell/AppContainer";
 import { MobilePageShell } from "@/components/shell/MobilePageShell";
+import { isOpenAiConfigured } from "@/lib/env/sanity";
 import { getSession } from "@/server/auth/session";
 import {
   isAuditionReviewerEmail,
   parseAuditionReviewerEmailAllowlist,
 } from "@/server/auditions/reviewer.guard";
+import { listRecentAiOutputs } from "@/server/ai/ai-output.service";
 import {
   missingOperatorAllowlistMessage,
   notAuthorizedOperatorMessage,
 } from "@/server/internal/access-copy";
 
 export const metadata: Metadata = {
-  title: "Results publish · BETALENT",
+  title: "AI layer · BETALENT",
   robots: { index: false, follow: false },
 };
 
-export default async function InternalResultsPublishPage() {
+export default async function InternalAiPage() {
   const session = await getSession();
   if (!session) {
     return <InternalSessionFallback />;
@@ -27,6 +29,7 @@ export default async function InternalResultsPublishPage() {
 
   const allowlistConfigured = parseAuditionReviewerEmailAllowlist().size > 0;
   const isOperator = isAuditionReviewerEmail(session.user.email);
+  const recent = await listRecentAiOutputs(25);
 
   return (
     <MobilePageShell>
@@ -35,19 +38,11 @@ export default async function InternalResultsPublishPage() {
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-foreground/55">
             BETALENT · Internal
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Stage results (manual)
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">AI layer</h1>
           <p className="text-sm leading-relaxed text-foreground/70">
-            Draft → ordered entries → publish. Consumer pages only trust{" "}
-            <code className="mx-1 rounded bg-foreground/5 px-1 text-xs">
-              PUBLISHED
-            </code>{" "}
-            packages. Same email allowlist as audition review (
-            <code className="rounded bg-foreground/5 px-1 text-xs">
-              BETALENT_AUDITION_REVIEWER_EMAILS
-            </code>
-            ).
+            Interpretive AI copy only — separate from official StageResult,
+            AdvancementDecision, and editorial placement truth. Generate, review,
+            then publish for optional member surfaces.
           </p>
 
           {!allowlistConfigured ? (
@@ -62,7 +57,12 @@ export default async function InternalResultsPublishPage() {
             </p>
           ) : null}
 
-          {allowlistConfigured && isOperator ? <InternalResultsTools /> : null}
+          {allowlistConfigured && isOperator ? (
+            <InternalAiTools
+              recent={recent}
+              openAiConfigured={isOpenAiConfigured()}
+            />
+          ) : null}
         </main>
       </AppContainer>
     </MobilePageShell>

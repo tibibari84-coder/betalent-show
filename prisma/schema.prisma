@@ -163,6 +163,30 @@ enum EditorialPlacementStatus {
   ARCHIVED
 }
 
+/// AI layer role — interpretive only; never official competition truth.
+enum AIOutputKind {
+  JUDGE
+  HOST
+  PRODUCER
+}
+
+/// Explicit anchor for persisted AI outputs (exactly one FK pair must match targetType).
+enum AIOutputTargetType {
+  PERFORMANCE
+  STAGE
+  EPISODE
+  STAGE_RESULT
+  EDITORIAL_PLACEMENT
+}
+
+enum AIOutputStatus {
+  DRAFT
+  GENERATED
+  REVIEWED
+  PUBLISHED
+  ARCHIVED
+}
+
 model User {
   id                    String    @id @default(cuid())
   email                 String    @unique
@@ -239,6 +263,7 @@ model Stage {
   stageResults         StageResult[]
   advancementDecisions AdvancementDecision[]
   editorialPlacements EditorialPlacement[]
+  aiOutputs            AIOutput[]
 
   @@unique([seasonId, slug])
   @@unique([seasonId, orderIndex])
@@ -267,6 +292,7 @@ model Episode {
   @@index([stageId, status, premiereAt])
   performances Performance[]
   editorialPlacements EditorialPlacement[]
+  aiOutputs            AIOutput[]
 }
 
 /// BETALENT show identity for a participant — not the same as `User` (account).
@@ -319,6 +345,7 @@ model Performance {
   stageResultEntries   StageResultEntry[]
   advancementDecisions AdvancementDecision[]
   editorialPlacements EditorialPlacement[]
+  aiOutputs            AIOutput[]
 }
 
 /// Publishable result package for a stage — public truth boundary when PUBLISHED.
@@ -337,6 +364,7 @@ model StageResult {
   entries     StageResultEntry[]
   advancementDecisions AdvancementDecision[]
   editorialPlacements EditorialPlacement[]
+  aiOutputs            AIOutput[]
 
   @@index([seasonId, stageId, status])
   @@index([status, publishedAt])
@@ -425,10 +453,44 @@ model EditorialPlacement {
   publishedAt      DateTime?
   createdAt        DateTime                 @default(now())
   updatedAt        DateTime                 @updatedAt
+  aiOutputs        AIOutput[]
 
   @@index([editorialSlotId, status])
   @@index([status, publishedAt])
   @@index([editorialSlotId, sortOrder])
+}
+
+/// Persisted AI-generated copy — separate from StageResult / AdvancementDecision / editorial placement truth.
+model AIOutput {
+  id                   String             @id @default(cuid())
+  kind                 AIOutputKind
+  targetType           AIOutputTargetType
+  performanceId        String?
+  performance          Performance?       @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  stageId              String?
+  stage                Stage?             @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  episodeId            String?
+  episode              Episode?           @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  stageResultId        String?
+  stageResult          StageResult?       @relation(fields: [stageResultId], references: [id], onDelete: Cascade)
+  editorialPlacementId String?
+  editorialPlacement   EditorialPlacement? @relation(fields: [editorialPlacementId], references: [id], onDelete: Cascade)
+  status               AIOutputStatus     @default(DRAFT)
+  promptVersion        String?
+  title                String?
+  body                 String             @db.Text
+  metaJson             Json?
+  generatedAt          DateTime?
+  publishedAt          DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([kind, status, updatedAt])
+  @@index([kind, targetType, performanceId])
+  @@index([kind, targetType, stageId])
+  @@index([kind, targetType, episodeId])
+  @@index([kind, targetType, stageResultId])
+  @@index([kind, targetType, editorialPlacementId])
 }
 
 model AuditionWindow {

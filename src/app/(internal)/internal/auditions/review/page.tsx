@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { InternalSessionFallback } from "@/components/internal/InternalSessionFallback";
 import { AppContainer } from "@/components/shell/AppContainer";
 import { MobilePageShell } from "@/components/shell/MobilePageShell";
 import { AuditionReviewDecisionForm } from "@/components/auditions/AuditionReviewDecisionForm";
@@ -9,6 +10,10 @@ import {
   isAuditionReviewerEmail,
   parseAuditionReviewerEmailAllowlist,
 } from "@/server/auditions/reviewer.guard";
+import {
+  missingOperatorAllowlistMessage,
+  notAuthorizedOperatorMessage,
+} from "@/server/internal/access-copy";
 
 export const metadata: Metadata = {
   title: "Audition review · BETALENT",
@@ -18,7 +23,7 @@ export const metadata: Metadata = {
 export default async function InternalAuditionReviewPage() {
   const session = await getSession();
   if (!session) {
-    return null;
+    return <InternalSessionFallback />;
   }
 
   const allowlist = parseAuditionReviewerEmailAllowlist();
@@ -41,16 +46,15 @@ export default async function InternalAuditionReviewPage() {
           </h1>
 
           {!allowlistConfigured ? (
-            <p className="text-sm leading-relaxed text-foreground/70">
-              Configure <code className="rounded bg-foreground/5 px-1 py-0.5 text-xs">BETALENT_AUDITION_REVIEWER_EMAILS</code>{" "}
-              (comma-separated emails) to enable this stub. It is not a full admin
-              console.
+            <p className="text-sm leading-relaxed text-foreground/75">
+              {missingOperatorAllowlistMessage()} This queue is a minimal stub —
+              not a full admin console.
             </p>
           ) : null}
 
           {allowlistConfigured && !isReviewer ? (
-            <p className="text-sm text-foreground/75">
-              This queue is restricted to configured BETALENT audition reviewers.
+            <p className="text-sm leading-relaxed text-foreground/75">
+              {notAuthorizedOperatorMessage()}
             </p>
           ) : null}
 

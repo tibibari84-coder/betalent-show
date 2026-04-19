@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AiInsightBlock } from "@/components/ai/AiInsightBlock";
 import { EditorialCallout } from "@/components/editorial/EditorialCallout";
 import { isArchivedSeasonStatus } from "@/lib/archive/archive-rules";
 import {
@@ -8,7 +9,12 @@ import {
 } from "@/lib/show/performance-labels";
 import { listPerformancesForSeasonAndOptionalStage } from "@/server/performances/performance.service";
 import { getPublishedPlacementForSlotKey } from "@/server/editorial/public-editorial.service";
+import {
+  getPublicHostForStage,
+  getPublicProducerForEditorialPlacement,
+} from "@/server/ai/public-ai.service";
 import { getPublicResultsPayloadForShowState } from "@/server/results/public-results.service";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { resolveShowState } from "@/server/show/show-state.service";
 
 export const metadata: Metadata = {
@@ -33,6 +39,20 @@ export default async function AppShowPage() {
     getPublishedPlacementForSlotKey("SHOW_SPOTLIGHT"),
   ]);
 
+  const stageIdForAi = showState.stage?.id;
+  const [producerShowHero, producerShowSpotlight, hostStageAi] =
+    await Promise.all([
+      showHero
+        ? getPublicProducerForEditorialPlacement(showHero.placementId)
+        : Promise.resolve(null),
+      showSpotlight
+        ? getPublicProducerForEditorialPlacement(showSpotlight.placementId)
+        : Promise.resolve(null),
+      stageIdForAi
+        ? getPublicHostForStage(stageIdForAi)
+        : Promise.resolve(null),
+    ]);
+
   const seasonArchiveContext =
     showState.season != null
       ? isArchivedSeasonStatus(showState.season.status)
@@ -51,13 +71,24 @@ export default async function AppShowPage() {
         a single, intentional viewing space for the competition.
       </p>
       <p className="text-sm leading-relaxed text-foreground/65">
-        Playback is not built yet. This page reads show state and any official
-        Performance records already in the season (the show object — not raw
-        uploads).
+        Playback is not built yet. This page reads show state and official
+        Performance rows already in the season (structured show objects — not raw
+        uploads or external URLs as finished media).
       </p>
 
+      {!showState.season ? (
+        <EmptyState title="Season focus">
+          No active season is wired into show state yet. Official performances
+          and results always come from published BETALENT records — not from this
+          page alone.
+        </EmptyState>
+      ) : null}
+
       <EditorialCallout placement={showHero} variant="hero" />
+      <AiInsightBlock variant="producer" output={producerShowHero} />
       <EditorialCallout placement={showSpotlight} variant="spotlight" />
+      <AiInsightBlock variant="producer" output={producerShowSpotlight} />
+      <AiInsightBlock variant="host" output={hostStageAi} />
 
       <dl className="grid gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-sm">
         <div>
@@ -105,10 +136,11 @@ export default async function AppShowPage() {
           Official performances (season)
         </h2>
         {performanceSummaries.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-foreground/15 p-4 text-sm text-foreground/65">
-            No Performance rows for this season yet — they appear when accepted
-            auditions are mapped into the show core.
-          </p>
+          <EmptyState title="Official performances">
+            No Performance records for this season yet. They appear when an
+            accepted audition is promoted into the BETALENT show core — not from
+            informal uploads.
+          </EmptyState>
         ) : (
           <ul className="flex flex-col gap-2">
             {performanceSummaries.map((p) => (
@@ -124,7 +156,8 @@ export default async function AppShowPage() {
                 </p>
                 {p.mediaRef ? (
                   <p className="mt-1 truncate text-[11px] text-foreground/45">
-                    Temp. media ref: {p.mediaRef}
+                    Temporary reference (not finished BETALENT media):{" "}
+                    {p.mediaRef}
                   </p>
                 ) : null}
               </li>

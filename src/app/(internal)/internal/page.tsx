@@ -1,13 +1,14 @@
-import { logoutAction } from "@/server/auth/actions";
-import { getSession } from "@/server/auth/session";
+import { InternalSessionFallback } from "@/components/internal/InternalSessionFallback";
 import { AppContainer } from "@/components/shell/AppContainer";
 import { MobilePageShell } from "@/components/shell/MobilePageShell";
+import { logoutAction } from "@/server/auth/actions";
+import { getSession } from "@/server/auth/session";
 
 export default async function InternalAreaPlaceholderPage() {
   const session = await getSession();
 
   if (!session) {
-    return null;
+    return <InternalSessionFallback />;
   }
 
   return (
@@ -20,11 +21,14 @@ export default async function InternalAreaPlaceholderPage() {
           <h1 className="text-2xl font-semibold tracking-tight">
             Show-runner (placeholder)
           </h1>
-          <p className="text-sm text-foreground/70">
+          <p className="text-sm leading-relaxed text-foreground/70">
             Signed in as{" "}
             <span className="font-medium text-foreground">{session.user.email}</span>
-            . Full admin and tooling are intentionally deferred — this route is
-            only gated so it does not read like consumer product UI.
+            . Consumer-facing BETALENT lives under{" "}
+            <span className="font-medium text-foreground">/app</span>; deeper admin
+            is intentionally minimal. Treat anything under{" "}
+            <span className="font-medium text-foreground">/internal</span> as
+            operator-only stubs, not finished product surfaces.
           </p>
           <form action={logoutAction} className="pt-2">
             <button

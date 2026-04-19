@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 
 import { AuditionDraftCreateForm } from "@/components/auditions/AuditionDraftCreateForm";
 import { AuditionSubmissionRow } from "@/components/auditions/AuditionSubmissionRow";
+import { DisclaimerStrip } from "@/components/shared/DisclaimerStrip";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ORIGINALS_ONLY_SHORT } from "@/lib/copy/disclaimers";
 import { canWithdrawSubmission } from "@/server/auditions/eligibility.service";
 import { loadAuditionsPageData } from "@/server/auditions/actions";
 
@@ -38,17 +41,23 @@ export default async function AppAuditionsPage() {
       </p>
       <h1 className="text-2xl font-semibold tracking-tight">Auditions</h1>
       <p className="text-sm leading-relaxed text-foreground/70">
-        Formal entry to BETALENT Season 1 (Originals Only) runs through audition
-        windows. Uploading media elsewhere is not the same as an official
-        submission — only a submitted entry tied to an open window counts.
+        Formal entry to BETALENT Season 1 runs through audition windows on a
+        published schedule. Posting media elsewhere does not create an official
+        submission — only a completed entry submitted while the window is open
+        on schedule counts.
       </p>
 
+      <DisclaimerStrip>
+        <p className="font-medium text-foreground/82">Originals Only</p>
+        <p className="mt-2">{ORIGINALS_ONLY_SHORT}</p>
+      </DisclaimerStrip>
+
       {!window ? (
-        <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-sm text-foreground/75">
-          There is no open BETALENT audition window right now. When the next
-          window is scheduled and opened, you will be able to start a formal
-          entry here.
-        </div>
+        <EmptyState title="No audition window">
+          There is no BETALENT audition window configured or open right now. When
+          production schedules the next window, formal entries will start here —
+          this page will not accept side-channel uploads.
+        </EmptyState>
       ) : (
         <dl className="grid gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-sm">
           <div>
@@ -124,9 +133,12 @@ export default async function AppAuditionsPage() {
               Your entries for this window
             </h2>
             {submissions.length === 0 ? (
-              <p className="mt-2 text-sm text-foreground/60">
-                No drafts or submissions yet for the current open window.
-              </p>
+              <div className="mt-2">
+                <EmptyState title="Your entries">
+                  No drafts or submissions for this window yet. Save a draft
+                  first, then submit while the schedule shows submissions open.
+                </EmptyState>
+              </div>
             ) : (
               <ul className="mt-3 flex flex-col gap-3">
                 {submissions.map((s) => {

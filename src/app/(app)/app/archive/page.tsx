@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   listArchivedSeasons,
   listArchivedStagesForSeason,
@@ -33,10 +34,11 @@ export default async function AppArchivePage() {
       </p>
 
       {seasons.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-foreground/15 p-4 text-sm text-foreground/65">
-          No archived seasons yet. When a BETALENT season is marked completed or
-          archived, it will be listed here.
-        </div>
+        <EmptyState title="Nothing archived yet">
+          Completed or archived BETALENT seasons will list here when their status
+          moves out of the live competition surface — driven by explicit season
+          records, not feeds.
+        </EmptyState>
       ) : (
         <ul className="flex flex-col gap-4">
           {await Promise.all(

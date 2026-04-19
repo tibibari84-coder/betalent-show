@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
 
+import { AiInsightBlock } from "@/components/ai/AiInsightBlock";
 import { EditorialCallout } from "@/components/editorial/EditorialCallout";
 import { getSession } from "@/server/auth/session";
 import { getPublishedPlacementForSlotKey } from "@/server/editorial/public-editorial.service";
+import {
+  getPublicHostForStage,
+  getPublicProducerForEditorialPlacement,
+} from "@/server/ai/public-ai.service";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { resolveShowState } from "@/server/show/show-state.service";
 
 export const metadata: Metadata = {
@@ -16,6 +22,17 @@ export default async function AppHomePage() {
     resolveShowState(),
     getPublishedPlacementForSlotKey("HOME_HERO"),
     getPublishedPlacementForSlotKey("HOME_SPOTLIGHT"),
+  ]);
+
+  const stageId = showState.stage?.id;
+  const [producerHero, producerSpotlight, hostStage] = await Promise.all([
+    homeHero
+      ? getPublicProducerForEditorialPlacement(homeHero.placementId)
+      : Promise.resolve(null),
+    homeSpotlight
+      ? getPublicProducerForEditorialPlacement(homeSpotlight.placementId)
+      : Promise.resolve(null),
+    stageId ? getPublicHostForStage(stageId) : Promise.resolve(null),
   ]);
 
   if (!session) {
@@ -36,12 +53,23 @@ export default async function AppHomePage() {
         Welcome, {name}
       </h1>
       <p className="text-sm leading-relaxed text-foreground/70">
-        BETALENT orchestration is now centered on season, stage, and episode
-        state.
+        BETALENT orchestration is centered on season, stage, and episode state —
+        not a feed or recommendation surface.
       </p>
 
+      {!showState.season ? (
+        <EmptyState title="Season focus">
+          No active BETALENT season is in focus yet. When production assigns live
+          season data, this lobby will reflect it. Curated or AI-assisted blocks
+          only appear when published — they never replace official records.
+        </EmptyState>
+      ) : null}
+
       <EditorialCallout placement={homeHero} variant="hero" />
+      <AiInsightBlock variant="producer" output={producerHero} />
       <EditorialCallout placement={homeSpotlight} variant="spotlight" />
+      <AiInsightBlock variant="producer" output={producerSpotlight} />
+      <AiInsightBlock variant="host" output={hostStage} />
 
       <dl className="grid gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-sm">
         <div>

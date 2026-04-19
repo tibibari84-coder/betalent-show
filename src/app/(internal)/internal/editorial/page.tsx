@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { InternalEditorialTools } from "@/components/editorial/InternalEditorialTools";
+import { InternalSessionFallback } from "@/components/internal/InternalSessionFallback";
 import { AppContainer } from "@/components/shell/AppContainer";
 import { MobilePageShell } from "@/components/shell/MobilePageShell";
 import { getSession } from "@/server/auth/session";
@@ -9,6 +10,10 @@ import {
   parseAuditionReviewerEmailAllowlist,
 } from "@/server/auditions/reviewer.guard";
 import { prisma } from "@/server/db/prisma";
+import {
+  missingOperatorAllowlistMessage,
+  notAuthorizedOperatorMessage,
+} from "@/server/internal/access-copy";
 
 export const metadata: Metadata = {
   title: "Editorial · BETALENT",
@@ -18,7 +23,7 @@ export const metadata: Metadata = {
 export default async function InternalEditorialPage() {
   const session = await getSession();
   if (!session) {
-    return null;
+    return <InternalSessionFallback />;
   }
 
   const allowlistConfigured = parseAuditionReviewerEmailAllowlist().size > 0;
@@ -46,17 +51,15 @@ export default async function InternalEditorialPage() {
           </p>
 
           {!allowlistConfigured ? (
-            <p className="text-sm text-foreground/75">
-              Configure{" "}
-              <code className="rounded bg-foreground/5 px-1 text-xs">
-                BETALENT_AUDITION_REVIEWER_EMAILS
-              </code>
-              .
+            <p className="text-sm leading-relaxed text-foreground/75">
+              {missingOperatorAllowlistMessage()}
             </p>
           ) : null}
 
           {allowlistConfigured && !isOperator ? (
-            <p className="text-sm text-foreground/75">Restricted.</p>
+            <p className="text-sm leading-relaxed text-foreground/75">
+              {notAuthorizedOperatorMessage()}
+            </p>
           ) : null}
 
           {allowlistConfigured && isOperator ? (

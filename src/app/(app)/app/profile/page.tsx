@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 
 import { logoutAction } from "@/server/auth/actions";
 import { getSession } from "@/server/auth/session";
+import { AiInsightBlock } from "@/components/ai/AiInsightBlock";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { ADVANCEMENT_DECISION_LABEL } from "@/lib/results/decision-labels";
 import { CONTESTANT_STATUS_LABEL } from "@/lib/show/contestant-labels";
 import { getContestantHistorySummary } from "@/server/archive/contestant-history.service";
 import { getContestantByUserId } from "@/server/contestants/contestant.service";
 import { listContestantPerformances } from "@/server/performances/performance.service";
+import { getPublicJudgeForPerformance } from "@/server/ai/public-ai.service";
 import { getLatestPublishedAdvancementSummaryForContestant } from "@/server/results/advancement.service";
 
 export const metadata: Metadata = {
@@ -33,6 +36,12 @@ export default async function AppProfilePage() {
   const contestantHistory = contestant
     ? await getContestantHistorySummary({ contestantId: contestant.id })
     : null;
+
+  const firstPerformanceId = performances[0]?.id;
+  const judgeInsight =
+    firstPerformanceId != null
+      ? await getPublicJudgeForPerformance(firstPerformanceId)
+      : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -101,11 +110,13 @@ export default async function AppProfilePage() {
           from this screen name until promoted from auditions.
         </p>
         {!contestant ? (
-          <p className="rounded-2xl border border-dashed border-foreground/15 p-4 text-sm text-foreground/65">
-            No contestant record yet. When an accepted audition is mapped into
-            the show, BETALENT will create your contestant profile.
-          </p>
+          <EmptyState title="Contestant identity">
+            No BETALENT contestant record yet. When an accepted audition is mapped
+            into the show core, your competition-facing identity appears here —
+            separate from this account screen until then.
+          </EmptyState>
         ) : (
+          <>
           <dl className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-sm">
             <div className="flex flex-col gap-0.5">
               <dt className="text-xs uppercase tracking-wide text-foreground/50">
@@ -206,6 +217,8 @@ export default async function AppProfilePage() {
               </div>
             ) : null}
           </dl>
+          <AiInsightBlock variant="judge" output={judgeInsight} />
+          </>
         )}
       </div>
 

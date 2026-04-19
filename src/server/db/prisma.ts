@@ -22,7 +22,8 @@ function hasExpectedDelegates(client: unknown): boolean {
   return (
     typeof c.contestant?.findUnique === "function" &&
     typeof c.stageResult?.findUnique === "function" &&
-    typeof c.editorialSlot?.findUnique === "function"
+    typeof c.editorialSlot?.findUnique === "function" &&
+    typeof c.aIOutput?.findUnique === "function"
   );
 }
 

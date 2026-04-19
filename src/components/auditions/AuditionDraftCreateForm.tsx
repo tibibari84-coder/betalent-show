@@ -3,6 +3,10 @@
 import { useActionState } from "react";
 
 import {
+  AUDITION_RIGHTS_DECLARATION,
+  TEMPORARY_MEDIA_REFERENCE,
+} from "@/lib/copy/disclaimers";
+import {
   createAuditionDraftAction,
   type AuditionActionState,
 } from "@/server/auditions/actions";
@@ -30,8 +34,13 @@ export function AuditionDraftCreateForm({
       </h2>
       <p className="mt-1 text-xs leading-relaxed text-foreground/65">
         Saving a draft does not enter you into BETALENT — you must submit while
-        the window is open. Media below is a temporary placeholder until the
-        BETALENT upload pipeline exists.
+        the window is open on schedule.
+      </p>
+      <p className="mt-2 text-xs leading-relaxed text-foreground/60">
+        {AUDITION_RIGHTS_DECLARATION}
+      </p>
+      <p className="mt-2 text-xs leading-relaxed text-foreground/60">
+        {TEMPORARY_MEDIA_REFERENCE}
       </p>
       {!canStartNewDraft ? (
         <p className="mt-3 rounded-lg border border-foreground/10 bg-foreground/[0.03] px-3 py-2 text-sm text-foreground/75">
@@ -92,7 +101,7 @@ export function AuditionDraftCreateForm({
           <input
             name="externalMediaRef"
             type="url"
-            placeholder="Link or opaque ref — not ingested by BETALENT yet"
+            placeholder="URL or opaque ref — not processed as finished BETALENT media"
             disabled={!canStartNewDraft}
             className="h-11 w-full rounded-xl border border-foreground/15 bg-transparent px-3 text-xs outline-none transition focus:border-foreground/40 focus:ring-2 focus:ring-foreground/10 disabled:opacity-50"
           />

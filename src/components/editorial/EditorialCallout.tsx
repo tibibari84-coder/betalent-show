@@ -22,7 +22,8 @@ export function EditorialCallout(props: {
   return (
     <aside className="flex flex-col gap-2 rounded-2xl border border-foreground/15 bg-foreground/[0.04] p-4">
       <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-foreground/45">
-        BETALENT curated · not an official result
+        BETALENT curated · presentation layer · not an official competition
+        outcome
       </p>
       <p className={emphasis + " text-foreground"}>
         {placement.headline?.trim() || placement.slotTitle}
