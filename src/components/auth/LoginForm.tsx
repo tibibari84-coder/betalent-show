@@ -13,13 +13,27 @@ import { SubmitButton } from "./SubmitButton";
 
 const initialState: AuthActionState | undefined = undefined;
 
-export function LoginForm({ defaultRedirect }: { defaultRedirect: string }) {
+export function LoginForm({
+  defaultRedirect,
+  signedOut,
+}: {
+  defaultRedirect: string;
+  signedOut?: boolean;
+}) {
   const [state, formAction] = useActionState(loginAction, initialState);
 
   return (
     <AuthCard title="Sign in" subtitle="Member access to BETALENT">
       <form action={formAction} className="flex flex-col gap-4">
         <input type="hidden" name="redirect" value={defaultRedirect} readOnly />
+        {signedOut ? (
+          <p
+            className="rounded-lg border border-foreground/10 bg-foreground/[0.03] px-3 py-2 text-center text-sm text-foreground/75"
+            role="status"
+          >
+            You&apos;re signed out. Sign in to continue.
+          </p>
+        ) : null}
         {state?.error ? (
           <p
             className="rounded-lg bg-red-500/10 px-3 py-2 text-center text-sm text-red-700 dark:text-red-400"

@@ -14,17 +14,19 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ redirect?: string }>;
+  searchParams: Promise<{ redirect?: string; signedOut?: string }>;
 }) {
   const params = await searchParams;
   await redirectAuthenticatedAway(params.redirect);
 
   const defaultRedirect = sanitizeRedirectPath(params.redirect);
+  const signedOut =
+    params.signedOut === "1" || params.signedOut === "true";
 
   return (
     <MobilePageShell>
       <AppContainer>
-        <LoginForm defaultRedirect={defaultRedirect} />
+        <LoginForm defaultRedirect={defaultRedirect} signedOut={signedOut} />
       </AppContainer>
     </MobilePageShell>
   );

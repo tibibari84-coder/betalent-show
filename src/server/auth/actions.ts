@@ -64,7 +64,7 @@ export async function loginAction(
 
   if (!ok) {
     return {
-      error: "Invalid email or password.",
+      error: "We couldn't sign you in. Check your email and password.",
     };
   }
 
@@ -148,5 +148,5 @@ export async function logoutAction() {
 
   cookieStore.delete(SESSION_COOKIE_NAME);
 
-  redirect("/login");
+  redirect("/login?signedOut=1");
 }

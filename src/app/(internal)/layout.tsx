@@ -1,21 +1,14 @@
 import type { ReactNode } from "react";
-import { redirect } from "next/navigation";
 
-import { requireAuth } from "@/server/auth/guard";
-import { getSession } from "@/server/auth/session";
+import { requireAuthenticatedOnboarded } from "@/server/auth/guard";
+import { getRequestedPathname } from "@/server/auth/request-path";
 
 export default async function InternalGroupLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  await requireAuth("/internal");
-  const session = await getSession();
-  if (!session) {
-    return null;
-  }
-  if (!session.user.onboardingCompletedAt) {
-    redirect("/welcome");
-  }
+  await requireAuthenticatedOnboarded(await getRequestedPathname("/internal"));
+
   return children;
 }

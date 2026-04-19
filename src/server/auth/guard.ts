@@ -4,15 +4,34 @@ import { resolvePostAuthRedirect } from "@/lib/auth/redirect";
 
 import { getSession } from "./session";
 
-export async function requireAuth(returnPath: string) {
+/** Must be signed in (any onboarding state). */
+export async function requireAuth(loginReturnPath: string) {
   const session = await getSession();
   if (!session) {
-    redirect(`/login?redirect=${encodeURIComponent(returnPath)}`);
+    redirect(`/login?redirect=${encodeURIComponent(loginReturnPath)}`);
   }
   return session;
 }
 
-/** If a session exists, leave auth pages for onboarding or the app. */
+/** Signed in + onboarding finished — consumer `/app` and `/internal` routes. */
+export async function requireAuthenticatedOnboarded(loginReturnPath: string) {
+  const session = await requireAuth(loginReturnPath);
+  if (!session.user.onboardingCompletedAt) {
+    redirect("/welcome");
+  }
+  return session;
+}
+
+/** Signed in but onboarding not finished — `/welcome` only. */
+export async function requireIncompleteOnboarding(loginReturnPath: string) {
+  const session = await requireAuth(loginReturnPath);
+  if (session.user.onboardingCompletedAt) {
+    redirect("/app");
+  }
+  return session;
+}
+
+/** Leave `/login` and `/register` once a session exists. */
 export async function redirectAuthenticatedAway(
   redirectParam?: string | null,
 ) {
