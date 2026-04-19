@@ -114,6 +114,25 @@ enum PerformanceStatus {
   ARCHIVED
 }
 
+/// Publication lifecycle for a stage result package (`StageResult`).
+enum StageResultStatus {
+  DRAFT
+  LOCKED
+  PUBLISHED
+  ARCHIVED
+}
+
+/// Official advancement / elimination outcome (not editorial copy).
+enum AdvancementDecisionKind {
+  ADVANCED
+  ELIMINATED
+  HOLD
+  PENDING
+  WINNER
+  RUNNER_UP
+  WILDCARD
+}
+
 model User {
   id                    String    @id @default(cuid())
   email                 String    @unique
@@ -156,8 +175,10 @@ model Season {
   updatedAt   DateTime     @updatedAt
   stages      Stage[]
   episodes    Episode[]
-  auditionWindows AuditionWindow[]
-  performances    Performance[]
+  auditionWindows     AuditionWindow[]
+  performances        Performance[]
+  stageResults        StageResult[]
+  advancementDecisions AdvancementDecision[]
 
   @@index([status, startAt])
 }
@@ -183,7 +204,9 @@ model Stage {
   updatedAt          DateTime    @updatedAt
   episodes           Episode[]
   auditionWindows    AuditionWindow[]
-  performances       Performance[]
+  performances         Performance[]
+  stageResults         StageResult[]
+  advancementDecisions AdvancementDecision[]
 
   @@unique([seasonId, slug])
   @@unique([seasonId, orderIndex])
@@ -225,7 +248,9 @@ model Contestant {
   status      ContestantStatus @default(ACTIVE)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime       @updatedAt
-  performances Performance[]
+  performances         Performance[]
+  stageResultEntries   StageResultEntry[]
+  advancementDecisions AdvancementDecision[]
 
   @@index([status])
 }
@@ -257,6 +282,70 @@ model Performance {
   @@index([contestantId, seasonId])
   @@index([stageId])
   @@index([episodeId])
+  stageResultEntries   StageResultEntry[]
+  advancementDecisions AdvancementDecision[]
+}
+
+/// Publishable result package for a stage — public truth boundary when PUBLISHED.
+model StageResult {
+  id          String             @id @default(cuid())
+  seasonId    String
+  season      Season             @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  stageId     String
+  stage       Stage              @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  title       String
+  summary     String?
+  status      StageResultStatus  @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  entries     StageResultEntry[]
+  advancementDecisions AdvancementDecision[]
+
+  @@index([seasonId, stageId, status])
+  @@index([status, publishedAt])
+}
+
+/// Ordered row in a published/ prep result package — explicit placement, not inferred.
+model StageResultEntry {
+  id             String       @id @default(cuid())
+  stageResultId  String
+  stageResult    StageResult  @relation(fields: [stageResultId], references: [id], onDelete: Cascade)
+  performanceId  String
+  performance    Performance  @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  contestantId   String
+  contestant     Contestant   @relation(fields: [contestantId], references: [id], onDelete: Cascade)
+  placementOrder Int
+  highlightLabel String?
+  createdAt      DateTime     @default(now())
+
+  @@unique([stageResultId, placementOrder])
+  @@unique([stageResultId, performanceId])
+  @@index([stageResultId])
+}
+
+/// Official outcome for a contestant / optional performance — may exist before public release.
+model AdvancementDecision {
+  id               String                  @id @default(cuid())
+  seasonId         String
+  season           Season                  @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  stageId          String
+  stage            Stage                   @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  contestantId     String
+  contestant       Contestant              @relation(fields: [contestantId], references: [id], onDelete: Cascade)
+  performanceId    String?
+  performance      Performance?            @relation(fields: [performanceId], references: [id], onDelete: SetNull)
+  decision         AdvancementDecisionKind
+  decidedAt        DateTime
+  note             String?
+  stageResultId    String?
+  stageResult      StageResult?            @relation(fields: [stageResultId], references: [id], onDelete: SetNull)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  @@index([seasonId, stageId])
+  @@index([contestantId, decidedAt])
+  @@index([stageResultId])
 }
 
 model AuditionWindow {
