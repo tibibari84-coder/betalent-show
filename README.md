@@ -1,14 +1,14 @@
-# BeTalent
+# BETALENT
 
-BeTalent is a mobile-first premium web talent show: structured competition, originals-first (Season 1), show-led — not feed-first or casual posting.
+BETALENT is a mobile-first premium web talent show: structured competition, originals-first (Season 1), show-led — not feed-first or casual posting.
 
-This repository is a **clean rebuild** from scratch. It does not carry over legacy routes, feeds, or BeTalent product concepts from prior codebases.
+This repository is a **clean rebuild** from scratch. It does not carry over legacy routes, feeds, or product concepts from prior codebases.
 
 ## Stack
 
 - **Next.js** (App Router) + **TypeScript**
 - **Tailwind CSS**
-- **Prisma** (`6.19.x`) + **PostgreSQL** for minimal auth persistence (User + Session). Pinned to v6 so `DATABASE_URL` lives in `schema.prisma` as in standard docs; upgrade to Prisma 7+ later if you adopt `prisma.config.ts`.
+- **Prisma** (`6.19.x`) + **PostgreSQL** (User, Session, minimal onboarding fields on User). Pinned to v6 so `DATABASE_URL` lives in `schema.prisma` as in standard docs; upgrade to Prisma 7+ later if you adopt `prisma.config.ts`.
 - **bcryptjs** for password hashing (server-side only)
 
 ## Install
@@ -17,13 +17,11 @@ This repository is a **clean rebuild** from scratch. It does not carry over lega
 npm install
 ```
 
-Copy environment scaffolding and adjust values when you connect services:
-
 ```bash
 cp .env.example .env.local
 ```
 
-Set a working `DATABASE_URL` before exercising auth (register/login).
+Set a working `DATABASE_URL` before running auth and onboarding.
 
 ## Development
 
@@ -35,39 +33,43 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Authentication (email + password)
 
-- **Register** at `/register` — creates a user, starts a **DB-backed session**, sets an **HTTP-only** cookie (`bt_session`), then redirects to `/app` (or a safe `?redirect=` path).
-- **Login** at `/login` — same session + cookie behavior; wrong credentials return a **generic** error (no user enumeration message).
-- **Logout** — server action clears the session row and cookie (used from `/app` and `/internal` placeholders).
-- **Protected routes** — `/app` and `/internal` require a valid session via group layouts (guests go to `/login?redirect=…`).
+- **Register** at `/register` — creates a user, session, and **HTTP-only** cookie (`bt_session`). If onboarding is not complete, the post-auth destination is **`/welcome`**, not `/app` (see below). A safe `?redirect=` is honored only after onboarding is complete.
+- **Login** at `/login` — same rules. Generic error on bad credentials.
+- **Logout** — server action used from `/app` and `/internal`.
+- **Guests** — cannot access `/welcome`, `/app`, or `/internal` (redirected to login with a return path).
 
-No OAuth, password reset, onboarding, or admin roles in this phase.
+## Onboarding (post-login)
+
+- **Route:** `/welcome` (authenticated only; guests are sent to login).
+- **Fields:** display name, unique username, city, country, optional “interested in auditioning” boolean (storage only — not a submission or contestant system).
+- **Completion:** `onboardingCompletedAt` is set; user is redirected to `/app`.
+- **Gates:** Users without a completed onboarding **cannot** open `/app` or `/internal` (they are redirected to `/welcome`). Users who already completed onboarding are redirected **away** from `/welcome` to `/app`.
+- **Post-auth destination** is centralized in `resolvePostAuthRedirect()` (`src/lib/auth/redirect.ts`).
 
 ## Prisma
 
-Schema: `prisma/schema.prisma` (auth models only for now).
+Schema: `prisma/schema.prisma`.
 
 ```bash
-npm run db:generate   # prisma generate — run after cloning or schema changes
+npm run db:generate
 ```
 
-When `DATABASE_URL` points at a PostgreSQL instance:
+When `DATABASE_URL` points at PostgreSQL:
 
 ```bash
-npm run db:push       # prisma db push — sync schema (dev / prototyping)
-npm run db:migrate    # prisma migrate dev — once you want versioned migrations
-npm run db:studio     # prisma studio
+npm run db:push       # dev sync
+npm run db:migrate    # versioned migrations when you choose
+npm run db:studio
 ```
 
 ## Project layout (high level)
 
-- `src/app/(public)` — public shell; `/login`, `/register`, home
-- `src/app/(app)` — member area (protected); placeholder at `/app`
-- `src/app/(internal)` — internal / show-runner shell (session-gated, not admin-auth); placeholder at `/internal`
-- `src/components/shell` — mobile-first layout primitives
-- `src/components/auth` — minimal auth UI
-- `src/server/auth` — sessions, actions, guards
-- `src/server/db` — Prisma client singleton
+- `src/app/(public)` — `/`, `/login`, `/register`
+- `src/app/(app)` — `/welcome` (onboarding), `/app` (member placeholder after onboarding)
+- `src/app/(internal)` — `/internal` (session + onboarding-complete gate)
+- `src/components/shell`, `src/components/auth`, `src/components/onboarding`
+- `src/server/auth`, `src/server/onboarding`, `src/server/db`
 
 ## Intentionally not built yet
 
-Onboarding, audition flows, scoring/results, uploads/video, payments (e.g. Stripe), AI features, full admin/show-runner tooling, profile editing beyond auth, OAuth/social login, password reset, and production marketing UI are **out of scope** for the current phase.
+Audition flows, scoring/results, uploads/video, payments (e.g. Stripe), AI features, full admin/show-runner RBAC, profile/settings beyond onboarding, OAuth/social login, password reset, and full product UI beyond placeholders.

@@ -4,12 +4,12 @@ import { redirect } from "next/navigation";
 import { requireAuth } from "@/server/auth/guard";
 import { getSession } from "@/server/auth/session";
 
-export default async function InternalGroupLayout({
+export default async function AppMemberLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  await requireAuth("/internal");
+  await requireAuth("/app");
   const session = await getSession();
   if (!session) {
     return null;

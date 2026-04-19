@@ -21,7 +21,7 @@ export function RegisterForm({
   const [state, formAction] = useActionState(registerAction, initialState);
 
   return (
-    <AuthCard title="Create account" subtitle="Join BeTalent — originals-first">
+    <AuthCard title="Create account" subtitle="Join BETALENT — originals-first">
       <form action={formAction} className="flex flex-col gap-4">
         <input type="hidden" name="redirect" value={defaultRedirect} readOnly />
         <div className="flex flex-col gap-1.5 text-left">

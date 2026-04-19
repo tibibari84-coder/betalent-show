@@ -12,7 +12,7 @@ export default function HomePage() {
             Web skeleton
           </p>
           <h1 className="text-3xl font-semibold tracking-tight text-balance">
-            BeTalent
+            BETALENT
           </h1>
           <p className="text-base text-foreground/80">
             Premium Digital Talent Show
@@ -22,11 +22,15 @@ export default function HomePage() {
             mobile web experience from day one.
           </p>
           <p className="mt-4 text-xs text-foreground/50">
-            Reserved routes for later phases:{" "}
+            Authenticated:{" "}
+            <code className="rounded bg-foreground/10 px-1.5 py-0.5 font-mono text-[0.7rem]">
+              /welcome
+            </code>{" "}
+            (onboarding),{" "}
             <code className="rounded bg-foreground/10 px-1.5 py-0.5 font-mono text-[0.7rem]">
               /app
             </code>
-            ,{" "}
+            . Session-gated internal shell:{" "}
             <code className="rounded bg-foreground/10 px-1.5 py-0.5 font-mono text-[0.7rem]">
               /internal
             </code>

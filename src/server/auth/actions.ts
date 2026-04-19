@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
-import { sanitizeRedirectPath } from "@/lib/auth/redirect";
+import { resolvePostAuthRedirect } from "@/lib/auth/redirect";
 import { prisma } from "@/server/db/prisma";
 
 import { hashPassword, verifyPassword } from "./password";
@@ -51,6 +51,11 @@ export async function loginAction(
   const email = normalizeEmail(rawEmail);
   const user = await prisma.user.findUnique({
     where: { email },
+    select: {
+      id: true,
+      passwordHash: true,
+      onboardingCompletedAt: true,
+    },
   });
 
   const ok =
@@ -65,7 +70,12 @@ export async function loginAction(
 
   await createSessionForUser(user.id);
 
-  redirect(sanitizeRedirectPath(redirectRaw || undefined));
+  redirect(
+    resolvePostAuthRedirect(
+      { onboardingCompletedAt: user.onboardingCompletedAt },
+      redirectRaw || undefined,
+    ),
+  );
 }
 
 export async function registerAction(
@@ -94,15 +104,19 @@ export async function registerAction(
   const email = normalizeEmail(rawEmail);
   const passwordHash = await hashPassword(rawPassword);
 
+  let newUser: { id: string; onboardingCompletedAt: Date | null };
+
   try {
-    const user = await prisma.user.create({
+    newUser = await prisma.user.create({
       data: {
         email,
         passwordHash,
       },
+      select: {
+        id: true,
+        onboardingCompletedAt: true,
+      },
     });
-
-    await createSessionForUser(user.id);
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -117,7 +131,9 @@ export async function registerAction(
     throw error;
   }
 
-  redirect(sanitizeRedirectPath(redirectRaw || undefined));
+  await createSessionForUser(newUser.id);
+
+  redirect(resolvePostAuthRedirect(newUser, redirectRaw || undefined));
 }
 
 export async function logoutAction() {

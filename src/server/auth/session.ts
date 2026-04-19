@@ -30,6 +30,9 @@ export const getSession = cache(async function getSession() {
         select: {
           id: true,
           email: true,
+          onboardingCompletedAt: true,
+          displayName: true,
+          username: true,
         },
       },
     },

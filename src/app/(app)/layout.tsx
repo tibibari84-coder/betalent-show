@@ -1,12 +1,6 @@
 import type { ReactNode } from "react";
 
-import { requireAuth } from "@/server/auth/guard";
-
-export default async function AppGroupLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  await requireAuth("/app");
+/** Route groups under `(app)` use nested layouts for auth / onboarding gates. */
+export default function AppGroupLayout({ children }: { children: ReactNode }) {
   return children;
 }

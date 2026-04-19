@@ -15,7 +15,7 @@ export default async function InternalAreaPlaceholderPage() {
       <AppContainer>
         <main className="flex flex-col gap-4">
           <p className="text-xs font-medium uppercase tracking-wide text-foreground/55">
-            Internal
+            BETALENT · Internal
           </p>
           <h1 className="text-2xl font-semibold tracking-tight">
             Show-runner (placeholder)

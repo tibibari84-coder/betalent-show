@@ -7,8 +7,8 @@ import { sanitizeRedirectPath } from "@/lib/auth/redirect";
 import { redirectAuthenticatedAway } from "@/server/auth/guard";
 
 export const metadata: Metadata = {
-  title: "Create account · BeTalent",
-  description: "Create your BeTalent member account.",
+  title: "Create account · BETALENT",
+  description: "Create your BETALENT member account.",
 };
 
 export default async function RegisterPage({

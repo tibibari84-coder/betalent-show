@@ -11,3 +11,14 @@ export function sanitizeRedirectPath(raw: string | undefined | null): string {
   }
   return trimmed;
 }
+
+/** After login/register: unfinished onboarding always goes to /welcome first. */
+export function resolvePostAuthRedirect(
+  user: { onboardingCompletedAt: Date | null },
+  redirectParam?: string | null,
+): string {
+  if (!user.onboardingCompletedAt) {
+    return "/welcome";
+  }
+  return sanitizeRedirectPath(redirectParam ?? undefined);
+}

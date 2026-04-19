@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { sanitizeRedirectPath } from "@/lib/auth/redirect";
+import { resolvePostAuthRedirect } from "@/lib/auth/redirect";
 
 import { getSession } from "./session";
 
@@ -12,7 +12,7 @@ export async function requireAuth(returnPath: string) {
   return session;
 }
 
-/** If a session exists, leave auth pages for the default post-auth destination. */
+/** If a session exists, leave auth pages for onboarding or the app. */
 export async function redirectAuthenticatedAway(
   redirectParam?: string | null,
 ) {
@@ -20,5 +20,5 @@ export async function redirectAuthenticatedAway(
   if (!session) {
     return;
   }
-  redirect(sanitizeRedirectPath(redirectParam ?? undefined));
+  redirect(resolvePostAuthRedirect(session.user, redirectParam));
 }

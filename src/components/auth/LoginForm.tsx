@@ -17,7 +17,7 @@ export function LoginForm({ defaultRedirect }: { defaultRedirect: string }) {
   const [state, formAction] = useActionState(loginAction, initialState);
 
   return (
-    <AuthCard title="Sign in" subtitle="Member access to BeTalent">
+    <AuthCard title="Sign in" subtitle="Member access to BETALENT">
       <form action={formAction} className="flex flex-col gap-4">
         <input type="hidden" name="redirect" value={defaultRedirect} readOnly />
         {state?.error ? (

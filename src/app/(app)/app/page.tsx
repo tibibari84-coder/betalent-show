@@ -10,24 +10,32 @@ export default async function AppAreaPlaceholderPage() {
     return null;
   }
 
+  const name =
+    session.user.displayName?.trim() ||
+    session.user.username ||
+    session.user.email.split("@")[0];
+
   return (
     <MobilePageShell>
       <AppContainer>
         <main className="flex flex-col gap-4">
           <p className="text-xs font-medium uppercase tracking-wide text-foreground/55">
-            Member area
+            BETALENT · Member area
           </p>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Welcome back
+            Welcome, {name}
           </h1>
           <p className="text-sm text-foreground/70">
-            Signed in as{" "}
-            <span className="font-medium text-foreground">{session.user.email}</span>
-            . This route is protected; product features arrive in later phases.
+            You&apos;re set as{" "}
+            <span className="font-medium text-foreground">
+              @{session.user.username}
+            </span>
+            . Onboarding is complete — the show-first product experience will
+            grow here.
           </p>
           <p className="text-sm leading-relaxed text-foreground/70">
-            The signed-in experience will grow here. For now this is a secure
-            placeholder.
+            This area stays a placeholder for now. No feed, no auditions — just
+            a secure home base after you join BETALENT.
           </p>
           <form action={logoutAction} className="pt-2">
             <button

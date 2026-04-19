@@ -9,8 +9,8 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "BeTalent",
-  description: "Premium digital talent show — mobile-first web skeleton.",
+  title: "BETALENT",
+  description: "BETALENT — premium digital talent show, mobile-first.",
 };
 
 export default function RootLayout({
