@@ -1,4 +1,4 @@
-// BETALENT — auth, onboarding, and show orchestration backbone.
+// BETALENT — auth, onboarding, show orchestration, formal auditions.
 
 generator client {
   provider = "prisma-client-js"
@@ -43,6 +43,48 @@ enum EpisodeStatus {
   ARCHIVED
 }
 
+/// When the window accepts entries (lifecycle separate from Stage show-state).
+enum AuditionWindowStatus {
+  DRAFT
+  UPCOMING
+  OPEN
+  CLOSED
+  REVIEW
+  COMPLETED
+  ARCHIVED
+}
+
+enum AuditionSubmissionType {
+  ORIGINAL_SONG
+  ORIGINAL_TOPLINE
+  ORIGINAL_INSTRUMENTAL
+}
+
+enum AuditionRightsStatus {
+  UNKNOWN
+  ELIGIBLE
+  REVIEW_REQUIRED
+  REJECTED_RIGHTS
+}
+
+enum AuditionSubmissionStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  EXPIRED
+  ARCHIVED
+}
+
+enum AuditionReviewDecisionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  NEEDS_REVIEW
+}
+
 model User {
   id                    String    @id @default(cuid())
   email                 String    @unique
@@ -57,6 +99,8 @@ model User {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   sessions              Session[]
+  auditionSubmissions   AuditionSubmission[]
+  auditionReviewsWritten AuditionReview[] @relation("AuditionReviewer")
 }
 
 model Session {
@@ -82,6 +126,7 @@ model Season {
   updatedAt   DateTime     @updatedAt
   stages      Stage[]
   episodes    Episode[]
+  auditionWindows AuditionWindow[]
 
   @@index([status, startAt])
 }
@@ -106,6 +151,7 @@ model Stage {
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
   episodes           Episode[]
+  auditionWindows    AuditionWindow[]
 
   @@unique([seasonId, slug])
   @@unique([seasonId, orderIndex])
@@ -132,4 +178,68 @@ model Episode {
   @@unique([seasonId, orderIndex])
   @@index([seasonId, status, premiereAt])
   @@index([stageId, status, premiereAt])
+}
+
+model AuditionWindow {
+  id                   String               @id @default(cuid())
+  seasonId             String?
+  season               Season?              @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+  stageId              String?
+  stage                Stage?               @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  slug                 String               @unique
+  title                String
+  description          String?
+  status               AuditionWindowStatus @default(DRAFT)
+  opensAt              DateTime
+  closesAt             DateTime
+  reviewStartsAt       DateTime?
+  reviewEndsAt         DateTime?
+  maxSubmissionsPerUser Int?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  submissions          AuditionSubmission[]
+
+  @@index([status, opensAt, closesAt])
+  @@index([seasonId])
+  @@index([stageId])
+}
+
+/// Formal audition entry — `externalMediaRef` is temporary until upload pipeline exists.
+model AuditionSubmission {
+  id                String                   @id @default(cuid())
+  auditionWindowId  String
+  auditionWindow    AuditionWindow           @relation(fields: [auditionWindowId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title             String
+  description       String?
+  submissionType    AuditionSubmissionType
+  rightsStatus      AuditionRightsStatus     @default(UNKNOWN)
+  status            AuditionSubmissionStatus @default(DRAFT)
+  /// Temporary: user-supplied URL or opaque ref — not processed by BETALENT yet.
+  externalMediaRef  String?
+  notes             String?
+  submittedAt       DateTime?
+  reviewedAt        DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  reviews           AuditionReview[]
+
+  @@index([auditionWindowId, userId])
+  @@index([userId, status])
+  @@index([auditionWindowId, status])
+}
+
+model AuditionReview {
+  id                   String                     @id @default(cuid())
+  auditionSubmissionId String
+  auditionSubmission   AuditionSubmission         @relation(fields: [auditionSubmissionId], references: [id], onDelete: Cascade)
+  reviewerUserId       String?
+  reviewer             User?                      @relation("AuditionReviewer", fields: [reviewerUserId], references: [id], onDelete: SetNull)
+  status               AuditionReviewDecisionStatus
+  decisionNote         String?
+  createdAt            DateTime                   @default(now())
+
+  @@index([auditionSubmissionId, createdAt])
+  @@index([reviewerUserId])
 }

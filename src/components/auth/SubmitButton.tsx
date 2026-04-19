@@ -7,15 +7,20 @@ import { cn } from "@/lib/utils/cn";
 type SubmitButtonProps = {
   children: React.ReactNode;
   className?: string;
+  disabled?: boolean;
 };
 
-export function SubmitButton({ children, className }: SubmitButtonProps) {
+export function SubmitButton({
+  children,
+  className,
+  disabled = false,
+}: SubmitButtonProps) {
   const { pending } = useFormStatus();
 
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || disabled}
       className={cn(
         "inline-flex h-11 w-full items-center justify-center rounded-xl bg-foreground text-sm font-medium text-background transition-opacity disabled:cursor-not-allowed disabled:opacity-60",
         className,
