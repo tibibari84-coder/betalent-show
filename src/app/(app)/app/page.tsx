@@ -1,9 +1,13 @@
-import { logoutAction } from "@/server/auth/actions";
-import { getSession } from "@/server/auth/session";
-import { AppContainer } from "@/components/shell/AppContainer";
-import { MobilePageShell } from "@/components/shell/MobilePageShell";
+import type { Metadata } from "next";
 
-export default async function AppAreaPlaceholderPage() {
+import { getSession } from "@/server/auth/session";
+
+export const metadata: Metadata = {
+  title: "Home · BETALENT",
+  description: "BETALENT show lobby — Season 1 originals.",
+};
+
+export default async function AppHomePage() {
   const session = await getSession();
 
   if (!session) {
@@ -16,37 +20,22 @@ export default async function AppAreaPlaceholderPage() {
     session.user.email.split("@")[0];
 
   return (
-    <MobilePageShell>
-      <AppContainer>
-        <main className="flex flex-col gap-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-foreground/55">
-            BETALENT · Member area
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Welcome, {name}
-          </h1>
-          <p className="text-sm text-foreground/70">
-            You&apos;re set as{" "}
-            <span className="font-medium text-foreground">
-              @{session.user.username}
-            </span>
-            . Onboarding is complete — the show-first product experience will
-            grow here.
-          </p>
-          <p className="text-sm leading-relaxed text-foreground/70">
-            This area stays a placeholder for now. No feed, no auditions — just
-            a secure home base after you join BETALENT.
-          </p>
-          <form action={logoutAction} className="pt-2">
-            <button
-              type="submit"
-              className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-foreground/20 text-sm font-medium text-foreground transition hover:bg-foreground/5"
-            >
-              Sign out
-            </button>
-          </form>
-        </main>
-      </AppContainer>
-    </MobilePageShell>
+    <div className="flex flex-col gap-5">
+      <p className="text-xs font-medium uppercase tracking-[0.2em] text-foreground/55">
+        Show lobby
+      </p>
+      <h1 className="text-2xl font-semibold tracking-tight text-balance">
+        Welcome, {name}
+      </h1>
+      <p className="text-sm leading-relaxed text-foreground/70">
+        This is the main BETALENT app — a structured talent show, not a feed.
+        Season 1 is originals only. Your show journey and the season arc will
+        live here.
+      </p>
+      <p className="text-sm leading-relaxed text-foreground/65">
+        No For You. No endless scroll. Use the tabs below when each part of the
+        season opens.
+      </p>
+    </div>
   );
 }

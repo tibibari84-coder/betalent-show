@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { AppShell } from "@/components/shell/AppShell";
 import { requireAuth } from "@/server/auth/guard";
 import { getSession } from "@/server/auth/session";
 
@@ -9,7 +11,10 @@ export default async function AppMemberLayout({
 }: {
   children: ReactNode;
 }) {
-  await requireAuth("/app");
+  const headersList = await headers();
+  const returnPath = headersList.get("x-pathname")?.trim() || "/app";
+
+  await requireAuth(returnPath);
   const session = await getSession();
   if (!session) {
     return null;
@@ -17,5 +22,6 @@ export default async function AppMemberLayout({
   if (!session.user.onboardingCompletedAt) {
     redirect("/welcome");
   }
-  return children;
+
+  return <AppShell>{children}</AppShell>;
 }
