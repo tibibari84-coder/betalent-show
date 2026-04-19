@@ -1,4 +1,4 @@
-// BETALENT — auth + minimal onboarding. Show/contest domain arrives in later phases.
+// BETALENT — auth, onboarding, and show orchestration backbone.
 
 generator client {
   provider = "prisma-client-js"
@@ -7,6 +7,40 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum SeasonStatus {
+  DRAFT
+  UPCOMING
+  LIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum StageType {
+  AUDITION
+  CALLBACK
+  SEMIFINAL
+  FINAL
+  SPECIAL
+}
+
+enum StageStatus {
+  DRAFT
+  UPCOMING
+  OPEN
+  JUDGING
+  VOTING
+  RESULTS
+  COMPLETED
+  ARCHIVED
+}
+
+enum EpisodeStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
 }
 
 model User {
@@ -34,4 +68,68 @@ model Session {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+model Season {
+  id          String       @id @default(cuid())
+  slug        String       @unique
+  title       String
+  description String?
+  status      SeasonStatus @default(DRAFT)
+  startAt     DateTime?
+  endAt       DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  stages      Stage[]
+  episodes    Episode[]
+
+  @@index([status, startAt])
+}
+
+model Stage {
+  id                 String      @id @default(cuid())
+  seasonId           String
+  season             Season      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  slug               String
+  title              String
+  description        String?
+  orderIndex         Int
+  stageType          StageType
+  status             StageStatus @default(DRAFT)
+  submissionsOpenAt  DateTime?
+  submissionsCloseAt DateTime?
+  judgingOpenAt      DateTime?
+  judgingCloseAt     DateTime?
+  votingOpenAt       DateTime?
+  votingCloseAt      DateTime?
+  resultsAt          DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  episodes           Episode[]
+
+  @@unique([seasonId, slug])
+  @@unique([seasonId, orderIndex])
+  @@index([seasonId, status, orderIndex])
+}
+
+model Episode {
+  id          String        @id @default(cuid())
+  seasonId    String
+  season      Season        @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  stageId     String?
+  stage       Stage?        @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  slug        String
+  title       String
+  description String?
+  orderIndex  Int
+  status      EpisodeStatus @default(DRAFT)
+  premiereAt  DateTime?
+  publishedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([seasonId, slug])
+  @@unique([seasonId, orderIndex])
+  @@index([seasonId, status, premiereAt])
+  @@index([stageId, status, premiereAt])
 }

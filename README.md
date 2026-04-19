@@ -68,7 +68,14 @@ npm run db:studio
 - `src/app/(app)` — `/welcome` (onboarding), `/app` (member placeholder after onboarding)
 - `src/app/(internal)` — `/internal` (session + onboarding-complete gate)
 - `src/components/shell`, `src/components/auth`, `src/components/onboarding`
-- `src/server/auth`, `src/server/onboarding`, `src/server/db`
+- `src/server/auth`, `src/server/onboarding`, `src/server/show`, `src/server/db`
+
+## Show orchestration backbone
+
+- Domain backbone now includes `Season`, `Stage`, and `Episode` tables in Prisma.
+- Central resolver: `resolveShowState()` in `src/server/show/show-state.service.ts`.
+- Top-level app placeholders (`/app`, `/app/show`, `/app/auditions`, `/app/results`) read this single source of truth.
+- No seed script is required in this phase: if there is no active data, resolver returns safe fallback states (`NO_ACTIVE_SEASON` / `SEASON_UPCOMING`).
 
 ## Intentionally not built yet
 
