@@ -1,4 +1,4 @@
-// BeTalent — database schema will grow in later phases. Intentionally empty of models for now.
+// BeTalent — minimal auth models for now. Contest/show domain arrives in later phases.
 
 generator client {
   provider = "prisma-client-js"
@@ -7,4 +7,26 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  displayName     String?
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  sessions        Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

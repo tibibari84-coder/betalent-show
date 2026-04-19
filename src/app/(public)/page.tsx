@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { AppContainer } from "@/components/shell/AppContainer";
 import { MobilePageShell } from "@/components/shell/MobilePageShell";
 
@@ -29,6 +31,21 @@ export default function HomePage() {
               /internal
             </code>
             .
+          </p>
+          <p className="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm text-foreground/60">
+            <Link
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+              href="/login"
+            >
+              Sign in
+            </Link>
+            <span className="text-foreground/35">·</span>
+            <Link
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+              href="/register"
+            >
+              Create account
+            </Link>
           </p>
         </main>
       </AppContainer>
