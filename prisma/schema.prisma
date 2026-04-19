@@ -133,6 +133,36 @@ enum AdvancementDecisionKind {
   WILDCARD
 }
 
+/// Where an editorial slot may appear (curated presentation — not competition truth).
+enum EditorialPageScope {
+  HOME
+  SHOW
+  RESULTS
+  PROFILE
+  ARCHIVE
+  GLOBAL
+}
+
+enum EditorialSlotStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum EditorialTargetType {
+  SEASON
+  STAGE
+  EPISODE
+  PERFORMANCE
+  CONTESTANT
+  STAGE_RESULT
+}
+
+enum EditorialPlacementStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 model User {
   id                    String    @id @default(cuid())
   email                 String    @unique
@@ -179,6 +209,7 @@ model Season {
   performances        Performance[]
   stageResults        StageResult[]
   advancementDecisions AdvancementDecision[]
+  editorialPlacements EditorialPlacement[]
 
   @@index([status, startAt])
 }
@@ -207,6 +238,7 @@ model Stage {
   performances         Performance[]
   stageResults         StageResult[]
   advancementDecisions AdvancementDecision[]
+  editorialPlacements EditorialPlacement[]
 
   @@unique([seasonId, slug])
   @@unique([seasonId, orderIndex])
@@ -234,6 +266,7 @@ model Episode {
   @@index([seasonId, status, premiereAt])
   @@index([stageId, status, premiereAt])
   performances Performance[]
+  editorialPlacements EditorialPlacement[]
 }
 
 /// BETALENT show identity for a participant — not the same as `User` (account).
@@ -251,6 +284,7 @@ model Contestant {
   performances         Performance[]
   stageResultEntries   StageResultEntry[]
   advancementDecisions AdvancementDecision[]
+  editorialPlacements  EditorialPlacement[]
 
   @@index([status])
 }
@@ -284,6 +318,7 @@ model Performance {
   @@index([episodeId])
   stageResultEntries   StageResultEntry[]
   advancementDecisions AdvancementDecision[]
+  editorialPlacements EditorialPlacement[]
 }
 
 /// Publishable result package for a stage — public truth boundary when PUBLISHED.
@@ -301,6 +336,7 @@ model StageResult {
   updatedAt   DateTime           @updatedAt
   entries     StageResultEntry[]
   advancementDecisions AdvancementDecision[]
+  editorialPlacements EditorialPlacement[]
 
   @@index([seasonId, stageId, status])
   @@index([status, publishedAt])
@@ -346,6 +382,53 @@ model AdvancementDecision {
   @@index([seasonId, stageId])
   @@index([contestantId, decidedAt])
   @@index([stageResultId])
+}
+
+/// Curated placement target — manual show-runner control, separate from official results.
+model EditorialSlot {
+  id          String               @id @default(cuid())
+  slotKey     String               @unique
+  title       String
+  description String?
+  pageScope   EditorialPageScope
+  status      EditorialSlotStatus  @default(ACTIVE)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  placements  EditorialPlacement[]
+
+  @@index([pageScope, status])
+}
+
+/// What appears in a slot — only PUBLISHED rows are public presentation truth.
+model EditorialPlacement {
+  id               String                   @id @default(cuid())
+  editorialSlotId  String
+  editorialSlot    EditorialSlot            @relation(fields: [editorialSlotId], references: [id], onDelete: Cascade)
+  targetType       EditorialTargetType
+  seasonId         String?
+  season           Season?                  @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+  stageId          String?
+  stage            Stage?                   @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  episodeId        String?
+  episode          Episode?                 @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+  performanceId    String?
+  performance      Performance?             @relation(fields: [performanceId], references: [id], onDelete: SetNull)
+  contestantId     String?
+  contestant       Contestant?             @relation(fields: [contestantId], references: [id], onDelete: SetNull)
+  stageResultId    String?
+  stageResult      StageResult?             @relation(fields: [stageResultId], references: [id], onDelete: SetNull)
+  headline         String?
+  subheadline      String?
+  ctaLabel         String?
+  sortOrder        Int?
+  status           EditorialPlacementStatus @default(DRAFT)
+  publishedAt      DateTime?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  @@index([editorialSlotId, status])
+  @@index([status, publishedAt])
+  @@index([editorialSlotId, sortOrder])
 }
 
 model AuditionWindow {

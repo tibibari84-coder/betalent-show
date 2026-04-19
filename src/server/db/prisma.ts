@@ -21,7 +21,8 @@ function hasExpectedDelegates(client: unknown): boolean {
   const c = client as Record<string, { findUnique?: unknown } | undefined>;
   return (
     typeof c.contestant?.findUnique === "function" &&
-    typeof c.stageResult?.findUnique === "function"
+    typeof c.stageResult?.findUnique === "function" &&
+    typeof c.editorialSlot?.findUnique === "function"
   );
 }
 

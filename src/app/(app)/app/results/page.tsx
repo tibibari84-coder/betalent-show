@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { EditorialCallout } from "@/components/editorial/EditorialCallout";
 import {
   countPublishedStageResultsForSeason,
   getPublishedStageResultsHistoryForSeason,
 } from "@/server/archive/result-history.service";
+import { getPublishedPlacementForSlotKey } from "@/server/editorial/public-editorial.service";
 import { getPublicResultsPayloadForShowState } from "@/server/results/public-results.service";
 import { resolveShowState } from "@/server/show/show-state.service";
 
@@ -15,7 +17,11 @@ export const metadata: Metadata = {
 
 export default async function AppResultsPage() {
   const showState = await resolveShowState();
-  const published = await getPublicResultsPayloadForShowState(showState);
+  const [published, resultsHero, resultsSpotlight] = await Promise.all([
+    getPublicResultsPayloadForShowState(showState),
+    getPublishedPlacementForSlotKey("RESULTS_HERO"),
+    getPublishedPlacementForSlotKey("RESULTS_SPOTLIGHT"),
+  ]);
 
   const seasonId = showState.season?.id;
   const publishedHistoryCount =
@@ -40,6 +46,9 @@ export default async function AppResultsPage() {
         Official outcomes come from published result records — not inferred from
         pages or feeds.
       </p>
+
+      <EditorialCallout placement={resultsHero} variant="hero" />
+      <EditorialCallout placement={resultsSpotlight} variant="spotlight" />
 
       <dl className="grid gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-sm">
         <div>

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
+import { EditorialCallout } from "@/components/editorial/EditorialCallout";
 import { getSession } from "@/server/auth/session";
+import { getPublishedPlacementForSlotKey } from "@/server/editorial/public-editorial.service";
 import { resolveShowState } from "@/server/show/show-state.service";
 
 export const metadata: Metadata = {
@@ -9,7 +11,12 @@ export const metadata: Metadata = {
 };
 
 export default async function AppHomePage() {
-  const [session, showState] = await Promise.all([getSession(), resolveShowState()]);
+  const [session, showState, homeHero, homeSpotlight] = await Promise.all([
+    getSession(),
+    resolveShowState(),
+    getPublishedPlacementForSlotKey("HOME_HERO"),
+    getPublishedPlacementForSlotKey("HOME_SPOTLIGHT"),
+  ]);
 
   if (!session) {
     return null;
@@ -32,6 +39,10 @@ export default async function AppHomePage() {
         BETALENT orchestration is now centered on season, stage, and episode
         state.
       </p>
+
+      <EditorialCallout placement={homeHero} variant="hero" />
+      <EditorialCallout placement={homeSpotlight} variant="spotlight" />
+
       <dl className="grid gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-sm">
         <div>
           <dt className="text-xs uppercase tracking-wide text-foreground/50">

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 
+import { EditorialCallout } from "@/components/editorial/EditorialCallout";
 import { isArchivedSeasonStatus } from "@/lib/archive/archive-rules";
 import {
   PERFORMANCE_KIND_LABEL,
   PERFORMANCE_STATUS_LABEL,
 } from "@/lib/show/performance-labels";
 import { listPerformancesForSeasonAndOptionalStage } from "@/server/performances/performance.service";
+import { getPublishedPlacementForSlotKey } from "@/server/editorial/public-editorial.service";
 import { getPublicResultsPayloadForShowState } from "@/server/results/public-results.service";
 import { resolveShowState } from "@/server/show/show-state.service";
 
@@ -25,7 +27,11 @@ export default async function AppShowPage() {
         })
       : [];
 
-  const publishedResults = await getPublicResultsPayloadForShowState(showState);
+  const [publishedResults, showHero, showSpotlight] = await Promise.all([
+    getPublicResultsPayloadForShowState(showState),
+    getPublishedPlacementForSlotKey("SHOW_HERO"),
+    getPublishedPlacementForSlotKey("SHOW_SPOTLIGHT"),
+  ]);
 
   const seasonArchiveContext =
     showState.season != null
@@ -49,6 +55,10 @@ export default async function AppShowPage() {
         Performance records already in the season (the show object — not raw
         uploads).
       </p>
+
+      <EditorialCallout placement={showHero} variant="hero" />
+      <EditorialCallout placement={showSpotlight} variant="spotlight" />
+
       <dl className="grid gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-sm">
         <div>
           <dt className="text-xs uppercase tracking-wide text-foreground/50">
