@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BeTalent
 
-## Getting Started
+BeTalent is a mobile-first premium web talent show: structured competition, originals-first (Season 1), show-led — not feed-first or casual posting.
 
-First, run the development server:
+This repository is a **clean rebuild** from scratch. It does not carry over legacy routes, feeds, or BeTalent product concepts from prior codebases.
+
+## Stack
+
+- **Next.js** (App Router) + **TypeScript**
+- **Tailwind CSS**
+- **Prisma** (`6.19.x`) initialized for **PostgreSQL** (no domain models yet). Pinned to v6 so `DATABASE_URL` lives in `schema.prisma` as in standard docs; upgrade to Prisma 7+ later if you adopt `prisma.config.ts`.
+
+## Install
+
+```bash
+npm install
+```
+
+Copy environment scaffolding and adjust values when you connect services:
+
+```bash
+cp .env.example .env.local
+```
+
+## Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Prisma
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Schema lives in `prisma/schema.prisma`. There are **no tables/models** yet — only datasource + generator.
 
-## Learn More
+```bash
+npm run db:generate   # prisma generate — run after cloning or schema changes
+```
 
-To learn more about Next.js, take a look at the following resources:
+When `DATABASE_URL` points at a PostgreSQL instance you can use:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run db:push       # prisma db push — prototyping without migrations
+npm run db:migrate    # prisma migrate dev — once you start evolving schema intentionally
+npm run db:studio     # prisma studio
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project layout (high level)
 
-## Deploy on Vercel
+- `src/app/(public)` — future marketing and public/auth-facing routes
+- `src/app/(app)` — future logged-in member experience (placeholder at `/app`)
+- `src/app/(internal)` — future show-runner / internal tools (placeholder at `/internal`)
+- `src/components/shell` — minimal mobile-first shell primitives
+- `src/server/db` — Prisma client singleton
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Intentionally not built yet
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Authentication, onboarding, audition flows, scoring/results, uploads/video, payments (e.g. Stripe), AI features, admin tooling, database domain models, and production UI/visual design are **out of scope** for this skeleton phase.
