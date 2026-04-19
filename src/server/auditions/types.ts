@@ -41,6 +41,8 @@ export type UserSubmissionListItem = {
     createdAt: Date;
     decisionNote: string | null;
   } | null;
+  /** Set when this audition was promoted to an official `Performance`. */
+  mappedPerformanceId: string | null;
 };
 
 export type EligibilityResult =

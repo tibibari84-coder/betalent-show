@@ -53,6 +53,11 @@ export function AuditionSubmissionRow(props: {
             Temp. media ref: {s.externalMediaRef}
           </p>
         ) : null}
+        {s.mappedPerformanceId ? (
+          <p className="text-xs font-medium text-emerald-700/90 dark:text-emerald-400/90">
+            Mapped to official BETALENT Performance (show object).
+          </p>
+        ) : null}
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {props.canSubmitDraft ? (

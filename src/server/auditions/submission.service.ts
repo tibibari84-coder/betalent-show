@@ -19,6 +19,7 @@ function mapSubmissionToListItem(
       createdAt: Date;
       decisionNote: string | null;
     }[];
+    officialPerformance?: { id: string } | null;
   },
 ): UserSubmissionListItem {
   const sorted = [...row.reviews].sort(
@@ -47,6 +48,7 @@ function mapSubmissionToListItem(
           decisionNote: latest.decisionNote,
         }
       : null,
+    mappedPerformanceId: row.officialPerformance?.id ?? null,
   };
 }
 
@@ -67,6 +69,7 @@ export async function listUserSubmissionsForWindow(args: {
           decisionNote: true,
         },
       },
+      officialPerformance: { select: { id: true } },
     },
     orderBy: { updatedAt: "desc" },
   });

@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 
 import { logoutAction } from "@/server/auth/actions";
 import { getSession } from "@/server/auth/session";
+import { getContestantByUserId } from "@/server/contestants/contestant.service";
+import { listContestantPerformances } from "@/server/performances/performance.service";
+import { CONTESTANT_STATUS_LABEL } from "@/lib/show/contestant-labels";
 
 export const metadata: Metadata = {
   title: "Profile · BETALENT",
@@ -17,6 +20,11 @@ export default async function AppProfilePage() {
 
   const u = session.user;
 
+  const contestant = await getContestantByUserId(u.id);
+  const performances = contestant
+    ? await listContestantPerformances(contestant.id)
+    : [];
+
   return (
     <div className="flex flex-col gap-6">
       <p className="text-xs font-medium uppercase tracking-[0.2em] text-foreground/55">
@@ -24,8 +32,7 @@ export default async function AppProfilePage() {
       </p>
       <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
       <p className="text-sm text-foreground/70">
-        Your participant identity from onboarding — not a full profile product
-        yet.
+        Account settings from onboarding — not a social profile product.
       </p>
 
       <dl className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-sm">
@@ -74,6 +81,70 @@ export default async function AppProfilePage() {
           </dd>
         </div>
       </dl>
+
+      <div className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold tracking-tight">
+          BETALENT show identity
+        </h2>
+        <p className="text-xs leading-relaxed text-foreground/60">
+          Your account above is login and onboarding. Contestant is your
+          competition-facing identity when you enter the show core — separate
+          from this screen name until promoted from auditions.
+        </p>
+        {!contestant ? (
+          <p className="rounded-2xl border border-dashed border-foreground/15 p-4 text-sm text-foreground/65">
+            No contestant record yet. When an accepted audition is mapped into
+            the show, BETALENT will create your contestant profile.
+          </p>
+        ) : (
+          <dl className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-sm">
+            <div className="flex flex-col gap-0.5">
+              <dt className="text-xs uppercase tracking-wide text-foreground/50">
+                Contestant display
+              </dt>
+              <dd className="font-medium text-foreground">
+                {contestant.displayName}
+              </dd>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <dt className="text-xs uppercase tracking-wide text-foreground/50">
+                Contestant handle
+              </dt>
+              <dd className="font-medium text-foreground">
+                @{contestant.username}
+              </dd>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <dt className="text-xs uppercase tracking-wide text-foreground/50">
+                Contestant status
+              </dt>
+              <dd className="font-medium text-foreground">
+                {CONTESTANT_STATUS_LABEL[contestant.status]}
+              </dd>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <dt className="text-xs uppercase tracking-wide text-foreground/50">
+                Official performances
+              </dt>
+              <dd className="text-foreground">
+                {performances.length === 0
+                  ? "None yet"
+                  : `${performances.length} in the show core`}
+              </dd>
+            </div>
+            {performances.length > 0 ? (
+              <ul className="mt-1 list-disc pl-5 text-xs text-foreground/70">
+                {performances.slice(0, 6).map((p) => (
+                  <li key={p.id}>
+                    {p.title}{" "}
+                    <span className="text-foreground/50">({p.status})</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </dl>
+        )}
+      </div>
 
       <form action={logoutAction}>
         <button

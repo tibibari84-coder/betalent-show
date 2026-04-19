@@ -85,6 +85,35 @@ enum AuditionReviewDecisionStatus {
   NEEDS_REVIEW
 }
 
+/// Show-facing participant status (distinct from account / AuditionSubmission).
+enum ContestantStatus {
+  ACTIVE
+  PAUSED
+  ELIMINATED
+  WINNER
+  ARCHIVED
+}
+
+/// Official performance appearance type (aligned with competition structure).
+enum PerformanceKind {
+  AUDITION
+  CALLBACK
+  SEMIFINAL
+  FINAL
+  SPECIAL
+}
+
+/// Lifecycle of the official show object (`Performance`).
+enum PerformanceStatus {
+  DRAFT
+  ACCEPTED
+  SCHEDULED
+  PUBLISHED
+  JUDGED
+  COMPLETED
+  ARCHIVED
+}
+
 model User {
   id                    String    @id @default(cuid())
   email                 String    @unique
@@ -98,9 +127,10 @@ model User {
   emailVerifiedAt       DateTime?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
-  sessions              Session[]
-  auditionSubmissions   AuditionSubmission[]
+  sessions               Session[]
+  auditionSubmissions    AuditionSubmission[]
   auditionReviewsWritten AuditionReview[] @relation("AuditionReviewer")
+  contestant             Contestant?
 }
 
 model Session {
@@ -127,6 +157,7 @@ model Season {
   stages      Stage[]
   episodes    Episode[]
   auditionWindows AuditionWindow[]
+  performances    Performance[]
 
   @@index([status, startAt])
 }
@@ -152,6 +183,7 @@ model Stage {
   updatedAt          DateTime    @updatedAt
   episodes           Episode[]
   auditionWindows    AuditionWindow[]
+  performances       Performance[]
 
   @@unique([seasonId, slug])
   @@unique([seasonId, orderIndex])
@@ -178,6 +210,53 @@ model Episode {
   @@unique([seasonId, orderIndex])
   @@index([seasonId, status, premiereAt])
   @@index([stageId, status, premiereAt])
+  performances Performance[]
+}
+
+/// BETALENT show identity for a participant — not the same as `User` (account).
+model Contestant {
+  id          String           @id @default(cuid())
+  userId      String           @unique
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName String
+  username    String
+  city        String?
+  country     String?
+  status      ContestantStatus @default(ACTIVE)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime       @updatedAt
+  performances Performance[]
+
+  @@index([status])
+}
+
+/// Official show object — not a casual upload or feed item.
+model Performance {
+  id                         String               @id @default(cuid())
+  contestantId               String
+  contestant                 Contestant           @relation(fields: [contestantId], references: [id], onDelete: Cascade)
+  seasonId                   String
+  season                     Season               @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  stageId                    String?
+  stage                      Stage?               @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  episodeId                  String?
+  episode                    Episode?             @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+  sourceAuditionSubmissionId String?            @unique
+  sourceAuditionSubmission   AuditionSubmission?  @relation(fields: [sourceAuditionSubmissionId], references: [id], onDelete: SetNull)
+  title                      String
+  description                String?
+  performanceType            PerformanceKind
+  status                     PerformanceStatus    @default(DRAFT)
+  /// Temporary pointer copied from audition `externalMediaRef` until real media pipeline exists.
+  mediaRef                   String?
+  publishedAt                DateTime?
+  createdAt                  DateTime             @default(now())
+  updatedAt                  DateTime             @updatedAt
+
+  @@index([seasonId, status])
+  @@index([contestantId, seasonId])
+  @@index([stageId])
+  @@index([episodeId])
 }
 
 model AuditionWindow {
@@ -223,7 +302,8 @@ model AuditionSubmission {
   reviewedAt        DateTime?
   createdAt         DateTime                 @default(now())
   updatedAt         DateTime                 @updatedAt
-  reviews           AuditionReview[]
+  reviews             AuditionReview[]
+  officialPerformance Performance?
 
   @@index([auditionWindowId, userId])
   @@index([userId, status])

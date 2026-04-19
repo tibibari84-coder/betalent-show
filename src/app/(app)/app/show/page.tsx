@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
 
+import {
+  PERFORMANCE_KIND_LABEL,
+  PERFORMANCE_STATUS_LABEL,
+} from "@/lib/show/performance-labels";
+import { listPerformancesForSeasonAndOptionalStage } from "@/server/performances/performance.service";
 import { resolveShowState } from "@/server/show/show-state.service";
 
 export const metadata: Metadata = {
@@ -9,6 +14,14 @@ export const metadata: Metadata = {
 
 export default async function AppShowPage() {
   const showState = await resolveShowState();
+
+  const performanceSummaries =
+    showState.season != null
+      ? await listPerformancesForSeasonAndOptionalStage({
+          seasonId: showState.season.id,
+          take: 8,
+        })
+      : [];
 
   return (
     <div className="flex flex-col gap-5">
@@ -21,8 +34,9 @@ export default async function AppShowPage() {
         a single, intentional viewing space for the competition.
       </p>
       <p className="text-sm leading-relaxed text-foreground/65">
-        Playback and programming are not built yet. This page now reads from a
-        centralized show-state resolver.
+        Playback is not built yet. This page reads show state and any official
+        Performance records already in the season (the show object — not raw
+        uploads).
       </p>
       <dl className="grid gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-sm">
         <div>
@@ -50,6 +64,39 @@ export default async function AppShowPage() {
           </dd>
         </div>
       </dl>
+
+      <div className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold tracking-tight">
+          Official performances (season)
+        </h2>
+        {performanceSummaries.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-foreground/15 p-4 text-sm text-foreground/65">
+            No Performance rows for this season yet — they appear when accepted
+            auditions are mapped into the show core.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {performanceSummaries.map((p) => (
+              <li
+                key={p.id}
+                className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] px-4 py-3 text-sm"
+              >
+                <p className="font-medium text-foreground">{p.title}</p>
+                <p className="mt-1 text-xs text-foreground/60">
+                  {p.contestantDisplayName} ·{" "}
+                  {PERFORMANCE_KIND_LABEL[p.performanceType]} ·{" "}
+                  {PERFORMANCE_STATUS_LABEL[p.status]}
+                </p>
+                {p.mediaRef ? (
+                  <p className="mt-1 truncate text-[11px] text-foreground/45">
+                    Temp. media ref: {p.mediaRef}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
