@@ -28,8 +28,8 @@ export function AuditionDraftCreateForm({
   );
 
   return (
-    <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4">
-      <h2 className="text-sm font-semibold tracking-tight">
+    <div className="rounded-[1.35rem] border border-foreground/11 bg-gradient-to-b from-foreground/[0.05] to-transparent p-5 shadow-[0_10px_40px_-14px_rgba(0,0,0,0.5)] sm:p-6">
+      <h2 className="text-[15px] font-semibold tracking-tight">
         New formal entry (draft)
       </h2>
       <p className="mt-1 text-xs leading-relaxed text-foreground/65">

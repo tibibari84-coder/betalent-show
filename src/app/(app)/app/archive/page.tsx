@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 
-import { EmptyState } from "@/components/shared/EmptyState";
+import { MemberHero } from "@/components/member/MemberHero";
+import {
+  PremiumEmptyState,
+  SectionHeader,
+  SpotlightCard,
+} from "@/components/premium";
 import {
   listArchivedSeasons,
   listArchivedStagesForSeason,
@@ -8,70 +13,80 @@ import {
 
 export const metadata: Metadata = {
   title: "Archive · BETALENT",
-  description: "Historical seasons and stages — official archive context.",
+  description:
+    "BETALENT historical seasons — official archive, not a recommendation feed.",
 };
 
 export default async function AppArchivePage() {
   const seasons = await listArchivedSeasons();
 
   return (
-    <div className="flex flex-col gap-5">
-      <p className="text-xs font-medium uppercase tracking-[0.2em] text-foreground/55">
-        BETALENT · Archive
-      </p>
-      <h1 className="text-2xl font-semibold tracking-tight">Archive</h1>
-      <p className="text-sm leading-relaxed text-foreground/70">
-        Completed and archived seasons appear here — not the live competition
-        surface. Rows are driven by explicit{" "}
-        <code className="rounded bg-foreground/5 px-1 font-mono text-[11px]">
-          Season
-        </code>{" "}
-        /{" "}
-        <code className="rounded bg-foreground/5 px-1 font-mono text-[11px]">
-          Stage
-        </code>{" "}
-        statuses, not feeds or guesses.
-      </p>
+    <div className="flex flex-col gap-10 sm:gap-12">
+      <MemberHero
+        tone="archive"
+        eyebrow="Legacy"
+        title="Archive"
+        subtitle="Completed seasons — permanent record, on demand."
+      />
 
       {seasons.length === 0 ? (
-        <EmptyState title="Nothing archived yet">
-          Completed or archived BETALENT seasons will list here when their status
-          moves out of the live competition surface — driven by explicit season
-          records, not feeds.
-        </EmptyState>
+        <PremiumEmptyState title="Catalog">
+          Nothing archived yet. Finished seasons move here while the active run
+          stays under Show and Results.
+        </PremiumEmptyState>
       ) : (
-        <ul className="flex flex-col gap-4">
-          {await Promise.all(
-            seasons.map(async (s) => {
-              const stages = await listArchivedStagesForSeason(s.id);
-              return (
-                <li
-                  key={s.id}
-                  className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-sm"
-                >
-                  <p className="font-medium text-foreground">{s.title}</p>
-                  <p className="mt-1 text-xs text-foreground/55">
-                    Status: {s.status} · slug /{s.slug}
-                  </p>
-                  {stages.length === 0 ? (
-                    <p className="mt-2 text-xs text-foreground/55">
-                      No archived stages indexed for this season yet.
-                    </p>
-                  ) : (
-                    <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-foreground/70">
-                      {stages.map((st) => (
-                        <li key={st.id}>
-                          {st.title}{" "}
-                          <span className="text-foreground/45">({st.status})</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              );
-            }),
-          )}
-        </ul>
+        <section className="flex flex-col gap-6">
+          <SectionHeader
+            eyebrow="Recorded run"
+            title="Seasons"
+            subtitle="Indexed from official season and stage records."
+          />
+          <ul className="flex flex-col gap-6">
+            {await Promise.all(
+              seasons.map(async (s) => {
+                const stages = await listArchivedStagesForSeason(s.id);
+                return (
+                  <li key={s.id}>
+                    <SpotlightCard>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-foreground/45">
+                          BETALENT season
+                        </p>
+                        <h2 className="text-xl font-semibold tracking-tight text-foreground">
+                          {s.title}
+                        </h2>
+                        <p className="text-xs text-foreground/55">
+                          Status {s.status} · /{s.slug}
+                        </p>
+                      </div>
+                      {stages.length === 0 ? (
+                        <p className="mt-6 text-sm text-foreground/55">
+                          No archived stages indexed for this season yet.
+                        </p>
+                      ) : (
+                        <ul className="mt-6 flex flex-col gap-3 border-t border-white/[0.07] pt-6">
+                          {stages.map((st) => (
+                            <li
+                              key={st.id}
+                              className="flex flex-wrap items-baseline justify-between gap-2 text-sm"
+                            >
+                              <span className="font-medium text-foreground">
+                                {st.title}
+                              </span>
+                              <span className="text-xs text-foreground/48">
+                                {st.status}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </SpotlightCard>
+                  </li>
+                );
+              }),
+            )}
+          </ul>
+        </section>
       )}
     </div>
   );

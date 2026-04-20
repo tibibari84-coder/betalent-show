@@ -26,9 +26,9 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Main"
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-foreground/10 bg-background/95 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-md"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2"
     >
-      <ul className="mx-auto flex max-w-lg items-stretch justify-between gap-0 px-1 pt-1">
+      <ul className="pointer-events-auto flex w-full max-w-lg items-stretch justify-between gap-0.5 rounded-[2rem] border border-white/[0.12] bg-black/55 px-1.5 py-1.5 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.75),inset_0_1px_0_0_rgba(255,255,255,0.08)] backdrop-blur-2xl supports-[backdrop-filter]:bg-black/45">
         {NAV.map(({ href, label, Icon }) => {
           const active = isActive(pathname, href);
           return (
@@ -36,10 +36,10 @@ export function BottomNav() {
               <Link
                 href={href}
                 className={cn(
-                  "flex w-full flex-col items-center gap-0.5 rounded-lg px-1 py-2 text-[0.65rem] font-medium transition-colors",
+                  "flex w-full flex-col items-center gap-0.5 rounded-[1.35rem] px-1 py-2 text-[0.65rem] font-medium transition-colors",
                   active
-                    ? "text-foreground"
-                    : "text-foreground/45 hover:text-foreground/75",
+                    ? "bg-white/[0.12] text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10)]"
+                    : "text-foreground/45 hover:bg-white/[0.06] hover:text-foreground/78",
                 )}
               >
                 <Icon active={active} />
@@ -82,8 +82,8 @@ function IconShow({ active }: { active: boolean }) {
       stroke="currentColor"
       strokeWidth="1.75"
     >
-      <rect x="3" y="5" width="18" height="14" rx="2" />
-      <path d="m10 9 6 3-6 3V9Z" fill="currentColor" stroke="none" opacity="0.35" />
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2.5" />
+      <path d="M7 10h10M7 14h7" strokeLinecap="round" opacity="0.55" />
     </svg>
   );
 }

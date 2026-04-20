@@ -14,13 +14,17 @@ type AppShellProps = {
  */
 export function AppShell({ children }: AppShellProps) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="member-app-root flex w-full flex-col">
       <AppTopBar />
-      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain">
-        <MobilePageShell className="pb-28">
+      {/* Window scroll: no nested overflow-y — nested scroll regions trap touch/scroll on mobile Safari. */}
+      <div
+        className="w-full min-w-0 flex-1 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] sm:pb-[calc(7rem+env(safe-area-inset-bottom,0px))]"
+        role="main"
+      >
+        <MobilePageShell className="pb-0">
           <AppContainer>{children}</AppContainer>
         </MobilePageShell>
-      </main>
+      </div>
       <BottomNav />
     </div>
   );

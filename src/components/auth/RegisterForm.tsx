@@ -7,6 +7,7 @@ import {
   registerAction,
   type AuthActionState,
 } from "@/server/auth/actions";
+import { streamingFieldClass } from "@/lib/ui/streaming-forms";
 
 import { AuthCard } from "./AuthCard";
 import { SubmitButton } from "./SubmitButton";
@@ -34,7 +35,7 @@ export function RegisterForm({
             autoComplete="email"
             required
             aria-invalid={state?.fieldErrors?.email ? true : undefined}
-            className="h-11 w-full rounded-xl border border-foreground/15 bg-transparent px-3 text-sm outline-none transition focus:border-foreground/40 focus:ring-2 focus:ring-foreground/10"
+            className={streamingFieldClass}
           />
           {state?.fieldErrors?.email ? (
             <p className="text-xs text-red-600 dark:text-red-400">
@@ -53,7 +54,7 @@ export function RegisterForm({
             required
             minLength={8}
             aria-invalid={state?.fieldErrors?.password ? true : undefined}
-            className="h-11 w-full rounded-xl border border-foreground/15 bg-transparent px-3 text-sm outline-none transition focus:border-foreground/40 focus:ring-2 focus:ring-foreground/10"
+            className={streamingFieldClass}
           />
           {state?.fieldErrors?.password ? (
             <p className="text-xs text-red-600 dark:text-red-400">
@@ -72,7 +73,7 @@ export function RegisterForm({
             required
             minLength={8}
             aria-invalid={state?.fieldErrors?.confirmPassword ? true : undefined}
-            className="h-11 w-full rounded-xl border border-foreground/15 bg-transparent px-3 text-sm outline-none transition focus:border-foreground/40 focus:ring-2 focus:ring-foreground/10"
+            className={streamingFieldClass}
           />
           {state?.fieldErrors?.confirmPassword ? (
             <p className="text-xs text-red-600 dark:text-red-400">

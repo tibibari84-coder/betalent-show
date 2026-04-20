@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 
-/** Fills the column so nested app/welcome routes can use flex + min-h-0 correctly. */
+/** Full-height shell that can grow past the viewport — avoids nested scroll traps. */
 export default function AppGroupLayout({ children }: { children: ReactNode }) {
-  return <div className="flex min-h-0 flex-1 flex-col">{children}</div>;
+  return (
+    <div className="flex w-full min-h-[100dvh] flex-col">{children}</div>
+  );
 }

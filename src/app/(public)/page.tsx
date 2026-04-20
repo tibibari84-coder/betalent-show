@@ -1,57 +1,58 @@
 import Link from "next/link";
 
+import { PremiumHero } from "@/components/premium/PremiumHero";
+import { SpotlightCard } from "@/components/premium/SpotlightCard";
 import { AppContainer } from "@/components/shell/AppContainer";
 import { MobilePageShell } from "@/components/shell/MobilePageShell";
 
 export default function HomePage() {
   return (
-    <MobilePageShell>
+    <MobilePageShell className="gap-10 pb-12 sm:gap-12 sm:pb-16">
       <AppContainer>
-        <main className="flex flex-col gap-4 text-center">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-foreground/60">
-            Web skeleton
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight text-balance">
-            BETALENT
-          </h1>
-          <p className="text-base text-foreground/80">
-            Premium Digital Talent Show
-          </p>
-          <p className="text-sm leading-relaxed text-foreground/65 text-pretty">
-            Structured competition — originals-first, show-first — built as a
-            mobile web experience from day one.
-          </p>
-          <p className="mt-4 text-xs text-foreground/50">
-            Authenticated:{" "}
-            <code className="rounded bg-foreground/10 px-1.5 py-0.5 font-mono text-[0.7rem]">
-              /welcome
-            </code>{" "}
-            (onboarding),{" "}
-            <code className="rounded bg-foreground/10 px-1.5 py-0.5 font-mono text-[0.7rem]">
-              /app
-            </code>
-            . Session-gated internal shell:{" "}
-            <code className="rounded bg-foreground/10 px-1.5 py-0.5 font-mono text-[0.7rem]">
-              /internal
-            </code>
-            .
-          </p>
-          <p className="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm text-foreground/60">
-            <Link
-              className="font-medium text-foreground underline-offset-4 hover:underline"
-              href="/login"
-            >
-              Sign in
-            </Link>
-            <span className="text-foreground/35">·</span>
-            <Link
-              className="font-medium text-foreground underline-offset-4 hover:underline"
-              href="/register"
-            >
-              Create account
-            </Link>
-          </p>
-        </main>
+        <div className="flex flex-col gap-10 sm:gap-12">
+          <PremiumHero
+            eyebrow="Premium talent show"
+            title="BETALENT"
+            subtitle="Structured competition — originals-first, asynchronous and on-demand."
+            tone="lobby"
+          />
+
+          <SpotlightCard emphasis="medium">
+            <p className="text-center text-[13px] leading-relaxed text-foreground/72">
+              Mobile-first experience. Sign in for the member lobby, or continue
+              onboarding when invited.
+            </p>
+            <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
+              <Link
+                href="/login"
+                className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/[0.14] bg-white/[0.12] px-8 text-sm font-semibold tracking-tight text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md transition hover:bg-white/[0.18] dark:border-white/[0.12] dark:bg-white/[0.08]"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/register"
+                className="inline-flex h-12 items-center justify-center rounded-2xl border border-foreground/15 bg-transparent px-8 text-sm font-semibold tracking-tight text-foreground transition hover:bg-foreground/[0.06] dark:border-white/[0.14] dark:hover:bg-white/[0.06]"
+              >
+                Create account
+              </Link>
+            </div>
+            <p className="mt-8 text-center text-[11px] leading-relaxed text-foreground/48">
+              Routes:{" "}
+              <code className="rounded-md bg-foreground/[0.08] px-1.5 py-0.5 font-mono text-[0.65rem] dark:bg-white/[0.06]">
+                /welcome
+              </code>{" "}
+              onboarding ·{" "}
+              <code className="rounded-md bg-foreground/[0.08] px-1.5 py-0.5 font-mono text-[0.65rem] dark:bg-white/[0.06]">
+                /app
+              </code>{" "}
+              member ·{" "}
+              <code className="rounded-md bg-foreground/[0.08] px-1.5 py-0.5 font-mono text-[0.65rem] dark:bg-white/[0.06]">
+                /internal
+              </code>{" "}
+              operators
+            </p>
+          </SpotlightCard>
+        </div>
       </AppContainer>
     </MobilePageShell>
   );

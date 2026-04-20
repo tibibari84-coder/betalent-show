@@ -8,6 +8,7 @@ import {
   completeOnboardingAction,
   type OnboardingActionState,
 } from "@/server/onboarding/actions";
+import { streamingFieldClass } from "@/lib/ui/streaming-forms";
 
 const initialState: OnboardingActionState | undefined = undefined;
 
@@ -16,9 +17,6 @@ export function OnboardingForm() {
     completeOnboardingAction,
     initialState,
   );
-
-  const inputClass =
-    "h-11 w-full rounded-xl border border-foreground/15 bg-transparent px-3 text-sm outline-none transition focus:border-foreground/40 focus:ring-2 focus:ring-foreground/10";
 
   return (
     <AuthCard
@@ -49,7 +47,7 @@ export function OnboardingForm() {
             required
             maxLength={48}
             aria-invalid={state?.fieldErrors?.displayName ? true : undefined}
-            className={inputClass}
+            className={streamingFieldClass}
           />
           {state?.fieldErrors?.displayName ? (
             <p className="text-xs text-red-600 dark:text-red-400">
@@ -72,7 +70,7 @@ export function OnboardingForm() {
             required
             maxLength={24}
             aria-invalid={state?.fieldErrors?.username ? true : undefined}
-            className={inputClass}
+            className={streamingFieldClass}
             placeholder="your_handle"
           />
           {state?.fieldErrors?.username ? (
@@ -101,7 +99,7 @@ export function OnboardingForm() {
             required
             maxLength={64}
             aria-invalid={state?.fieldErrors?.city ? true : undefined}
-            className={inputClass}
+            className={streamingFieldClass}
           />
           {state?.fieldErrors?.city ? (
             <p className="text-xs text-red-600 dark:text-red-400">
@@ -124,7 +122,7 @@ export function OnboardingForm() {
             required
             maxLength={64}
             aria-invalid={state?.fieldErrors?.country ? true : undefined}
-            className={inputClass}
+            className={streamingFieldClass}
           />
           {state?.fieldErrors?.country ? (
             <p className="text-xs text-red-600 dark:text-red-400">
@@ -132,7 +130,7 @@ export function OnboardingForm() {
             </p>
           ) : null}
         </div>
-        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-foreground/10 bg-foreground/[0.02] p-4 text-left text-sm leading-snug">
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-foreground/10 bg-foreground/[0.02] p-4 text-left text-sm leading-snug dark:border-white/[0.08] dark:bg-white/[0.04]">
           <input
             name="wantsToAudition"
             type="checkbox"

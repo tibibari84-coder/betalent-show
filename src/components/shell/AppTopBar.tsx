@@ -1,12 +1,12 @@
 import Link from "next/link";
 
-/** Minimal authenticated top bar — brand only; no notifications or messaging yet. */
+/** Minimal bar — solid fill, no blur/border (blur seams read as a stripe and confuse scroll). */
 export function AppTopBar() {
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center border-b border-foreground/10 bg-background/90 px-4 backdrop-blur-md">
+    <header className="sticky top-0 z-30 flex h-[3.25rem] shrink-0 items-center bg-background px-4 sm:h-14 sm:px-6">
       <Link
         href="/app"
-        className="text-sm font-semibold tracking-[0.18em] text-foreground"
+        className="text-[13px] font-semibold tracking-[0.26em] text-foreground"
       >
         BETALENT
       </Link>

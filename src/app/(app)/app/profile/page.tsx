@@ -1,11 +1,23 @@
 import type { Metadata } from "next";
 
+import { AiInsightBlock } from "@/components/ai/AiInsightBlock";
+import { MemberHero } from "@/components/member/MemberHero";
+import {
+  PerformancePosterCard,
+  PremiumEmptyState,
+  PremiumMetaGrid,
+  PremiumScrollRow,
+  SectionHeader,
+  SpotlightCard,
+} from "@/components/premium";
 import { logoutAction } from "@/server/auth/actions";
 import { getSession } from "@/server/auth/session";
-import { AiInsightBlock } from "@/components/ai/AiInsightBlock";
-import { EmptyState } from "@/components/shared/EmptyState";
 import { ADVANCEMENT_DECISION_LABEL } from "@/lib/results/decision-labels";
 import { CONTESTANT_STATUS_LABEL } from "@/lib/show/contestant-labels";
+import {
+  PERFORMANCE_KIND_LABEL,
+  PERFORMANCE_STATUS_LABEL,
+} from "@/lib/show/performance-labels";
 import { getContestantHistorySummary } from "@/server/archive/contestant-history.service";
 import { getContestantByUserId } from "@/server/contestants/contestant.service";
 import { listContestantPerformances } from "@/server/performances/performance.service";
@@ -14,7 +26,8 @@ import { getLatestPublishedAdvancementSummaryForContestant } from "@/server/resu
 
 export const metadata: Metadata = {
   title: "Profile · BETALENT",
-  description: "Your BETALENT identity.",
+  description:
+    "BETALENT account and competition identity — not a social profile.",
 };
 
 export default async function AppProfilePage() {
@@ -44,188 +57,159 @@ export default async function AppProfilePage() {
       : null;
 
   return (
-    <div className="flex flex-col gap-6">
-      <p className="text-xs font-medium uppercase tracking-[0.2em] text-foreground/55">
-        BETALENT · You
-      </p>
-      <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
-      <p className="text-sm text-foreground/70">
-        Account settings from onboarding — not a social profile product.
-      </p>
+    <div className="flex flex-col gap-10 sm:gap-12">
+      <MemberHero
+        tone="profile"
+        eyebrow="Identity"
+        title="Profile"
+        subtitle="Account credentials and competition presence — separate surfaces."
+      />
 
-      <dl className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-sm">
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-xs uppercase tracking-wide text-foreground/50">
-            Display name
-          </dt>
-          <dd className="font-medium text-foreground">
-            {u.displayName?.trim() || "—"}
-          </dd>
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-xs uppercase tracking-wide text-foreground/50">
-            Username
-          </dt>
-          <dd className="font-medium text-foreground">
-            {u.username ? `@${u.username}` : "—"}
-          </dd>
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-xs uppercase tracking-wide text-foreground/50">
-            Email
-          </dt>
-          <dd className="break-all font-medium text-foreground">{u.email}</dd>
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-xs uppercase tracking-wide text-foreground/50">
-            City
-          </dt>
-          <dd className="text-foreground">{u.city?.trim() || "—"}</dd>
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-xs uppercase tracking-wide text-foreground/50">
-            Country
-          </dt>
-          <dd className="text-foreground">{u.country?.trim() || "—"}</dd>
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-xs uppercase tracking-wide text-foreground/50">
-            Audition interest
-          </dt>
-          <dd className="text-foreground">
-            {u.wantsToAudition
-              ? "Interested when submissions open"
-              : "Not indicated"}
-          </dd>
-        </div>
-      </dl>
+      <div className="grid gap-6 lg:grid-cols-2 lg:gap-8 lg:items-start">
+        <SpotlightCard>
+          <SectionHeader
+            eyebrow="Credentials"
+            title="Account"
+            subtitle="Login, onboarding, contact."
+          />
+          <div className="mt-8">
+            <PremiumMetaGrid
+              rows={[
+                {
+                  label: "Display name",
+                  value: u.displayName?.trim() || "—",
+                },
+                {
+                  label: "Username",
+                  value: u.username ? `@${u.username}` : "—",
+                },
+                { label: "Email", value: <span className="break-all">{u.email}</span> },
+                { label: "City", value: u.city?.trim() || "—" },
+                { label: "Country", value: u.country?.trim() || "—" },
+                {
+                  label: "Audition interest",
+                  value: u.wantsToAudition
+                    ? "Interested when open"
+                    : "Not indicated",
+                },
+              ]}
+            />
+          </div>
+        </SpotlightCard>
 
-      <div className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold tracking-tight">
-          BETALENT show identity
-        </h2>
-        <p className="text-xs leading-relaxed text-foreground/60">
-          Your account above is login and onboarding. Contestant is your
-          competition-facing identity when you enter the show core — separate
-          from this screen name until promoted from auditions.
-        </p>
-        {!contestant ? (
-          <EmptyState title="Contestant identity">
-            No BETALENT contestant record yet. When an accepted audition is mapped
-            into the show core, your competition-facing identity appears here —
-            separate from this account screen until then.
-          </EmptyState>
-        ) : (
-          <>
-          <dl className="flex flex-col gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-sm">
-            <div className="flex flex-col gap-0.5">
-              <dt className="text-xs uppercase tracking-wide text-foreground/50">
-                Contestant display
-              </dt>
-              <dd className="font-medium text-foreground">
-                {contestant.displayName}
-              </dd>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <dt className="text-xs uppercase tracking-wide text-foreground/50">
-                Contestant handle
-              </dt>
-              <dd className="font-medium text-foreground">
-                @{contestant.username}
-              </dd>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <dt className="text-xs uppercase tracking-wide text-foreground/50">
-                Contestant status
-              </dt>
-              <dd className="font-medium text-foreground">
-                {CONTESTANT_STATUS_LABEL[contestant.status]}
-              </dd>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <dt className="text-xs uppercase tracking-wide text-foreground/50">
-                Latest published advancement
-              </dt>
-              <dd className="text-foreground">
-                {publishedAdvancement ? (
-                  <>
-                    {ADVANCEMENT_DECISION_LABEL[publishedAdvancement.decision]} ·{" "}
-                    {publishedAdvancement.stageTitle}
-                    <span className="block text-xs text-foreground/55">
-                      {publishedAdvancement.decidedAt.toLocaleDateString(undefined, {
-                        dateStyle: "medium",
-                      })}
-                    </span>
-                  </>
-                ) : (
-                  "None published yet (unpublished decisions stay internal)."
-                )}
-              </dd>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <dt className="text-xs uppercase tracking-wide text-foreground/50">
-                Official performances
-              </dt>
-              <dd className="text-foreground">
-                {performances.length === 0
-                  ? "None yet"
-                  : `${performances.length} in the show core`}
-              </dd>
-            </div>
-            {performances.length > 0 ? (
-              <ul className="mt-1 list-disc pl-5 text-xs text-foreground/70">
-                {performances.slice(0, 6).map((p) => (
-                  <li key={p.id}>
-                    {p.title}{" "}
-                    <span className="text-foreground/50">({p.status})</span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {contestantHistory ? (
-              <div className="flex flex-col gap-0.5 border-t border-foreground/10 pt-4">
-                <dt className="text-xs uppercase tracking-wide text-foreground/50">
-                  Official history summary
-                </dt>
-                <dd className="space-y-1 text-xs leading-relaxed text-foreground/70">
-                  <p>
-                    Seasons with a performance:{" "}
-                    <span className="font-medium text-foreground">
-                      {contestantHistory.seasonsParticipatedCount}
-                    </span>
-                  </p>
-                  <p>
-                    Published advancement outcomes (official):{" "}
-                    <span className="font-medium text-foreground">
-                      {contestantHistory.publishedAdvancementOutcomeCount}
-                    </span>
-                  </p>
-                  <p>
-                    Historical performances (completed / archived context):{" "}
-                    <span className="font-medium text-foreground">
-                      {contestantHistory.historicalPerformanceCount}
-                    </span>
-                  </p>
-                  {contestantHistory.seasonTitlesSample.length > 0 ? (
-                    <p className="text-foreground/55">
-                      Seasons:{" "}
-                      {contestantHistory.seasonTitlesSample.join(", ")}
-                      {contestantHistory.seasonsParticipatedCount > 5 ? "…" : ""}
+        <div className="flex flex-col gap-5">
+          <SectionHeader
+            eyebrow="Competition"
+            title="Competition identity"
+            subtitle="Appears after promotion from formal auditions."
+          />
+          {!contestant ? (
+            <PremiumEmptyState title="Contestant record">
+              Not in the show core yet. When an accepted audition maps forward,
+              your competition identity appears here.
+            </PremiumEmptyState>
+          ) : (
+            <>
+              <SpotlightCard>
+                <PremiumMetaGrid
+                  rows={[
+                    { label: "Display", value: contestant.displayName },
+                    { label: "Handle", value: `@${contestant.username}` },
+                    {
+                      label: "Status",
+                      value: CONTESTANT_STATUS_LABEL[contestant.status],
+                    },
+                    {
+                      label: "Latest advancement",
+                      value: publishedAdvancement ? (
+                        <>
+                          {
+                            ADVANCEMENT_DECISION_LABEL[
+                              publishedAdvancement.decision
+                            ]
+                          }{" "}
+                          · {publishedAdvancement.stageTitle}
+                          <span className="mt-1 block text-xs font-normal text-foreground/52">
+                            {publishedAdvancement.decidedAt.toLocaleDateString(
+                              undefined,
+                              { dateStyle: "medium" },
+                            )}
+                          </span>
+                        </>
+                      ) : (
+                        "None published yet"
+                      ),
+                    },
+                  ]}
+                />
+                {performances.length > 0 ? (
+                  <div className="mt-8">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-foreground/42">
+                      Official performances
                     </p>
-                  ) : null}
-                </dd>
-              </div>
-            ) : null}
-          </dl>
-          <AiInsightBlock variant="judge" output={judgeInsight} />
-          </>
-        )}
+                    <PremiumScrollRow className="mt-4">
+                      {performances.slice(0, 8).map((p) => (
+                        <PerformancePosterCard
+                          key={p.id}
+                          title={p.title}
+                          meta={`${PERFORMANCE_KIND_LABEL[p.performanceType]} · ${PERFORMANCE_STATUS_LABEL[p.status]}`}
+                          accentSeed={p.id}
+                        />
+                      ))}
+                    </PremiumScrollRow>
+                  </div>
+                ) : null}
+                {contestantHistory ? (
+                  <div className="mt-8 border-t border-white/[0.07] pt-8">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-foreground/42">
+                      Official history
+                    </p>
+                    <dl className="mt-4 space-y-3 text-xs leading-relaxed text-foreground/72">
+                      <div className="flex justify-between gap-4">
+                        <dt>Seasons with performance</dt>
+                        <dd className="font-semibold text-foreground tabular-nums">
+                          {contestantHistory.seasonsParticipatedCount}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <dt>Published advancements</dt>
+                        <dd className="font-semibold text-foreground tabular-nums">
+                          {contestantHistory.publishedAdvancementOutcomeCount}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <dt>Historical performances</dt>
+                        <dd className="font-semibold text-foreground tabular-nums">
+                          {contestantHistory.historicalPerformanceCount}
+                        </dd>
+                      </div>
+                      {contestantHistory.seasonTitlesSample.length > 0 ? (
+                        <p className="text-foreground/52">
+                          Seasons:{" "}
+                          {contestantHistory.seasonTitlesSample.join(", ")}
+                          {contestantHistory.seasonsParticipatedCount > 5
+                            ? "…"
+                            : ""}
+                        </p>
+                      ) : null}
+                    </dl>
+                  </div>
+                ) : null}
+              </SpotlightCard>
+              <AiInsightBlock
+                variant="judge"
+                output={judgeInsight}
+                className="mt-0"
+              />
+            </>
+          )}
+        </div>
       </div>
 
       <form action={logoutAction}>
         <button
           type="submit"
-          className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-foreground/20 text-sm font-medium text-foreground transition hover:bg-foreground/5"
+          className="inline-flex h-12 w-full items-center justify-center rounded-[1.25rem] border border-white/[0.12] bg-white/[0.04] text-sm font-medium text-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] transition hover:bg-white/[0.07]"
         >
           Sign out
         </button>

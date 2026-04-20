@@ -13,12 +13,65 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #09090b;
-    --foreground: #fafafa;
+    --background: #050508;
+    --foreground: #f4f4f5;
   }
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
+}
+
+/* Apple TV–style ambient canvas (dark): immersive, glossy, no layout side-effects. */
+@media (prefers-color-scheme: dark) {
+  .streaming-shell {
+    background-color: #050508;
+    background-image:
+      radial-gradient(
+        ellipse 120% 80% at 50% 18%,
+        rgba(255, 255, 255, 0.055),
+        transparent 58%
+      ),
+      radial-gradient(
+        ellipse 85% 50% at 100% 12%,
+        rgba(95, 110, 220, 0.08),
+        transparent 52%
+      ),
+      radial-gradient(
+        ellipse 70% 45% at 0% 40%,
+        rgba(255, 255, 255, 0.03),
+        transparent 48%
+      ),
+      linear-gradient(180deg, #08080c 0%, #050508 45%, #030305 100%);
+    background-attachment: fixed;
+  }
+}
+
+/* Full-bleed breakouts from the member content column (hero, focus strip, rails). */
+.member-bleed {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+
+.member-rail-bleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .member-rail-bleed {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+/* Member app shell — flat over global canvas (extra top radials read as a “stripe”). */
+@media (prefers-color-scheme: dark) {
+  .member-app-root {
+    background-color: transparent;
+  }
 }

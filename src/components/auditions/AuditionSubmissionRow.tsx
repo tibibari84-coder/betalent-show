@@ -39,7 +39,7 @@ export function AuditionSubmissionRow(props: {
     : "No review row";
 
   return (
-    <li className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4">
+    <li className="rounded-[1.25rem] border border-foreground/11 bg-foreground/[0.04] p-5 shadow-[0_6px_28px_-12px_rgba(0,0,0,0.45)]">
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium text-foreground">{s.title}</p>
         <p className="text-xs text-foreground/60">

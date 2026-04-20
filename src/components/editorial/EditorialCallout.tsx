@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { cn } from "@/lib/utils/cn";
 import type { PublicEditorialPlacement } from "@/server/editorial/types";
 
 /**
@@ -8,6 +9,7 @@ import type { PublicEditorialPlacement } from "@/server/editorial/types";
 export function EditorialCallout(props: {
   placement: PublicEditorialPlacement | null;
   variant: "hero" | "spotlight";
+  className?: string;
 }) {
   const { placement, variant } = props;
   if (!placement) {
@@ -20,7 +22,12 @@ export function EditorialCallout(props: {
       : "text-base font-semibold tracking-tight";
 
   return (
-    <aside className="flex flex-col gap-2 rounded-2xl border border-foreground/15 bg-foreground/[0.04] p-4">
+    <aside
+      className={cn(
+        "flex h-full min-h-[8.5rem] flex-col gap-2 rounded-[1.35rem] border border-foreground/12 bg-gradient-to-b from-foreground/[0.06] to-foreground/[0.02] p-5 shadow-[0_8px_32px_-14px_rgba(0,0,0,0.5)] sm:min-h-[9rem] sm:p-6",
+        props.className,
+      )}
+    >
       <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-foreground/45">
         BETALENT curated · presentation layer · not an official competition
         outcome

@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 
 import { AiInsightBlock } from "@/components/ai/AiInsightBlock";
 import { EditorialCallout } from "@/components/editorial/EditorialCallout";
+import { MemberHero } from "@/components/member/MemberHero";
+import {
+  ContentRail,
+  FocusStrip,
+  PerformancePosterCard,
+  PremiumEmptyState,
+  PremiumMetaGrid,
+  PremiumScrollRow,
+  SectionHeader,
+  SpotlightCard,
+} from "@/components/premium";
 import { isArchivedSeasonStatus } from "@/lib/archive/archive-rules";
 import {
   PERFORMANCE_KIND_LABEL,
@@ -14,12 +25,12 @@ import {
   getPublicProducerForEditorialPlacement,
 } from "@/server/ai/public-ai.service";
 import { getPublicResultsPayloadForShowState } from "@/server/results/public-results.service";
-import { EmptyState } from "@/components/shared/EmptyState";
 import { resolveShowState } from "@/server/show/show-state.service";
 
 export const metadata: Metadata = {
   title: "Show · BETALENT",
-  description: "Watch performances and season moments on BETALENT.",
+  description:
+    "Season performances and moments — cinematic, asynchronous BETALENT viewing context.",
 };
 
 export default async function AppShowPage() {
@@ -56,115 +67,153 @@ export default async function AppShowPage() {
   const seasonArchiveContext =
     showState.season != null
       ? isArchivedSeasonStatus(showState.season.status)
-        ? "Archive season (completed or archived)"
-        : "Live season context"
-      : "No season";
+        ? "Recorded season"
+        : "Active season"
+      : "—";
+
+  const hasPresentationRail =
+    Boolean(showHero) ||
+    Boolean(producerShowHero) ||
+    Boolean(showSpotlight) ||
+    Boolean(producerShowSpotlight) ||
+    Boolean(hostStageAi);
 
   return (
-    <div className="flex flex-col gap-5">
-      <p className="text-xs font-medium uppercase tracking-[0.2em] text-foreground/55">
-        BETALENT · Show
-      </p>
-      <h1 className="text-2xl font-semibold tracking-tight">The show</h1>
-      <p className="text-sm leading-relaxed text-foreground/70">
-        This is where performances, episodes, and spotlight moments will live —
-        a single, intentional viewing space for the competition.
-      </p>
-      <p className="text-sm leading-relaxed text-foreground/65">
-        Playback is not built yet. This page reads show state and official
-        Performance rows already in the season (structured show objects — not raw
-        uploads or external URLs as finished media).
-      </p>
+    <div className="flex flex-col gap-10 sm:gap-12">
+      <MemberHero
+        tone="show"
+        eyebrow="The show"
+        title="Performances & moments"
+        subtitle="On-demand season storytelling — official records only when published."
+      />
 
       {!showState.season ? (
-        <EmptyState title="Season focus">
-          No active season is wired into show state yet. Official performances
-          and results always come from published BETALENT records — not from this
-          page alone.
-        </EmptyState>
-      ) : null}
+        <PremiumEmptyState title="Show context">
+          No season in focus. Performances appear here from published BETALENT
+          records — not from this page alone.
+        </PremiumEmptyState>
+      ) : (
+        <>
+          <FocusStrip
+            items={[
+              { label: "Season", value: showState.season.title },
+              {
+                label: "Stage",
+                value: showState.stage?.title ?? "Not active",
+              },
+              { label: "Phase", value: showState.displayState },
+            ]}
+          />
 
-      <EditorialCallout placement={showHero} variant="hero" />
-      <AiInsightBlock variant="producer" output={producerShowHero} />
-      <EditorialCallout placement={showSpotlight} variant="spotlight" />
-      <AiInsightBlock variant="producer" output={producerShowSpotlight} />
-      <AiInsightBlock variant="host" output={hostStageAi} />
+          <SpotlightCard emphasis="medium">
+            <SectionHeader
+              eyebrow="Official context"
+              title="Season detail"
+              subtitle="Structured record — not editorial voice."
+            />
+            <div className="mt-8">
+              <PremiumMetaGrid
+                rows={[
+                  {
+                    label: "Episode",
+                    value: showState.episode?.title ?? "Not published",
+                  },
+                  {
+                    label: "Published results",
+                    value: publishedResults ? publishedResults.title : "None",
+                  },
+                  {
+                    label: "Archive note",
+                    value: seasonArchiveContext,
+                  },
+                ]}
+              />
+            </div>
+          </SpotlightCard>
 
-      <dl className="grid gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-sm">
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-foreground/50">
-            Current season
-          </dt>
-          <dd className="font-medium text-foreground">
-            {showState.season?.title ?? "No active season"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-foreground/50">
-            Current stage
-          </dt>
-          <dd className="font-medium text-foreground">
-            {showState.stage?.title ?? "Not active"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-foreground/50">
-            Current episode
-          </dt>
-          <dd className="font-medium text-foreground">
-            {showState.episode?.title ?? "Not published"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-foreground/50">
-            Published stage results
-          </dt>
-          <dd className="font-medium text-foreground">
-            {publishedResults ? publishedResults.title : "None"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-foreground/50">
-            Season context
-          </dt>
-          <dd className="font-medium text-foreground">{seasonArchiveContext}</dd>
-        </div>
-      </dl>
+          {hasPresentationRail ? (
+            <ContentRail
+              eyebrow="Presentation"
+              title="In focus"
+              subtitle="Curated layers — asynchronous interpretation."
+            >
+              {showHero ? (
+                <div className="min-w-[min(88vw,24rem)] shrink-0 snap-start [&_aside]:mt-0">
+                  <EditorialCallout
+                    placement={showHero}
+                    variant="hero"
+                    className="mt-0"
+                  />
+                </div>
+              ) : null}
+              {producerShowHero ? (
+                <div className="min-w-[min(88vw,24rem)] shrink-0 snap-start">
+                  <AiInsightBlock
+                    variant="producer"
+                    output={producerShowHero}
+                    className="mt-0"
+                  />
+                </div>
+              ) : null}
+              {showSpotlight ? (
+                <div className="min-w-[min(88vw,24rem)] shrink-0 snap-start [&_aside]:mt-0">
+                  <EditorialCallout
+                    placement={showSpotlight}
+                    variant="spotlight"
+                    className="mt-0"
+                  />
+                </div>
+              ) : null}
+              {producerShowSpotlight ? (
+                <div className="min-w-[min(88vw,24rem)] shrink-0 snap-start">
+                  <AiInsightBlock
+                    variant="producer"
+                    output={producerShowSpotlight}
+                    className="mt-0"
+                  />
+                </div>
+              ) : null}
+              {hostStageAi ? (
+                <div className="min-w-[min(88vw,24rem)] shrink-0 snap-start">
+                  <AiInsightBlock
+                    variant="host"
+                    output={hostStageAi}
+                    className="mt-0"
+                  />
+                </div>
+              ) : null}
+            </ContentRail>
+          ) : null}
 
-      <div className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold tracking-tight">
-          Official performances (season)
-        </h2>
-        {performanceSummaries.length === 0 ? (
-          <EmptyState title="Official performances">
-            No Performance records for this season yet. They appear when an
-            accepted audition is promoted into the BETALENT show core — not from
-            informal uploads.
-          </EmptyState>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {performanceSummaries.map((p) => (
-              <li
-                key={p.id}
-                className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] px-4 py-3 text-sm"
-              >
-                <p className="font-medium text-foreground">{p.title}</p>
-                <p className="mt-1 text-xs text-foreground/60">
-                  {p.contestantDisplayName} ·{" "}
-                  {PERFORMANCE_KIND_LABEL[p.performanceType]} ·{" "}
-                  {PERFORMANCE_STATUS_LABEL[p.status]}
-                </p>
-                {p.mediaRef ? (
-                  <p className="mt-1 truncate text-[11px] text-foreground/45">
-                    Temporary reference (not finished BETALENT media):{" "}
-                    {p.mediaRef}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+          <section className="flex flex-col gap-4">
+            <SectionHeader
+              eyebrow="Catalog"
+              title="Official performances"
+              subtitle="Published Performance records for this season."
+            />
+            {performanceSummaries.length === 0 ? (
+              <PremiumEmptyState title="Performances">
+                None yet. Appear when an accepted audition becomes an official
+                Performance — not from informal uploads.
+              </PremiumEmptyState>
+            ) : (
+              <PremiumScrollRow>
+                {performanceSummaries.map((p) => (
+                  <PerformancePosterCard
+                    key={p.id}
+                    title={p.title}
+                    meta={`${p.contestantDisplayName} · ${PERFORMANCE_KIND_LABEL[p.performanceType]} · ${PERFORMANCE_STATUS_LABEL[p.status]}`}
+                    footnote={
+                      p.mediaRef ? `Reference: ${p.mediaRef}` : undefined
+                    }
+                    accentSeed={p.id}
+                  />
+                ))}
+              </PremiumScrollRow>
+            )}
+          </section>
+        </>
+      )}
     </div>
   );
 }

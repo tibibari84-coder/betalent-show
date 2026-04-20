@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils/cn";
 import type { PublicAiOutput } from "@/server/ai/types";
 
 /**
@@ -6,6 +7,7 @@ import type { PublicAiOutput } from "@/server/ai/types";
 export function AiInsightBlock(props: {
   variant: "judge" | "host" | "producer";
   output: PublicAiOutput | null;
+  className?: string;
 }) {
   const { variant, output } = props;
   if (!output) {
@@ -20,7 +22,12 @@ export function AiInsightBlock(props: {
         : "AI Producer assist";
 
   return (
-    <aside className="mt-3 flex flex-col gap-2 rounded-2xl border border-foreground/12 bg-foreground/[0.03] p-4">
+    <aside
+      className={cn(
+        "mt-3 flex h-full min-h-[8.5rem] flex-col gap-2 rounded-[1.35rem] border border-foreground/10 bg-foreground/[0.04] p-5 shadow-[0_8px_28px_-12px_rgba(0,0,0,0.45)] sm:min-h-[9rem] sm:p-6",
+        props.className,
+      )}
+    >
       <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-foreground/42">
         BETALENT AI · interpretive presentation · does not decide placements or
         advancement

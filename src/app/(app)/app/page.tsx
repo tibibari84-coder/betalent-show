@@ -2,18 +2,24 @@ import type { Metadata } from "next";
 
 import { AiInsightBlock } from "@/components/ai/AiInsightBlock";
 import { EditorialCallout } from "@/components/editorial/EditorialCallout";
+import { MemberHero } from "@/components/member/MemberHero";
+import {
+  ContentRail,
+  FocusStrip,
+  PremiumEmptyState,
+} from "@/components/premium";
 import { getSession } from "@/server/auth/session";
 import { getPublishedPlacementForSlotKey } from "@/server/editorial/public-editorial.service";
 import {
   getPublicHostForStage,
   getPublicProducerForEditorialPlacement,
 } from "@/server/ai/public-ai.service";
-import { EmptyState } from "@/components/shared/EmptyState";
 import { resolveShowState } from "@/server/show/show-state.service";
 
 export const metadata: Metadata = {
   title: "Home · BETALENT",
-  description: "BETALENT show lobby — Season 1 originals.",
+  description:
+    "BETALENT show lobby — current season focus, originals, asynchronous premium moments.",
 };
 
 export default async function AppHomePage() {
@@ -44,57 +50,96 @@ export default async function AppHomePage() {
     session.user.username ||
     session.user.email.split("@")[0];
 
+  const hasSpotlightRail =
+    Boolean(homeHero) ||
+    Boolean(producerHero) ||
+    Boolean(homeSpotlight) ||
+    Boolean(producerSpotlight) ||
+    Boolean(hostStage);
+
   return (
-    <div className="flex flex-col gap-5">
-      <p className="text-xs font-medium uppercase tracking-[0.2em] text-foreground/55">
-        Show lobby
-      </p>
-      <h1 className="text-2xl font-semibold tracking-tight text-balance">
-        Welcome, {name}
-      </h1>
-      <p className="text-sm leading-relaxed text-foreground/70">
-        BETALENT orchestration is centered on season, stage, and episode state —
-        not a feed or recommendation surface.
-      </p>
+    <div className="flex flex-col gap-10 sm:gap-12">
+      <MemberHero
+        tone="lobby"
+        eyebrow="Lobby"
+        title={`Welcome, ${name}`}
+        subtitle="Asynchronous show home — curated plates when published, never a live channel."
+      />
 
       {!showState.season ? (
-        <EmptyState title="Season focus">
-          No active BETALENT season is in focus yet. When production assigns live
-          season data, this lobby will reflect it. Curated or AI-assisted blocks
-          only appear when published — they never replace official records.
-        </EmptyState>
-      ) : null}
+        <PremiumEmptyState title="Season focus">
+          No season is in focus yet. When production publishes the current
+          configuration, this lobby updates — editorial layers never replace
+          official records.
+        </PremiumEmptyState>
+      ) : (
+        <>
+          <FocusStrip
+            items={[
+              { label: "Season", value: showState.season.title },
+              {
+                label: "Stage",
+                value: showState.stage?.title ?? "Not active",
+              },
+              { label: "Phase", value: showState.displayState },
+            ]}
+          />
 
-      <EditorialCallout placement={homeHero} variant="hero" />
-      <AiInsightBlock variant="producer" output={producerHero} />
-      <EditorialCallout placement={homeSpotlight} variant="spotlight" />
-      <AiInsightBlock variant="producer" output={producerSpotlight} />
-      <AiInsightBlock variant="host" output={hostStage} />
-
-      <dl className="grid gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-sm">
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-foreground/50">
-            Season
-          </dt>
-          <dd className="font-medium text-foreground">
-            {showState.season?.title ?? "No active season"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-foreground/50">
-            Stage
-          </dt>
-          <dd className="font-medium text-foreground">
-            {showState.stage?.title ?? "Not active"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-foreground/50">
-            Display state
-          </dt>
-          <dd className="font-medium text-foreground">{showState.displayState}</dd>
-        </div>
-      </dl>
+          {hasSpotlightRail ? (
+            <ContentRail
+              eyebrow="Presentation"
+              title="Spotlight"
+              subtitle="Curated frames — interpretive only."
+            >
+              {homeHero ? (
+                <div className="min-w-[min(88vw,24rem)] shrink-0 snap-start [&_aside]:mt-0">
+                  <EditorialCallout
+                    placement={homeHero}
+                    variant="hero"
+                    className="mt-0"
+                  />
+                </div>
+              ) : null}
+              {producerHero ? (
+                <div className="min-w-[min(88vw,24rem)] shrink-0 snap-start">
+                  <AiInsightBlock
+                    variant="producer"
+                    output={producerHero}
+                    className="mt-0"
+                  />
+                </div>
+              ) : null}
+              {homeSpotlight ? (
+                <div className="min-w-[min(88vw,24rem)] shrink-0 snap-start [&_aside]:mt-0">
+                  <EditorialCallout
+                    placement={homeSpotlight}
+                    variant="spotlight"
+                    className="mt-0"
+                  />
+                </div>
+              ) : null}
+              {producerSpotlight ? (
+                <div className="min-w-[min(88vw,24rem)] shrink-0 snap-start">
+                  <AiInsightBlock
+                    variant="producer"
+                    output={producerSpotlight}
+                    className="mt-0"
+                  />
+                </div>
+              ) : null}
+              {hostStage ? (
+                <div className="min-w-[min(88vw,24rem)] shrink-0 snap-start">
+                  <AiInsightBlock
+                    variant="host"
+                    output={hostStage}
+                    className="mt-0"
+                  />
+                </div>
+              ) : null}
+            </ContentRail>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }
