@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type {
   AuditionWindowStatus,
+  EpisodeStatus,
   SeasonStatus,
   StageStatus,
   StageType,
@@ -21,6 +22,7 @@ import {
 
 import {
   createAuditionWindowRecord,
+  createEpisodeRecord,
   createSeasonRecord,
   createStageRecord,
 } from "./show-setup.service";
@@ -114,6 +116,13 @@ const WINDOW_STATUSES: AuditionWindowStatus[] = [
   "CLOSED",
   "REVIEW",
   "COMPLETED",
+  "ARCHIVED",
+];
+
+const EPISODE_STATUSES: EpisodeStatus[] = [
+  "DRAFT",
+  "SCHEDULED",
+  "PUBLISHED",
   "ARCHIVED",
 ];
 
@@ -351,6 +360,80 @@ export async function createAuditionWindowSetupAction(
   } catch (e) {
     const msg =
       e instanceof Error ? e.message : "Could not create audition window.";
+    return { error: msg };
+  }
+}
+
+export async function createEpisodeSetupAction(
+  _prev: ShowSetupActionState | undefined,
+  formData: FormData,
+): Promise<ShowSetupActionState> {
+  const gate = await gateOperator();
+  if (!gate.ok) {
+    return { error: gate.error };
+  }
+
+  try {
+    const seasonId = String(formData.get("seasonId") ?? "").trim();
+    const stageIdRaw = String(formData.get("stageId") ?? "").trim();
+    let slug = String(formData.get("slug") ?? "").trim();
+    const title = String(formData.get("title") ?? "").trim();
+    const descriptionRaw = String(formData.get("description") ?? "").trim();
+    const orderIndexRaw = String(formData.get("orderIndex") ?? "").trim();
+    const status = parseEnum(
+      String(formData.get("status") ?? ""),
+      EPISODE_STATUSES,
+    );
+    const premiereAt = parseOptionalDate(
+      String(formData.get("premiereAt") ?? ""),
+    );
+    const publishedAt = parseOptionalDate(
+      String(formData.get("publishedAt") ?? ""),
+    );
+
+    const stageId = stageIdRaw || null;
+
+    if (!seasonId) {
+      return { error: "Season is required." };
+    }
+    if (!title) {
+      return { error: "Title is required." };
+    }
+    if (!slug) {
+      slug = slugifySafe(title);
+    }
+    if (!slug) {
+      return { error: "Slug is required." };
+    }
+
+    const orderIndex =
+      orderIndexRaw === "" ? 0 : Number.parseInt(orderIndexRaw, 10);
+    if (Number.isNaN(orderIndex)) {
+      return { error: "orderIndex must be a number." };
+    }
+
+    const row = await createEpisodeRecord({
+      seasonId,
+      stageId,
+      slug,
+      title,
+      description: descriptionRaw || null,
+      orderIndex,
+      status,
+      premiereAt,
+      publishedAt,
+    });
+
+    revalidatePath("/app");
+    revalidatePath("/app/show");
+    revalidatePath("/internal/show/setup");
+
+    return {
+      ok: true,
+      detail: `Episode created: ${row.title} (${row.slug}) · id ${row.id}`,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Could not create episode.";
     return { error: msg };
   }
 }

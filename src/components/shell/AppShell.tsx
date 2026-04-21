@@ -18,7 +18,7 @@ export function AppShell({ children }: AppShellProps) {
       <AppTopBar />
       {/* Window scroll: no nested overflow-y — nested scroll regions trap touch/scroll on mobile Safari. */}
       <div
-        className="w-full min-w-0 flex-1 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] sm:pb-[calc(7rem+env(safe-area-inset-bottom,0px))]"
+        className="w-full min-w-0 flex-1 pb-[calc(7.75rem+env(safe-area-inset-bottom,0px))] sm:pb-[calc(8rem+env(safe-area-inset-bottom,0px))]"
         role="main"
       >
         <MobilePageShell className="pb-0">

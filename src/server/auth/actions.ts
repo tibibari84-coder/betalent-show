@@ -60,6 +60,7 @@ export async function loginAction(
 
   const ok =
     user &&
+    user.passwordHash &&
     (await verifyPassword(rawPassword, user.passwordHash));
 
   if (!ok) {

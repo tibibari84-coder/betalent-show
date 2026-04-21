@@ -1,5 +1,6 @@
 import type {
   AuditionWindowStatus,
+  EpisodeStatus,
   SeasonStatus,
   StageStatus,
   StageType,
@@ -47,6 +48,18 @@ export type CreateAuditionWindowInput = {
   maxSubmissionsPerUser: number | null;
 };
 
+export type CreateEpisodeInput = {
+  seasonId: string;
+  stageId: string | null;
+  slug: string;
+  title: string;
+  description: string | null;
+  orderIndex: number;
+  status: EpisodeStatus;
+  premiereAt: Date | null;
+  publishedAt: Date | null;
+};
+
 export async function createSeasonRecord(input: CreateSeasonInput) {
   return prisma.season.create({
     data: {
@@ -91,9 +104,54 @@ export async function createStageRecord(input: CreateStageInput) {
   });
 }
 
+export async function createEpisodeRecord(input: CreateEpisodeInput) {
+  const season = await prisma.season.findUnique({
+    where: { id: input.seasonId },
+    select: { id: true },
+  });
+  if (!season) {
+    throw new Error("Season not found.");
+  }
+
+  if (input.stageId) {
+    const stage = await prisma.stage.findFirst({
+      where: { id: input.stageId, seasonId: input.seasonId },
+      select: { id: true },
+    });
+    if (!stage) {
+      throw new Error("Stage must belong to the selected season.");
+    }
+  }
+
+  return prisma.episode.create({
+    data: {
+      seasonId: input.seasonId,
+      stageId: input.stageId,
+      slug: input.slug,
+      title: input.title,
+      description: input.description,
+      orderIndex: input.orderIndex,
+      status: input.status,
+      premiereAt: input.premiereAt,
+      publishedAt: input.publishedAt,
+    },
+    select: { id: true, slug: true, title: true },
+  });
+}
+
 export async function createAuditionWindowRecord(input: CreateAuditionWindowInput) {
   if (input.opensAt.getTime() >= input.closesAt.getTime()) {
     throw new Error("opensAt must be before closesAt.");
+  }
+
+  if (input.seasonId && input.stageId) {
+    const ok = await prisma.stage.findFirst({
+      where: { id: input.stageId, seasonId: input.seasonId },
+      select: { id: true },
+    });
+    if (!ok) {
+      throw new Error("Stage must belong to the selected season.");
+    }
   }
 
   return prisma.auditionWindow.create({

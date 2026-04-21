@@ -30,6 +30,10 @@ export type UserSubmissionListItem = {
   rightsStatus: AuditionRightsStatus;
   status: AuditionSubmissionStatus;
   externalMediaRef: string | null;
+  mediaUrl: string | null;
+  mediaOriginalName: string | null;
+  mediaSize: number | null;
+  mediaMimeType: string | null;
   submittedAt: Date | null;
   reviewedAt: Date | null;
   createdAt: Date;

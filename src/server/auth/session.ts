@@ -42,13 +42,11 @@ export const getSession = cache(async function getSession() {
   });
 
   if (!row) {
-    cookieStore.delete(SESSION_COOKIE_NAME);
     return null;
   }
 
   if (row.expiresAt.getTime() <= Date.now()) {
     await prisma.session.delete({ where: { id: row.id } }).catch(() => undefined);
-    cookieStore.delete(SESSION_COOKIE_NAME);
     return null;
   }
 

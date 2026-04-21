@@ -2,6 +2,8 @@
  * Minimal server-side OpenAI caller — no streaming, no client exposure.
  */
 
+import 'server-only';
+
 function requireApiKey(): string {
   const key = process.env.OPENAI_API_KEY?.trim();
   if (!key) {

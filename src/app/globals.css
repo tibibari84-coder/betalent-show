@@ -8,7 +8,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Avenir Next", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -74,4 +74,82 @@ body {
   .member-app-root {
     background-color: transparent;
   }
+}
+
+.foundation-shell {
+  position: relative;
+  min-height: 100vh;
+}
+
+.foundation-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 14%, rgba(193, 61, 45, 0.18), transparent 24%),
+    radial-gradient(circle at 82% 12%, rgba(120, 98, 180, 0.14), transparent 26%),
+    linear-gradient(180deg, rgba(255,255,255,0.03), transparent 22%);
+}
+
+.foundation-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.065), rgba(255,255,255,0.025)),
+    rgba(10, 10, 14, 0.84);
+  box-shadow:
+    0 24px 60px -30px rgba(0, 0, 0, 0.78),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  backdrop-filter: blur(24px);
+}
+
+.foundation-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 70% 45% at 50% -10%, rgba(255,255,255,0.08), transparent 55%);
+}
+
+.foundation-panel > * {
+  position: relative;
+}
+
+.foundation-nav-link {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  padding: 0.65rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.78);
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.foundation-nav-link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+}
+
+.foundation-kicker {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.46);
+}
+
+.foundation-muted {
+  color: rgba(244, 244, 245, 0.66);
 }

@@ -10,8 +10,6 @@ import {
 } from "@/server/auditions/actions";
 
 import {
-  AUDITION_RIGHTS_STATUS_LABEL,
-  AUDITION_REVIEW_STATUS_LABEL,
   AUDITION_SUBMISSION_STATUS_LABEL,
   AUDITION_SUBMISSION_TYPE_LABEL,
 } from "@/lib/auditions/labels";
@@ -34,20 +32,14 @@ export function AuditionSubmissionRow(props: {
     initial,
   );
 
-  const reviewLabel = s.latestReview
-    ? AUDITION_REVIEW_STATUS_LABEL[s.latestReview.status]
-    : "No review row";
-
   return (
-    <li className="rounded-[1.25rem] border border-foreground/11 bg-foreground/[0.04] p-5 shadow-[0_6px_28px_-12px_rgba(0,0,0,0.45)]">
+    <li className="rounded-[1.25rem] border border-foreground/11 bg-foreground/4 p-5 shadow-[0_6px_28px_-12px_rgba(0,0,0,0.45)]">
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium text-foreground">{s.title}</p>
         <p className="text-xs text-foreground/60">
           {AUDITION_SUBMISSION_TYPE_LABEL[s.submissionType]} ·{" "}
           {AUDITION_SUBMISSION_STATUS_LABEL[s.status]}
         </p>
-        <p className="text-xs text-foreground/55">{AUDITION_RIGHTS_STATUS_LABEL[s.rightsStatus]}</p>
-        <p className="text-xs text-foreground/55">{reviewLabel}</p>
         {s.externalMediaRef ? (
           <p className="truncate text-xs text-foreground/45">
             Temp. media ref: {s.externalMediaRef}
@@ -55,7 +47,7 @@ export function AuditionSubmissionRow(props: {
         ) : null}
         {s.mappedPerformanceId ? (
           <p className="text-xs font-medium text-emerald-700/90 dark:text-emerald-400/90">
-            Mapped to official BETALENT Performance (show object).
+            Selected for performance
           </p>
         ) : null}
       </div>
@@ -65,9 +57,9 @@ export function AuditionSubmissionRow(props: {
             <input type="hidden" name="submissionId" value={s.id} />
             <button
               type="submit"
-              className="inline-flex h-9 items-center rounded-xl border border-foreground/20 px-3 text-xs font-medium text-foreground transition hover:bg-foreground/5"
+              className="inline-flex h-9 items-center rounded-xl bg-foreground px-3 text-xs font-medium text-background transition hover:opacity-90"
             >
-              Submit formal entry
+              Submit entry
             </button>
           </form>
         ) : null}
@@ -78,16 +70,11 @@ export function AuditionSubmissionRow(props: {
               type="submit"
               className="inline-flex h-9 items-center rounded-xl border border-red-500/30 px-3 text-xs font-medium text-red-700 transition hover:bg-red-500/10 dark:text-red-400"
             >
-              Withdraw
+              Withdraw entry
             </button>
           </form>
         ) : null}
       </div>
-      {!props.scheduleOpen && s.status === "DRAFT" ? (
-        <p className="mt-2 text-xs text-foreground/55">
-          Submit is available only while the audition schedule is open.
-        </p>
-      ) : null}
       {submitState?.error ? (
         <p className="mt-2 text-xs text-red-600 dark:text-red-400" role="alert">
           {submitState.error}

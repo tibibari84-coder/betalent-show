@@ -28,13 +28,12 @@ export function AuditionDraftCreateForm({
   );
 
   return (
-    <div className="rounded-[1.35rem] border border-foreground/11 bg-gradient-to-b from-foreground/[0.05] to-transparent p-5 shadow-[0_10px_40px_-14px_rgba(0,0,0,0.5)] sm:p-6">
+    <div className="rounded-[1.35rem] border border-foreground/11 bg-linear-to-b from-foreground/5 to-transparent p-5 shadow-[0_10px_40px_-14px_rgba(0,0,0,0.5)] sm:p-6">
       <h2 className="text-[15px] font-semibold tracking-tight">
-        New formal entry (draft)
+        Create new entry
       </h2>
       <p className="mt-1 text-xs leading-relaxed text-foreground/65">
-        Saving a draft does not enter you into BETALENT — you must submit while
-        the window is open on schedule.
+        Start a draft for the current audition window. Submit during the open schedule.
       </p>
       <p className="mt-2 text-xs leading-relaxed text-foreground/60">
         {AUDITION_RIGHTS_DECLARATION}
@@ -43,7 +42,7 @@ export function AuditionDraftCreateForm({
         {TEMPORARY_MEDIA_REFERENCE}
       </p>
       {!canStartNewDraft ? (
-        <p className="mt-3 rounded-lg border border-foreground/10 bg-foreground/[0.03] px-3 py-2 text-sm text-foreground/75">
+        <p className="mt-3 rounded-lg border border-foreground/10 bg-foreground/3 px-3 py-2 text-sm text-foreground/75">
           {disabledReason ??
             "You cannot start a new draft right now."}
         </p>
@@ -110,7 +109,7 @@ export function AuditionDraftCreateForm({
           disabled={!canStartNewDraft}
           className="mt-1 inline-flex h-11 items-center justify-center rounded-xl bg-foreground px-4 text-sm font-medium text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Save draft
+          Create draft
         </SubmitButton>
       </form>
     </div>

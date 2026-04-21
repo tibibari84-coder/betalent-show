@@ -6,6 +6,7 @@ import { SubmitButton } from "@/components/auth/SubmitButton";
 import type { ShowSetupActionState } from "@/server/setup/show-setup-actions";
 import {
   createAuditionWindowSetupAction,
+  createEpisodeSetupAction,
   createSeasonSetupAction,
   createStageSetupAction,
 } from "@/server/setup/show-setup-actions";
@@ -39,7 +40,7 @@ function ActionNote(props: { state: ShowSetupActionState | undefined }) {
 }
 
 export function InternalShowSetupForms(props: {
-  seasons: { id: string; slug: string; title: string }[];
+  seasons: { id: string; slug: string; title: string; status: string }[];
   stages: {
     id: string;
     seasonId: string;
@@ -62,6 +63,10 @@ export function InternalShowSetupForms(props: {
     createAuditionWindowSetupAction,
     initial,
   );
+  const [episodeState, episodeAction] = useActionState(
+    createEpisodeSetupAction,
+    initial,
+  );
 
   return (
     <div className="flex flex-col gap-10">
@@ -69,12 +74,18 @@ export function InternalShowSetupForms(props: {
         <h2 className="text-sm font-semibold tracking-tight">
           1. Create Season
         </h2>
-        <p className="mt-1 text-xs text-foreground/60">
-          Use status LIVE and optional date range so{" "}
+        <p className="mt-1 text-xs leading-relaxed text-foreground/65">
+          BETALENT is asynchronous on-demand viewing — not live streaming. For a
+          season the member app should treat as <strong>current</strong>, pick
+          status{" "}
+          <code className="rounded bg-foreground/5 px-1 font-mono text-[11px]">
+            LIVE
+          </code>{" "}
+          (schema label only). Optional dates help{" "}
           <code className="rounded bg-foreground/5 px-1 font-mono text-[11px]">
             getCurrentSeason
-          </code>{" "}
-          resolves this row.
+          </code>
+          .
         </p>
         <form action={seasonAction} className="mt-4 flex flex-col gap-3">
           <ActionNote state={seasonState} />
@@ -99,7 +110,10 @@ export function InternalShowSetupForms(props: {
             <select name="status" required className={fieldClass()} defaultValue="LIVE">
               <option value="DRAFT">DRAFT</option>
               <option value="UPCOMING">UPCOMING</option>
-              <option value="LIVE">LIVE</option>
+              <option value="LIVE">
+                LIVE — current / active season (stored as LIVE in schema;
+                not broadcast)
+              </option>
               <option value="COMPLETED">COMPLETED</option>
               <option value="ARCHIVED">ARCHIVED</option>
             </select>
@@ -126,9 +140,13 @@ export function InternalShowSetupForms(props: {
         <h2 className="text-sm font-semibold tracking-tight">
           2. Create Stage (under a season)
         </h2>
-        <p className="mt-1 text-xs text-foreground/60">
-          OPEN is typical for submissions. Schedule fields are optional but help
-          show-state derivation.
+        <p className="mt-1 text-xs leading-relaxed text-foreground/65">
+          Pick the season this stage belongs to.{" "}
+          <code className="rounded bg-foreground/5 px-1 font-mono text-[11px]">
+            OPEN
+          </code>{" "}
+          means the competition phase is open per rules below; it is not a
+          “live channel” state.
         </p>
         <form action={stageAction} className="mt-4 flex flex-col gap-3">
           <ActionNote state={stageState} />
@@ -138,7 +156,7 @@ export function InternalShowSetupForms(props: {
               <option value="">— choose —</option>
               {props.seasons.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.title} ({s.slug})
+                  {s.title} ({s.slug}) · {s.status}
                 </option>
               ))}
             </select>
@@ -183,7 +201,9 @@ export function InternalShowSetupForms(props: {
             <select name="status" required className={fieldClass()} defaultValue="OPEN">
               <option value="DRAFT">DRAFT</option>
               <option value="UPCOMING">UPCOMING</option>
-              <option value="OPEN">OPEN</option>
+              <option value="OPEN">
+                OPEN — current competition phase (submissions context per schedule)
+              </option>
               <option value="JUDGING">JUDGING</option>
               <option value="VOTING">VOTING</option>
               <option value="RESULTS">RESULTS</option>
@@ -259,12 +279,27 @@ export function InternalShowSetupForms(props: {
         <h2 className="text-sm font-semibold tracking-tight">
           3. Create AuditionWindow
         </h2>
-        <p className="mt-1 text-xs text-foreground/60">
-          OPEN + schedule must include “now” for{" "}
+        <p className="mt-1 text-xs leading-relaxed text-foreground/65">
+          Official formal entry window — aligned with BETALENT{" "}
+          <strong>Originals Only</strong> member copy. For members to see an open
+          window, use status{" "}
+          <code className="rounded bg-foreground/5 px-1 font-mono text-[11px]">
+            OPEN
+          </code>{" "}
+          and set{" "}
+          <code className="rounded bg-foreground/5 px-1 font-mono text-[11px]">
+            opensAt
+          </code>
+          /
+          <code className="rounded bg-foreground/5 px-1 font-mono text-[11px]">
+            closesAt
+          </code>{" "}
+          so “now” is inside the range (
           <code className="rounded bg-foreground/5 px-1 font-mono text-[11px]">
             getPrimaryOpenAuditionWindow
           </code>
-          . Defaults below are suggestions only.
+          ). If both season and stage are set, the stage must belong to that
+          season.
         </p>
         <form action={windowAction} className="mt-4 flex flex-col gap-3">
           <ActionNote state={windowState} />
@@ -274,7 +309,7 @@ export function InternalShowSetupForms(props: {
               <option value="">— none —</option>
               {props.seasons.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.title} ({s.slug})
+                  {s.title} ({s.slug}) · {s.status}
                 </option>
               ))}
             </select>
@@ -311,7 +346,9 @@ export function InternalShowSetupForms(props: {
             <select name="status" required className={fieldClass()} defaultValue="OPEN">
               <option value="DRAFT">DRAFT</option>
               <option value="UPCOMING">UPCOMING</option>
-              <option value="OPEN">OPEN</option>
+              <option value="OPEN">
+                OPEN — formal submission window open (schedule must include now)
+              </option>
               <option value="CLOSED">CLOSED</option>
               <option value="REVIEW">REVIEW</option>
               <option value="COMPLETED">COMPLETED</option>
@@ -368,6 +405,104 @@ export function InternalShowSetupForms(props: {
           </div>
           <SubmitButton className="h-10 w-fit px-4 text-sm">
             Create audition window
+          </SubmitButton>
+        </form>
+      </section>
+
+      <section className="rounded-2xl border border-foreground/12 bg-foreground/[0.02] p-4">
+        <h2 className="text-sm font-semibold tracking-tight">
+          4. Create Episode (optional bootstrap)
+        </h2>
+        <p className="mt-1 text-xs leading-relaxed text-foreground/65">
+          Low-risk catalog row for season/stage context. Does not replace media
+          pipeline.{" "}
+          <code className="rounded bg-foreground/5 px-1 font-mono text-[11px]">
+            PUBLISHED
+          </code>{" "}
+          +{" "}
+          <code className="rounded bg-foreground/5 px-1 font-mono text-[11px]">
+            publishedAt
+          </code>{" "}
+          helps show-state pick a current episode when configured.
+        </p>
+        <form action={episodeAction} className="mt-4 flex flex-col gap-3">
+          <ActionNote state={episodeState} />
+          <div className="flex flex-col gap-1">
+            <label className={labelClass()}>season</label>
+            <select name="seasonId" required className={fieldClass()}>
+              <option value="">— choose —</option>
+              {props.seasons.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.title} ({s.slug}) · {s.status}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className={labelClass()}>stage (optional)</label>
+            <select name="stageId" className={fieldClass()}>
+              <option value="">— none —</option>
+              {props.stages.map((st) => (
+                <option key={st.id} value={st.id}>
+                  {st.season.title} · {st.title} ({st.slug})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className={labelClass()}>slug</label>
+            <input name="slug" className={fieldClass()} placeholder="ep-01" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className={labelClass()}>title</label>
+            <input name="title" required className={fieldClass()} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className={labelClass()}>description (optional)</label>
+            <textarea
+              name="description"
+              rows={2}
+              className="w-full resize-y rounded-xl border border-foreground/15 bg-transparent px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className={labelClass()}>orderIndex</label>
+            <input
+              name="orderIndex"
+              type="number"
+              defaultValue={0}
+              className={fieldClass()}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className={labelClass()}>status</label>
+            <select name="status" required className={fieldClass()} defaultValue="DRAFT">
+              <option value="DRAFT">DRAFT</option>
+              <option value="SCHEDULED">SCHEDULED</option>
+              <option value="PUBLISHED">PUBLISHED</option>
+              <option value="ARCHIVED">ARCHIVED</option>
+            </select>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1">
+              <label className={labelClass()}>premiereAt</label>
+              <input
+                name="premiereAt"
+                type="datetime-local"
+                className={fieldClass()}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className={labelClass()}>publishedAt</label>
+              <input
+                name="publishedAt"
+                type="datetime-local"
+                className={fieldClass()}
+              />
+            </div>
+          </div>
+          <SubmitButton className="h-10 w-fit px-4 text-sm">
+            Create episode
           </SubmitButton>
         </form>
       </section>

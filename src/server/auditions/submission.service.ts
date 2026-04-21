@@ -36,6 +36,10 @@ function mapSubmissionToListItem(
     rightsStatus: row.rightsStatus,
     status: row.status,
     externalMediaRef: row.externalMediaRef,
+    mediaUrl: row.mediaUrl,
+    mediaOriginalName: row.mediaOriginalName,
+    mediaSize: row.mediaSize,
+    mediaMimeType: row.mediaMimeType,
     submittedAt: row.submittedAt,
     reviewedAt: row.reviewedAt,
     createdAt: row.createdAt,
@@ -170,6 +174,10 @@ export async function submitDraftSubmission(args: {
 
   if (!row.title.trim()) {
     throw new Error("Title is required.");
+  }
+
+  if (!row.mediaUrl) {
+    throw new Error("Media attachment is required to submit.");
   }
 
   return prisma.$transaction(async (tx) => {

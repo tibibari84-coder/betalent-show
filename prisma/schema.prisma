@@ -187,14 +187,76 @@ enum AIOutputStatus {
   ARCHIVED
 }
 
+enum UserRole {
+  USER
+  CREATOR
+  ADMIN
+}
+
+enum VideoAssetStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
+  DELETED
+}
+
+enum VideoAssetProvider {
+  CLOUDFLARE_STREAM
+}
+
+enum SubmissionStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum JudgeResultStatus {
+  PENDING
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum AdvancementStatus {
+  PENDING
+  ADVANCED
+  ELIMINATED
+  HOLD
+}
+
+enum ArchiveRecordStatus {
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
+enum NotificationType {
+  EMAIL
+  PUSH
+  IN_APP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}
+
 model User {
   id                    String    @id @default(cuid())
   email                 String    @unique
-  passwordHash          String
+  passwordHash          String?
   displayName           String?
   username              String?   @unique
+  avatarUrl             String?
   city                  String?
   country               String?
+  role                  UserRole  @default(USER)
   wantsToAudition       Boolean   @default(false)
   onboardingCompletedAt DateTime?
   emailVerifiedAt       DateTime?
@@ -204,6 +266,13 @@ model User {
   auditionSubmissions    AuditionSubmission[]
   auditionReviewsWritten AuditionReview[] @relation("AuditionReviewer")
   contestant             Contestant?
+  videoAssets            VideoAsset[]
+  submissions            Submission[]
+  judgeResults           JudgeResult[]
+  auditLogs              AuditLog[]
+  notifications          Notification[]
+  emailLogs              EmailLog[]
+  creatorProfile         CreatorProfile?
 }
 
 model Session {
@@ -326,6 +395,8 @@ model Performance {
   stage                      Stage?               @relation(fields: [stageId], references: [id], onDelete: SetNull)
   episodeId                  String?
   episode                    Episode?             @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+  submissionId               String?
+  submission                 Submission?          @relation(fields: [submissionId], references: [id], onDelete: SetNull)
   sourceAuditionSubmissionId String?            @unique
   sourceAuditionSubmission   AuditionSubmission?  @relation(fields: [sourceAuditionSubmissionId], references: [id], onDelete: SetNull)
   title                      String
@@ -531,6 +602,11 @@ model AuditionSubmission {
   status            AuditionSubmissionStatus @default(DRAFT)
   /// Temporary: user-supplied URL or opaque ref — not processed by BETALENT yet.
   externalMediaRef  String?
+  /// BETALENT-stored media for the submission.
+  mediaUrl          String?
+  mediaOriginalName String?
+  mediaSize         Int?
+  mediaMimeType     String?
   notes             String?
   submittedAt       DateTime?
   reviewedAt        DateTime?
@@ -556,4 +632,148 @@ model AuditionReview {
 
   @@index([auditionSubmissionId, createdAt])
   @@index([reviewerUserId])
+}
+
+model VideoAsset {
+  id              String             @id @default(cuid())
+  userId          String
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider        VideoAssetProvider @default(CLOUDFLARE_STREAM)
+  providerAssetId String?            @unique
+  filename        String
+  originalName    String
+  url             String?
+  uploadUrl       String?
+  previewUrl      String?
+  playbackUrl     String?
+  thumbnailUrl    String?
+  size            Int
+  mimeType        String
+  status          VideoAssetStatus   @default(UPLOADING)
+  errorCode       String?
+  errorMessage    String?
+  readyAt         DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  submissions Submission[]
+
+  @@index([provider, providerAssetId])
+  @@index([userId, status])
+}
+
+model Submission {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videoAssetId String
+  videoAsset  VideoAsset       @relation(fields: [videoAssetId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  status      SubmissionStatus @default(DRAFT)
+  submittedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  judgeResults JudgeResult[]
+  performances Performance[]
+
+  @@index([userId, status])
+  @@index([videoAssetId])
+}
+
+model JudgeResult {
+  id           String            @id @default(cuid())
+  submissionId String
+  submission   Submission        @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  judgeUserId  String
+  judge        User              @relation(fields: [judgeUserId], references: [id], onDelete: Cascade)
+  score        Int?
+  feedback     String?
+  status       JudgeResultStatus @default(PENDING)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  advancements Advancement[]
+
+  @@index([submissionId])
+  @@index([judgeUserId])
+}
+
+model Advancement {
+  id           String            @id @default(cuid())
+  judgeResultId String
+  judgeResult  JudgeResult       @relation(fields: [judgeResultId], references: [id], onDelete: Cascade)
+  decision     AdvancementStatus @default(PENDING)
+  notes        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([judgeResultId])
+}
+
+model ArchiveRecord {
+  id          String              @id @default(cuid())
+  entityType  String
+  entityId    String
+  data        Json
+  status      ArchiveRecordStatus @default(ACTIVE)
+  archivedAt  DateTime            @default(now())
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([entityType, entityId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entityType String
+  entityId  String
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+}
+
+model Notification {
+  id        String             @id @default(cuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  message   String
+  status    NotificationStatus @default(PENDING)
+  sentAt    DateTime?
+  readAt    DateTime?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@index([userId, status])
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  toEmail   String
+  subject   String
+  body      String
+  sentAt    DateTime?
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([toEmail])
+}
+
+model CreatorProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio         String?
+  website     String?
+  socialLinks Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
