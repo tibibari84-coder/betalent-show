@@ -83,6 +83,8 @@ Notes:
 
 - `NEXT_PUBLIC_APP_URL` should match your local or deployed base URL.
 - R2, Sentry, PostHog, Resend, and OpenAI are optional at boot. Missing values disable their wrappers instead of returning fake success.
+- missing provider env must produce explicit disabled/skipped behavior
+- provider wrappers must never report success without a real upstream response
 
 ## Neon Setup
 
@@ -116,16 +118,20 @@ Recommended local flow:
 
 ## Cloudflare Stream Setup
 
-Stream architecture is implemented, but public deploys intentionally do not expose authenticated upload ownership flows yet.
-
 1. Create a Cloudflare Stream-enabled account.
 2. Create an API token with Stream permissions.
 3. Fill:
    - `CLOUDFLARE_STREAM_ACCOUNT_ID`
    - `CLOUDFLARE_STREAM_API_TOKEN`
    - `NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER_SUBDOMAIN`
+   - `CLOUDFLARE_STREAM_WEBHOOK_SECRET`
 
-Use this when you implement creator video ingestion and playback URLs.
+Production notes:
+
+- `POST /api/assets/stream-init` is disabled unless all direct-upload env values are present.
+- upload initialization creates a `VideoAsset`, but submission attachment still requires a separate READY asset flow.
+- READY and FAILED states are only finalized by the verified webhook handler.
+- Cloudflare must be configured to send the webhook to `/api/webhooks/cloudflare-stream`.
 
 ## Cloudflare R2 Setup
 
@@ -137,11 +143,13 @@ Use this when you implement creator video ingestion and playback URLs.
    - `R2_BUCKET_NAME`
    - `R2_ACCESS_KEY_ID`
    - `R2_SECRET_ACCESS_KEY`
+   - `R2_PUBLIC_BASE_URL`
 
 Current usage:
 
-- `POST /api/assets/r2-upload-url` returns a signed PUT URL without requiring an auth provider.
-- public deploys should still treat this as infrastructure, not a finished consumer upload UX.
+- `POST /api/assets/r2-upload-url` is authenticated and returns a signed PUT URL.
+- avatar/profile/static uploads also require `R2_PUBLIC_BASE_URL`, otherwise the route stays explicitly disabled for those asset types.
+- never expose `R2_ACCESS_KEY_ID` or `R2_SECRET_ACCESS_KEY` to the client.
 
 ## Sentry Setup
 
@@ -153,6 +161,13 @@ Current usage:
    - `SENTRY_ORG`
    - `SENTRY_PROJECT`
    - `SENTRY_AUTH_TOKEN`
+
+Current coverage:
+
+- provider route failures
+- upload lifecycle failures
+- profile and creator mutation routes
+- admin review/status mutations
 
 ## PostHog Setup
 
@@ -167,7 +182,8 @@ Current status:
 
 - the server wrapper is wired
 - disabled when keys are absent
-- no client-side fake initialization is shipped
+- event payloads are sanitized before capture
+- current funnel coverage includes profile completion, avatar upload intent, upload lifecycle, and admin submission review
 
 ## Resend Setup
 
@@ -179,8 +195,9 @@ Current status:
 
 Current status:
 
-- the email wrapper is wired
-- sends are skipped when the provider is not configured
+- the email wrapper is wired to onboarding welcome and submission lifecycle notifications
+- sends are skipped explicitly when the provider is not configured
+- failed sends remain explicit and observable instead of being reported as success
 
 ## Local Development
 
@@ -218,6 +235,10 @@ Recommended production setup:
 - build command: `next build`
 - install command: `npm install`
 - Prisma migration command in deploy flow: `npx prisma migrate deploy`
+- set `NEXT_PUBLIC_APP_URL` to the final production domain
+- enable only the provider env groups you actually intend to run in production
+- verify the Stream webhook secret in Cloudflare matches `CLOUDFLARE_STREAM_WEBHOOK_SECRET`
+- verify `R2_PUBLIC_BASE_URL` resolves publicly before enabling avatar uploads
 
 ## Verification Commands
 

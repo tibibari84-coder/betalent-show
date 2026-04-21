@@ -1,27 +1,47 @@
-import Link from 'next/link';
+import { AppPage, PremiumCtaModule, PremiumHero, PremiumStatusChip, StatusCard } from '@/components/premium';
+import { logoutAction } from '@/server/auth/actions';
+import { requireAuthenticatedOnboarded } from '@/server/auth/guard';
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const session = await requireAuthenticatedOnboarded('/app/settings');
+
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-bold">Settings</h1>
-      <p className="text-gray-400">
-        Auth is currently removed from the BETALENT foundation. This route stays as a
-        placeholder shell for future account and application settings.
-      </p>
-
-      <div className="rounded-lg bg-gray-800 p-5">
-        <p className="text-sm text-gray-400">Current state</p>
-        <p className="mt-2 text-xl font-semibold">
-          Public-only deploy
-        </p>
+    <AppPage
+      hero={
+        <PremiumHero
+          eyebrow="Settings"
+          tone="archive"
+          title={<>Account control</>}
+          subtitle="Session, role, and sign-out"
+          meta={
+            <>
+              <PremiumStatusChip label="Role" value={session.user.role} />
+              <PremiumStatusChip label="ID" value={session.user.username ? `@${session.user.username}` : 'No handle'} />
+            </>
+          }
+        />
+      }
+    >
+      <div className="foundation-page-cluster" data-columns="split">
+        <StatusCard eyebrow="Email" title={session.user.email} />
+        <StatusCard eyebrow="Role" title={session.user.role} />
       </div>
 
-      <div className="rounded-lg border border-gray-800 bg-gray-900/70 p-5 text-sm text-gray-300">
-        No auth provider is wired right now. BETALENT app-specific profile fields will live under{' '}
-        <Link className="text-red-400 hover:text-red-300" href="/app/profile">
-          /app/profile
-        </Link>.
-      </div>
-    </div>
+      <PremiumCtaModule
+        eyebrow="Session"
+        title="Secure account session"
+        description="Secure session cookies keep this creator shell signed in across BETALENT."
+        action={
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="foundation-primary-button px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.08em] transition"
+            >
+              Sign out
+            </button>
+          </form>
+        }
+      />
+    </AppPage>
   );
 }

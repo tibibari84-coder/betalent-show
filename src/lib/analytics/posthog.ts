@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { env } from '@/lib/env';
+import { captureMessage } from '@/lib/sentry';
 import { POSTHOG_EVENTS, type PostHogEventName } from './events';
 
 import type { PostHog as PostHogNodeClient } from 'posthog-node';
@@ -28,6 +29,16 @@ async function getServerClient(): Promise<PostHogNodeClient | null> {
 
 export const posthogEnabled = posthogServerEnabled;
 
+function sanitizeProperties(properties?: Record<string, unknown>) {
+  if (!properties) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(properties).filter(([, value]) => value !== undefined),
+  );
+}
+
 export async function trackEvent(
   event: PostHogEventName,
   properties?: Record<string, unknown>,
@@ -38,14 +49,23 @@ export async function trackEvent(
       return;
     }
 
+    const safeProperties = sanitizeProperties(properties);
+    const distinctId =
+      typeof safeProperties.distinctId === 'string' ? safeProperties.distinctId : 'server';
+    const eventProperties = { ...safeProperties };
+    delete eventProperties.distinctId;
+
     await client.capture({
       event,
-      distinctId:
-        typeof properties?.distinctId === 'string' ? properties.distinctId : 'server',
-      properties: properties || {},
+      distinctId,
+      properties: eventProperties,
     });
   } catch (error) {
     console.error('PostHog capture failed.', error);
+    captureMessage('PostHog capture failed.', 'warning', {
+      event,
+      error: error instanceof Error ? error.message : 'unknown',
+    });
   }
 }
 
@@ -59,9 +79,13 @@ export async function identifyUser(
       return;
     }
 
-    await client.identify({ distinctId, properties: properties || {} });
+    await client.identify({ distinctId, properties: sanitizeProperties(properties) });
   } catch (error) {
     console.error('PostHog identify failed.', error);
+    captureMessage('PostHog identify failed.', 'warning', {
+      distinctId,
+      error: error instanceof Error ? error.message : 'unknown',
+    });
   }
 }
 

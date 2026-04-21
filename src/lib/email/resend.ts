@@ -3,10 +3,12 @@ import 'server-only';
 import { Resend } from 'resend';
 
 import { env } from '@/lib/env';
+import { captureException, captureMessage } from '@/lib/sentry';
 
 export type EmailSendResult =
   | { ok: true; skipped: false; id: string | null }
-  | { ok: false; skipped: true; reason: string };
+  | { ok: false; skipped: true; reason: string }
+  | { ok: false; skipped: false; reason: string };
 
 const resendClient = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 const defaultFrom = env.RESEND_FROM_EMAIL || null;
@@ -17,8 +19,13 @@ async function sendEmail(args: {
   to: string;
   subject: string;
   html: string;
+  tag: string;
 }): Promise<EmailSendResult> {
   if (!resendClient || !defaultFrom) {
+    captureMessage('Resend send skipped because provider is not configured.', 'info', {
+      tag: args.tag,
+      to: args.to,
+    });
     return {
       ok: false,
       skipped: true,
@@ -26,18 +33,38 @@ async function sendEmail(args: {
     };
   }
 
-  const response = await resendClient.emails.send({
-    from: defaultFrom,
-    to: args.to,
-    subject: args.subject,
-    html: args.html,
-  });
+  try {
+    const response = await resendClient.emails.send({
+      from: defaultFrom,
+      to: args.to,
+      subject: args.subject,
+      html: args.html,
+    });
 
-  return {
-    ok: true,
-    skipped: false,
-    id: typeof response.data?.id === 'string' ? response.data.id : null,
-  };
+    captureMessage('Resend email sent.', 'info', {
+      tag: args.tag,
+      to: args.to,
+      emailId: typeof response.data?.id === 'string' ? response.data.id : null,
+    });
+
+    return {
+      ok: true,
+      skipped: false,
+      id: typeof response.data?.id === 'string' ? response.data.id : null,
+    };
+  } catch (error) {
+    captureException(error, {
+      provider: 'resend',
+      tag: args.tag,
+      to: args.to,
+    });
+
+    return {
+      ok: false,
+      skipped: false,
+      reason: error instanceof Error ? error.message : 'Resend send failed.',
+    };
+  }
 }
 
 export async function sendWelcomeEmail(to: string, displayName: string | null) {
@@ -45,6 +72,7 @@ export async function sendWelcomeEmail(to: string, displayName: string | null) {
   return sendEmail({
     to,
     subject: 'Welcome to BETALENT',
+    tag: 'welcome',
     html: `
       <div style="font-family: system-ui, sans-serif; color: #111;">
         <h1>Welcome to BETALENT, ${name}!</h1>
@@ -64,6 +92,7 @@ export async function sendSubmissionReceivedEmail(
   return sendEmail({
     to,
     subject: 'Your submission has been received',
+    tag: 'submission-received',
     html: `
       <div style="font-family: system-ui, sans-serif; color: #111;">
         <h1>Submission received</h1>
@@ -84,6 +113,7 @@ export async function sendSubmissionStatusChangedEmail(
   return sendEmail({
     to,
     subject: 'Your submission status has updated',
+    tag: 'submission-status-updated',
     html: `
       <div style="font-family: system-ui, sans-serif; color: #111;">
         <h1>Submission update</h1>

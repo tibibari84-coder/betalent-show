@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type ChangeEvent } from 'react';
+import { useRouter } from 'next/navigation';
 
 type UploadState = {
   error: string | null;
@@ -9,6 +10,7 @@ type UploadState = {
 };
 
 export function DirectVideoUploadCard() {
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [state, setState] = useState<UploadState>({
     error: null,
@@ -60,6 +62,12 @@ export function DirectVideoUploadCard() {
       };
 
       if (!initResponse.ok || !initData.upload) {
+        if (initResponse.status === 503) {
+          throw new Error('Upload service is unavailable in this environment.');
+        }
+        if (initResponse.status === 409) {
+          throw new Error(initData.error || 'Finish onboarding before starting uploads.');
+        }
         throw new Error(initData.error || 'Unable to initialize upload.');
       }
 
@@ -81,6 +89,7 @@ export function DirectVideoUploadCard() {
         isUploading: false,
       });
       setFile(null);
+      router.refresh();
     } catch (error) {
       setState({
         error: error instanceof Error ? error.message : 'Upload failed.',
@@ -91,12 +100,11 @@ export function DirectVideoUploadCard() {
   }
 
   return (
-    <div className="foundation-panel rounded-[1.6rem] p-6">
+    <div className="foundation-panel rounded-[1.45rem] p-4 sm:rounded-[1.6rem] sm:p-6" aria-busy={state.isUploading}>
       <p className="foundation-kicker">Direct video upload</p>
-      <h2 className="mt-3 text-xl font-semibold text-white">Stream contract preview</h2>
-      <p className="mt-3 text-sm leading-relaxed text-white/64">
-        This creates a draft `VideoAsset`, then uploads the file directly to Cloudflare Stream.
-        Submission creation is a separate step after the asset becomes `READY`.
+      <h2 className="mt-3 text-[1.3rem] font-semibold text-white sm:text-xl">Create a new media asset</h2>
+      <p className="mt-3 max-w-xl text-[13px] leading-relaxed text-white/64 sm:text-sm">
+        Start the asset here, let Stream process it in the background, then bring READY media into submissions.
       </p>
 
       <div className="mt-4 space-y-4">
@@ -104,20 +112,31 @@ export function DirectVideoUploadCard() {
           type="file"
           accept="video/*"
           onChange={onFileChange}
-          className="block w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-gray-300 file:mr-4 file:rounded-full file:border-0 file:bg-white/12 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-white/18"
+          className="foundation-form-input block w-full rounded-[1.25rem] px-4 py-4 text-sm text-white/76 file:mr-4 file:rounded-full file:border file:border-white/10 file:bg-white/[0.08] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-white/[0.12]"
         />
+
+        {file ? (
+          <div className="flex items-center justify-between gap-3 rounded-[1rem] border border-white/8 bg-white/[0.04] px-4 py-3 text-[13px] text-white/68 sm:rounded-[1.2rem] sm:text-sm">
+            <span className="min-w-0 truncate">{file.name}</span>
+            <span>{(file.size / (1024 * 1024)).toFixed(1)} MB</span>
+          </div>
+        ) : null}
+
+        {state.isUploading ? (
+          <div className="foundation-loading-skeleton h-2 rounded-full" aria-hidden />
+        ) : null}
 
         <button
           type="button"
           onClick={onSubmit}
           disabled={!file || state.isUploading}
-          className="rounded-full bg-[#db5b47] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#ed715f] disabled:cursor-not-allowed disabled:opacity-60"
+          className="foundation-primary-button px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.08em] transition disabled:cursor-not-allowed disabled:opacity-60"
         >
           {state.isUploading ? 'Uploading…' : 'Start Upload'}
         </button>
 
-        {state.info ? <p className="text-sm text-emerald-300">{state.info}</p> : null}
-        {state.error ? <p className="text-sm text-red-300">{state.error}</p> : null}
+        {state.info ? <p className="text-sm text-emerald-300" role="status">{state.info}</p> : null}
+        {state.error ? <p className="text-sm text-red-300" role="alert">{state.error}</p> : null}
       </div>
     </div>
   );

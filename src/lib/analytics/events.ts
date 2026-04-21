@@ -2,6 +2,7 @@ export const POSTHOG_EVENTS = {
   landing_cta_clicked: 'landing_cta_clicked',
   creator_profile_started: 'creator_profile_started',
   creator_profile_completed: 'creator_profile_completed',
+  creator_profile_avatar_upload_requested: 'creator_profile_avatar_upload_requested',
   upload_started: 'upload_started',
   upload_completed: 'upload_completed',
   upload_failed: 'upload_failed',

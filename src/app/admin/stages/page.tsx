@@ -1,92 +1,51 @@
-import { StageService } from '@/lib/services/stage.service';
-import { Badge } from '@/components/ui/Badge';
-
-type StageWithRelations = {
-  id: string;
-  seasonId: string;
-  slug: string;
-  title: string;
-  description: string | null;
-  orderIndex: number;
-  stageType: string;
-  status: string;
-  submissionsOpenAt: Date | null;
-  submissionsCloseAt: Date | null;
-  judgingOpenAt: Date | null;
-  judgingCloseAt: Date | null;
-  votingOpenAt: Date | null;
-  votingCloseAt: Date | null;
-  resultsAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-  season: {
-    id: string;
-    title: string;
-  };
-  episodes: Array<{
-    id: string;
-  }>;
-  _count: {
-    episodes: number;
-  };
-};
+import { AdminStageCreateForm } from '@/components/admin/AdminStageCreateForm';
+import { AdminStageEditForm } from '@/components/admin/AdminStageEditForm';
+import { PremiumHero } from '@/components/premium';
+import { listAdminSeasons, listAdminStages } from '@/server/admin/show-admin.service';
 
 export default async function AdminStagesPage() {
-  const stages = await StageService.getAllStages() as StageWithRelations[];
+  const [stages, seasons] = await Promise.all([listAdminStages(), listAdminSeasons()]);
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Stages</h1>
-          <p className="text-gray-400 mt-2">Manage competition stages within seasons.</p>
+      <PremiumHero
+        eyebrow="Admin Stages"
+        tone="results"
+        title={<>Stage operations</>}
+        subtitle="Create, edit, and archive stage records with lifecycle guardrails."
+      />
+
+      <section className="foundation-panel rounded-[1.55rem] p-5 sm:p-6">
+        <p className="foundation-kicker">Create stage</p>
+        <h2 className="mt-2 text-[1.35rem] font-semibold text-white sm:text-2xl">New stage record</h2>
+        <div className="mt-6">
+          <AdminStageCreateForm seasons={seasons.map((season) => ({ id: season.id, title: season.title, status: season.status }))} />
         </div>
-        <p className="text-sm text-gray-400">
-          Stage editing is not exposed until the admin workflow is fully productized.
-        </p>
-      </div>
+      </section>
 
       {stages.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-400">No stages created yet.</p>
+        <div className="foundation-panel rounded-[1.55rem] p-6 text-center text-white/62">
+          No stages created yet.
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid gap-4">
           {stages.map((stage) => (
-            <div key={stage.id} className="bg-gray-800 p-6 rounded-lg">
-              <div className="flex items-start justify-between mb-4">
+            <section key={stage.id} className="foundation-panel rounded-[1.55rem] p-5 sm:p-6">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h3 className="text-xl font-semibold">{stage.title}</h3>
-                  <p className="text-gray-400 text-sm">Season: {stage.season.title}</p>
+                  <p className="foundation-kicker">{stage.stageType} · {stage.status}</p>
+                  <h3 className="mt-2 text-[1.2rem] font-semibold text-white sm:text-xl">{stage.title}</h3>
+                  <p className="mt-1 text-sm text-white/52">{stage.season.title} · order {stage.orderIndex} · {stage._count.episodes} episodes</p>
                 </div>
-                <Badge variant={stage.status === 'OPEN' || stage.status === 'JUDGING' ? 'default' : 'secondary'}>
-                  {stage.status}
-                </Badge>
+                <p className="text-xs text-white/42">Updated {stage.updatedAt.toLocaleString()}</p>
               </div>
-
-              {stage.description && (
-                <p className="text-gray-400 mb-4">{stage.description}</p>
-              )}
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500 mb-4">
-                <div>
-                  <p className="font-medium">Order</p>
-                  <p>{stage.orderIndex}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Episodes</p>
-                  <p>{stage._count.episodes}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Start Date</p>
-                  <p>{stage.submissionsOpenAt?.toLocaleDateString() || 'TBD'}</p>
-                </div>
-                <div>
-                  <p className="font-medium">End Date</p>
-                  <p>{stage.submissionsCloseAt?.toLocaleDateString() || 'TBD'}</p>
-                </div>
+              <div className="mt-6">
+                <AdminStageEditForm
+                  stage={stage}
+                  seasons={seasons.map((season) => ({ id: season.id, title: season.title, status: season.status }))}
+                />
               </div>
-            </div>
+            </section>
           ))}
         </div>
       )}

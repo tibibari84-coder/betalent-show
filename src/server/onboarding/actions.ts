@@ -1,8 +1,11 @@
 "use server";
 
-import { Prisma } from "@prisma/client";
+import { Prisma, UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
 
+import { POSTHOG_EVENTS, identifyUser, trackEvent } from "@/lib/analytics/posthog";
+import { sendWelcomeEmail } from "@/lib/email/resend";
+import { captureException } from "@/lib/sentry";
 import { prisma } from "@/server/db/prisma";
 import { getSession } from "@/server/auth/session";
 
@@ -67,7 +70,7 @@ export async function completeOnboardingAction(
   const country = rawCountry.trim();
 
   try {
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: {
         id: session.user.id,
         onboardingCompletedAt: null,
@@ -79,8 +82,36 @@ export async function completeOnboardingAction(
         country,
         wantsToAudition,
         onboardingCompletedAt: new Date(),
+        role: session.user.role === UserRole.ADMIN ? UserRole.ADMIN : UserRole.CREATOR,
+        creatorProfile: {
+          upsert: {
+            create: {},
+            update: {},
+          },
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
       },
     });
+
+    await identifyUser(updatedUser.id, {
+      email: updatedUser.email,
+      username,
+      role: updatedUser.role,
+      city,
+      country,
+      wantsToAudition,
+    });
+    await trackEvent(POSTHOG_EVENTS.creator_profile_completed, {
+      distinctId: updatedUser.id,
+      role: updatedUser.role,
+      wantsToAudition,
+    });
+    await sendWelcomeEmail(updatedUser.email, displayName);
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -100,6 +131,10 @@ export async function completeOnboardingAction(
         error: "Onboarding could not be saved. Refresh and try again.",
       };
     }
+    captureException(error, {
+      route: "welcome",
+      userId: session.user.id,
+    });
     throw error;
   }
 

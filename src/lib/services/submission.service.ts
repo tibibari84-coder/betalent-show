@@ -1,8 +1,42 @@
 import { prisma } from '@/lib/prisma';
-import { Submission, SubmissionStatus } from '@prisma/client';
+import { Prisma, Submission, SubmissionStatus } from '@prisma/client';
+import { captureMessage } from '@/lib/sentry';
 import { VideoAssetService } from './video-asset.service';
 
+export type SubmissionWithRelations = Prisma.SubmissionGetPayload<{
+  include: {
+    user: true;
+    videoAsset: true;
+    judgeResults: {
+      include: {
+        judge: true;
+      };
+    };
+    performances: true;
+  };
+}>;
+
+export type SubmissionListItem = Prisma.SubmissionGetPayload<{
+  include: {
+    videoAsset: true;
+    judgeResults: {
+      include: {
+        judge: true;
+      };
+    };
+  };
+}>;
+
 export class SubmissionService {
+  static readonly allowedStatusTransitions: Record<SubmissionStatus, SubmissionStatus[]> = {
+    DRAFT: [SubmissionStatus.SUBMITTED, SubmissionStatus.WITHDRAWN],
+    SUBMITTED: [SubmissionStatus.UNDER_REVIEW, SubmissionStatus.ACCEPTED, SubmissionStatus.REJECTED, SubmissionStatus.WITHDRAWN],
+    UNDER_REVIEW: [SubmissionStatus.ACCEPTED, SubmissionStatus.REJECTED, SubmissionStatus.WITHDRAWN],
+    ACCEPTED: [],
+    REJECTED: [],
+    WITHDRAWN: [],
+  };
+
   static async createSubmission(data: {
     userId: string;
     videoAssetId: string;
@@ -23,13 +57,43 @@ export class SubmissionService {
     id: string,
     status: SubmissionStatus
   ): Promise<Submission> {
-    return prisma.submission.update({
+    const current = await prisma.submission.findUnique({
+      where: { id },
+      select: { id: true, status: true, userId: true, title: true },
+    });
+
+    if (!current) {
+      throw new Error('Submission not found.');
+    }
+
+    if (current.status === status) {
+      return prisma.submission.findUniqueOrThrow({ where: { id } });
+    }
+
+    const allowed = SubmissionService.allowedStatusTransitions[current.status];
+    if (!allowed.includes(status)) {
+      throw new Error(`Invalid submission status transition: ${current.status} -> ${status}.`);
+    }
+
+    const updated = await prisma.submission.update({
       where: { id },
       data: { status },
     });
+
+    captureMessage('Submission status updated.', 'info', {
+      submissionId: current.id,
+      userId: current.userId,
+      title: current.title,
+      previousStatus: current.status,
+      nextStatus: status,
+    });
+
+    return updated;
   }
 
-  static async getSubmissionsByUser(userId: string): Promise<Submission[]> {
+  static async getSubmissionsByUser(
+    userId: string,
+  ): Promise<SubmissionListItem[]> {
     return prisma.submission.findMany({
       where: { userId },
       include: {
@@ -44,7 +108,9 @@ export class SubmissionService {
     });
   }
 
-  static async getSubmissionById(id: string): Promise<Submission | null> {
+  static async getSubmissionById(
+    id: string,
+  ): Promise<SubmissionWithRelations | null> {
     return prisma.submission.findUnique({
       where: { id },
       include: {
@@ -60,12 +126,17 @@ export class SubmissionService {
     });
   }
 
-  static async getAllSubmissionsForAdmin(): Promise<Submission[]> {
+  static async getAllSubmissionsForAdmin(): Promise<SubmissionWithRelations[]> {
     return prisma.submission.findMany({
       include: {
         user: true,
         videoAsset: true,
-        judgeResults: true,
+        judgeResults: {
+          include: {
+            judge: true,
+          },
+        },
+        performances: true,
       },
       orderBy: { createdAt: 'desc' },
     });

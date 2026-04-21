@@ -35,6 +35,7 @@ const envSchema = z.object({
   R2_ACCOUNT_ID: optionalString(),
   R2_ACCESS_KEY_ID: optionalString(),
   R2_SECRET_ACCESS_KEY: optionalString(),
+  R2_PUBLIC_BASE_URL: optionalUrl(),
   CLOUDFLARE_STREAM_ACCOUNT_ID: optionalString(),
   CLOUDFLARE_STREAM_API_TOKEN: optionalString(),
   NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER_SUBDOMAIN: optionalString(),

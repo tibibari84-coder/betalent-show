@@ -1,90 +1,66 @@
-import { EpisodeService } from '@/lib/services/episode.service';
-import { Badge } from '@/components/ui/Badge';
-
-type EpisodeWithRelations = {
-  id: string;
-  title: string;
-  slug: string;
-  description: string | null;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-  orderIndex: number;
-  seasonId: string;
-  premiereAt: Date | null;
-  publishedAt: Date | null;
-  stageId: string | null;
-  season: {
-    id: string;
-    title: string;
-  };
-  stage: {
-    id: string;
-    title: string;
-  } | null;
-  performances: Array<{
-    id: string;
-  }>;
-};
+import { AdminEpisodeCreateForm } from '@/components/admin/AdminEpisodeCreateForm';
+import { AdminEpisodeEditForm } from '@/components/admin/AdminEpisodeEditForm';
+import { PremiumHero } from '@/components/premium';
+import { listAdminEpisodes, listAdminSeasons, listAdminStages } from '@/server/admin/show-admin.service';
 
 export default async function AdminEpisodesPage() {
-  const episodes = await EpisodeService.getAllEpisodes() as EpisodeWithRelations[];
+  const [episodes, seasons, stages] = await Promise.all([
+    listAdminEpisodes(),
+    listAdminSeasons(),
+    listAdminStages(),
+  ]);
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Episodes</h1>
-          <p className="text-gray-400 mt-2">Manage individual show episodes and performances.</p>
+      <PremiumHero
+        eyebrow="Admin Episodes"
+        tone="archive"
+        title={<>Episode operations</>}
+        subtitle="Create, edit, publish-state, and archive episode records from the UI."
+      />
+
+      <section className="foundation-panel rounded-[1.55rem] p-5 sm:p-6">
+        <p className="foundation-kicker">Create episode</p>
+        <h2 className="mt-2 text-[1.35rem] font-semibold text-white sm:text-2xl">New episode record</h2>
+        <div className="mt-6">
+          <AdminEpisodeCreateForm
+            seasons={seasons.map((season) => ({ id: season.id, title: season.title, status: season.status }))}
+            stages={stages.map((stage) => ({ id: stage.id, title: stage.title, season: { title: stage.season.title } }))}
+          />
         </div>
-        <p className="text-sm text-gray-400">
-          Episode creation remains schema-backed and intentionally out of the public admin UI for now.
-        </p>
-      </div>
+      </section>
 
       {episodes.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-400">No episodes created yet.</p>
+        <div className="foundation-panel rounded-[1.55rem] p-6 text-center text-white/62">
+          No episodes created yet.
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid gap-4">
           {episodes.map((episode) => (
-            <div key={episode.id} className="bg-gray-800 p-6 rounded-lg">
-              <div className="flex items-start justify-between mb-4">
+            <section key={episode.id} className="foundation-panel rounded-[1.55rem] p-5 sm:p-6">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h3 className="text-xl font-semibold">{episode.title}</h3>
-                  <p className="text-gray-400 text-sm">
-                    {episode.stage ? `${episode.season.title} → ${episode.stage.title}` : episode.season.title}
+                  <p className="foundation-kicker">{episode.status}</p>
+                  <h3 className="mt-2 text-[1.2rem] font-semibold text-white sm:text-xl">{episode.title}</h3>
+                  <p className="mt-1 text-sm text-white/52">
+                    {episode.stage ? `${episode.season.title} → ${episode.stage.title}` : episode.season.title} · order {episode.orderIndex}
                   </p>
                 </div>
-                <Badge variant={episode.status === 'PUBLISHED' ? 'default' : 'secondary'}>
-                  {episode.status || 'Draft'}
-                </Badge>
+                <p className="text-xs text-white/42">Updated {episode.updatedAt.toLocaleString()}</p>
               </div>
-
-              {episode.description && (
-                <p className="text-gray-400 mb-4">{episode.description}</p>
-              )}
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500 mb-4">
-                <div>
-                  <p className="font-medium">Order</p>
-                  <p>{episode.orderIndex}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Air Date</p>
-                  <p>{episode.premiereAt?.toLocaleDateString() || 'TBD'}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Performances</p>
-                  <p>{episode.performances?.length || 0}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Status</p>
-                  <p>{episode.status || 'Draft'}</p>
-                </div>
+              <div className="mt-6">
+                <AdminEpisodeEditForm
+                  episode={episode}
+                  seasons={seasons.map((season) => ({ id: season.id, title: season.title, status: season.status }))}
+                  stages={stages.map((stage) => ({
+                    id: stage.id,
+                    title: stage.title,
+                    seasonId: stage.seasonId,
+                    season: { title: stage.season.title },
+                  }))}
+                />
               </div>
-            </div>
+            </section>
           ))}
         </div>
       )}

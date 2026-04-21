@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { prisma } from '@/lib/prisma';
+import { captureMessage } from '@/lib/sentry';
 import { streamAdapter } from '@/lib/stream';
 import {
   VideoAsset,
@@ -96,7 +97,7 @@ export class VideoAssetService {
     id: string,
     error: { code?: string | null; message: string },
   ): Promise<VideoAsset> {
-    return prisma.videoAsset.update({
+    const updated = await prisma.videoAsset.update({
       where: { id },
       data: {
         status: VideoAssetStatus.FAILED,
@@ -105,6 +106,14 @@ export class VideoAssetService {
         uploadUrl: null,
       },
     });
+
+    captureMessage('Video asset marked failed.', 'warning', {
+      videoAssetId: id,
+      errorCode: error.code || null,
+      message: error.message,
+    });
+
+    return updated;
   }
 
   static async markUploadProcessingByProviderAssetId(
@@ -140,7 +149,7 @@ export class VideoAssetService {
       return null;
     }
 
-    return prisma.videoAsset.update({
+    const updated = await prisma.videoAsset.update({
       where: { providerAssetId: mapped.providerAssetId },
       data: {
         status: VideoAssetStatus.READY,
@@ -154,6 +163,14 @@ export class VideoAssetService {
         uploadUrl: null,
       },
     });
+
+    captureMessage('Video asset marked ready from webhook.', 'info', {
+      videoAssetId: updated.id,
+      providerAssetId: mapped.providerAssetId,
+      userId: updated.userId,
+    });
+
+    return updated;
   }
 
   static async markUploadFailedFromWebhook(
@@ -167,7 +184,7 @@ export class VideoAssetService {
       return null;
     }
 
-    return prisma.videoAsset.update({
+    const updated = await prisma.videoAsset.update({
       where: { providerAssetId: mapped.providerAssetId },
       data: {
         status: VideoAssetStatus.FAILED,
@@ -178,6 +195,15 @@ export class VideoAssetService {
         uploadUrl: null,
       },
     });
+
+    captureMessage('Video asset failed from webhook.', 'warning', {
+      videoAssetId: updated.id,
+      providerAssetId: mapped.providerAssetId,
+      errorCode: mapped.errorCode,
+      errorMessage: mapped.errorMessage || 'Cloudflare Stream processing failed.',
+    });
+
+    return updated;
   }
 
   static async getVideoAssetsByUser(userId: string): Promise<VideoAsset[]> {

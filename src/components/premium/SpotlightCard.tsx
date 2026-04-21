@@ -13,10 +13,10 @@ export function SpotlightCard(props: {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[1.35rem] border border-white/[0.08] p-5 shadow-[0_16px_48px_-20px_rgba(0,0,0,0.65)] sm:p-6",
+        "relative overflow-hidden rounded-[1.45rem] border border-white/[0.08] p-5 shadow-[0_22px_58px_-28px_rgba(0,0,0,0.78)] backdrop-blur-2xl sm:p-6",
         emphasis === "high"
-          ? "bg-gradient-to-b from-white/[0.07] via-white/[0.03] to-transparent"
-          : "bg-white/[0.035]",
+          ? "bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03)),linear-gradient(135deg,rgba(255,255,255,0.02),transparent)]"
+          : "bg-white/[0.04]",
         props.className,
       )}
     >

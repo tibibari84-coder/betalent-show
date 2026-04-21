@@ -17,16 +17,16 @@ export default function MarketingPage() {
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link
-                href="/app"
+                href="/register"
                 className="rounded-md bg-red-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
               >
-                Explore Foundation
+                Create Account
               </Link>
               <Link
-                href="/app/seasons"
+                href="/login"
                 className="text-sm font-semibold leading-6 text-gray-300 hover:text-white"
               >
-                View Seasons <span aria-hidden="true">→</span>
+                Sign In <span aria-hidden="true">→</span>
               </Link>
             </div>
           </div>

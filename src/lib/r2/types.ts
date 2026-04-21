@@ -3,6 +3,7 @@ export type R2AssetPurpose = 'avatar' | 'profile' | 'static' | 'document' | 'exp
 export interface R2SignedUploadUrlOptions {
   key: string;
   contentType: string;
+  purpose: R2AssetPurpose;
   expiresInSeconds?: number;
 }
 

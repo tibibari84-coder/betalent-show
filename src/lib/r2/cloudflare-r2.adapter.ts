@@ -5,6 +5,17 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { env } from '@/lib/env';
 import { R2SignedUploadUrlOptions, R2SignedUploadUrlResult, R2StorageAdapter } from './types';
 
+function buildAssetUrl(key: string) {
+  const encodedKey = key.split('/').map(encodeURIComponent).join('/');
+  const publicBaseUrl = env.R2_PUBLIC_BASE_URL?.replace(/\/$/, '');
+
+  if (publicBaseUrl) {
+    return `${publicBaseUrl}/${encodedKey}`;
+  }
+
+  return `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${env.R2_BUCKET_NAME}/${encodedKey}`;
+}
+
 export class CloudflareR2Adapter implements R2StorageAdapter {
   private client: S3Client;
 
@@ -30,8 +41,7 @@ export class CloudflareR2Adapter implements R2StorageAdapter {
       expiresIn: expiresInSeconds,
     });
 
-    const encodedKey = key.split('/').map(encodeURIComponent).join('/');
-    const assetUrl = `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${env.R2_BUCKET_NAME}/${encodedKey}`;
+    const assetUrl = buildAssetUrl(key);
 
     return { uploadUrl, assetUrl, key };
   }

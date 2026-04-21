@@ -1,4 +1,10 @@
 import Link from 'next/link';
+import { FloatingTopChrome, PremiumAvatar, PremiumStatusChip } from '@/components/premium';
+
+import { logoutAction } from '@/server/auth/actions';
+import { requireAuthenticatedOnboarded } from '@/server/auth/guard';
+import { getRequestedPathname } from '@/server/auth/request-path';
+import { accountNavItems, workspaceNavItems } from '@/lib/product-ia';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,35 +13,134 @@ export default async function ProtectedAppLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const session = await requireAuthenticatedOnboarded('/app');
+  const pathname = await getRequestedPathname('/app');
+  const allNavItems = [...workspaceNavItems, ...accountNavItems];
+
   return (
     <div className="foundation-shell text-white">
-      <header className="sticky top-0 z-20 border-b border-white/8 bg-[#07070b]/72 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="foundation-kicker">BETALENT</p>
-              <h1 className="mt-1 text-xl font-semibold tracking-[0.18em] text-white sm:text-2xl">
-                FOUNDATION
-              </h1>
-            </div>
-            <div className="foundation-panel rounded-full px-4 py-2 text-xs font-medium text-white/70">
-              Public-first cinematic baseline
-            </div>
-          </div>
+      <header className="foundation-topbar">
+        <div className="foundation-app-column">
+          <FloatingTopChrome
+            title="Creator OS"
+            subtitle="workspace + account"
+            utility={
+              <>
+                <span className="foundation-search-pill" aria-hidden="true">
+                  Search
+                </span>
+                <Link href="/app/settings" className="foundation-orb-button sm:hidden" aria-label="Open settings">
+                  <PremiumAvatar
+                    name={session.user.displayName || session.user.email}
+                    className="h-11 w-11 border-white/12 bg-white/[0.08] text-[0.72rem] tracking-[0.12em] text-white"
+                  />
+                </Link>
+                <form action={logoutAction}>
+                  <button type="submit" className="foundation-chip hidden text-[0.7rem] sm:inline-flex">
+                    Sign out
+                  </button>
+                </form>
+              </>
+            }
+            status={
+              <>
+                <PremiumStatusChip label="Role" value={session.user.role} />
+                <PremiumStatusChip
+                  label="Now"
+                  value={<span className="truncate">{session.user.displayName || session.user.email}</span>}
+                  className="max-w-full"
+                />
+                {session.user.username ? (
+                  <PremiumStatusChip label="ID" value={`@${session.user.username}`} />
+                ) : null}
+              </>
+            }
+            navigation={
+              <nav className="foundation-mobile-nav flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {allNavItems.map((item) => {
+                  const isActive =
+                    item.href === '/app'
+                      ? pathname === '/app' || pathname === '/app/'
+                      : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-          <nav className="flex flex-wrap gap-2">
-            <Link href="/app" className="foundation-nav-link">Overview</Link>
-            <Link href="/app/profile" className="foundation-nav-link">Profile</Link>
-            <Link href="/app/uploads" className="foundation-nav-link">Uploads</Link>
-            <Link href="/app/submissions" className="foundation-nav-link">Submissions</Link>
-            <Link href="/app/seasons" className="foundation-nav-link">Seasons</Link>
-          </nav>
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`foundation-nav-link whitespace-nowrap ${isActive ? 'foundation-nav-link-active' : ''}`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+                {session.user.role === 'ADMIN' ? (
+                  <Link
+                    href="/admin"
+                    className={`foundation-nav-link whitespace-nowrap ${pathname.startsWith('/admin') ? 'foundation-nav-link-active' : ''}`}
+                  >
+                    Admin
+                  </Link>
+                ) : null}
+              </nav>
+            }
+          />
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-        {children}
-      </main>
+      <div className="foundation-app-column px-4 py-4 sm:max-w-6xl sm:px-6 sm:py-7 lg:px-8 lg:py-9">
+        <div className="foundation-mobile-shell">
+          <aside className="foundation-mobile-sidebar">
+            <div className="foundation-sidebar-group">
+              <span className="foundation-sidebar-title">Workspace</span>
+              {workspaceNavItems.map((item) => {
+                const isActive =
+                  item.href === '/app'
+                    ? pathname === '/app' || pathname === '/app/'
+                    : pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`foundation-sidebar-link ${isActive ? 'foundation-sidebar-link-active' : ''}`}
+                  >
+                    <span className="foundation-sidebar-icon">{item.short}</span>
+                    <span className="foundation-sidebar-text">
+                      <strong>{item.label}</strong>
+                      <span>{item.note}</span>
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="foundation-sidebar-group mt-auto">
+              <span className="foundation-sidebar-title">Account</span>
+              {accountNavItems.map((item) => {
+                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`foundation-sidebar-link ${isActive ? 'foundation-sidebar-link-active' : ''}`}
+                  >
+                    <span className="foundation-sidebar-icon">{item.short}</span>
+                    <span className="foundation-sidebar-text">
+                      <strong>{item.label}</strong>
+                      <span>{item.note}</span>
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </aside>
+
+          <main className="foundation-shell-main flex min-w-0 flex-col gap-6 sm:gap-8">
+            {children}
+          </main>
+        </div>
+      </div>
     </div>
   );
 }

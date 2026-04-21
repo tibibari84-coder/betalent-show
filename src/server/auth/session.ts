@@ -1,3 +1,6 @@
+import "server-only";
+
+import { UserRole } from "@prisma/client";
 import { cache } from "react";
 import { cookies } from "next/headers";
 
@@ -9,13 +12,29 @@ import { prisma } from "@/server/db/prisma";
 
 import { generateSessionToken, hashSessionToken } from "./tokens";
 
+export type AuthSession = {
+  sessionId: string;
+  user: {
+    id: string;
+    email: string;
+    role: UserRole;
+    onboardingCompletedAt: Date | null;
+    displayName: string | null;
+    username: string | null;
+    avatarUrl: string | null;
+    city: string | null;
+    country: string | null;
+    wantsToAudition: boolean;
+  };
+};
+
 function sessionExpiresAt(): Date {
   const d = new Date();
   d.setDate(d.getDate() + SESSION_MAX_DAYS);
   return d;
 }
 
-export const getSession = cache(async function getSession() {
+export const getSession = cache(async function getSession(): Promise<AuthSession | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   if (!token) {
@@ -30,9 +49,11 @@ export const getSession = cache(async function getSession() {
         select: {
           id: true,
           email: true,
+          role: true,
           onboardingCompletedAt: true,
           displayName: true,
           username: true,
+          avatarUrl: true,
           city: true,
           country: true,
           wantsToAudition: true,
