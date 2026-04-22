@@ -4,17 +4,11 @@ import { SubmissionStatus, VideoAssetStatus } from '@prisma/client';
 
 import {
   AppPage,
-  ContentRail,
   FeatureSurface,
   PremiumArtworkPanel,
-  PremiumEmptyState,
-  PremiumStageCard,
   SupportPanel,
 } from '@/components/premium';
 import { getAssetTheme, getSubmissionTheme } from '@/lib/content-presentation';
-import { EpisodeService } from '@/lib/services/episode.service';
-import { SeasonService } from '@/lib/services/season.service';
-import { StageService } from '@/lib/services/stage.service';
 import { SubmissionService } from '@/lib/services/submission.service';
 import { VideoAssetService } from '@/lib/services/video-asset.service';
 import { requireAuthenticatedOnboarded } from '@/server/auth/guard';
@@ -31,8 +25,7 @@ type HomeState =
 
 export default async function AppDashboardPage() {
   const session = await requireAuthenticatedOnboarded('/app');
-  const [seasons, user, submissions, assets] = await Promise.all([
-    SeasonService.getAllSeasons(),
+  const [user, submissions, assets] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
       include: { creatorProfile: true },
@@ -44,14 +37,6 @@ export default async function AppDashboardPage() {
   if (!user) {
     throw new Error('Authenticated BETALENT user could not be loaded.');
   }
-
-  const activeSeason = seasons.find((season) => season.status === 'LIVE') ?? seasons[0] ?? null;
-  const [seasonStages, seasonEpisodes] = activeSeason
-    ? await Promise.all([
-        StageService.getStagesBySeason(activeSeason.id),
-        EpisodeService.getEpisodesBySeason(activeSeason.id),
-      ])
-    : [[], []];
 
   const creatorName = session.user.displayName || session.user.email;
   const latestSubmission = submissions[0] ?? null;
@@ -95,8 +80,8 @@ export default async function AppDashboardPage() {
   > = {
     'profile-setup': {
       eyebrow: 'Creator Home',
-      title: 'Build the version of you people remember',
-      subtitle: 'Finish your profile, voice, and city so BETALENT feels curated from the first glance.',
+      title: 'Set your public identity',
+      subtitle: 'Finish profile essentials so every surface feels complete.',
       primaryHref: '/app/profile',
       primaryLabel: 'Complete profile',
       secondaryHref: '/app/creator',
@@ -115,12 +100,12 @@ export default async function AppDashboardPage() {
     },
     'first-upload': {
       eyebrow: 'Creator Home',
-      title: 'Start with one great performance',
-      subtitle: 'Your library only needs one strong piece to make the whole product feel alive.',
+      title: 'Upload your first performance',
+      subtitle: 'One strong short video unlocks the full creator workflow.',
       primaryHref: '/app/uploads',
       primaryLabel: 'Upload media',
-      secondaryHref: '/app/seasons',
-      secondaryLabel: 'Browse the season',
+      secondaryHref: '/app/submissions',
+      secondaryLabel: 'Open entries',
       tone: 'cobalt',
       media: (
         <PremiumArtworkPanel
@@ -135,7 +120,7 @@ export default async function AppDashboardPage() {
     },
     'upload-processing': {
       eyebrow: 'Creator Home',
-      title: 'Your next piece is almost ready',
+      title: 'Your upload is processing',
       subtitle: `${processingAssets.length} upload${processingAssets.length === 1 ? '' : 's'} are moving through processing.`,
       primaryHref: '/app/uploads',
       primaryLabel: 'Track uploads',
@@ -155,8 +140,8 @@ export default async function AppDashboardPage() {
     },
     'draft-active': {
       eyebrow: 'Creator Home',
-      title: 'One entry is already taking shape',
-      subtitle: `Pick up where you left off with ${draftSubmission?.title || 'your draft'} and keep the momentum.`,
+      title: 'Your draft is active',
+      subtitle: `Continue ${draftSubmission?.title || 'your draft'} while momentum is high.`,
       primaryHref: '/app/submissions',
       primaryLabel: 'Continue draft',
       secondaryHref: '/app/uploads',
@@ -175,12 +160,12 @@ export default async function AppDashboardPage() {
     },
     'review-active': {
       eyebrow: 'Creator Home',
-      title: 'Your latest entry is now under review',
+      title: 'Your entry is in review',
       subtitle: `${reviewSubmission?.title || 'Your submission'} is already in the official decision flow.`,
       primaryHref: '/app/submissions',
       primaryLabel: 'View entry',
-      secondaryHref: '/app/seasons',
-      secondaryLabel: 'Open season',
+      secondaryHref: '/app/uploads',
+      secondaryLabel: 'Open uploads',
       tone: 'cobalt',
       media: (
         <PremiumArtworkPanel
@@ -195,12 +180,12 @@ export default async function AppDashboardPage() {
     },
     success: {
       eyebrow: 'Creator Home',
-      title: 'You already have work worth featuring',
+      title: 'You have accepted work',
       subtitle: `${acceptedSubmission?.title || 'Your accepted piece'} is the strongest signal in your current cycle.`,
       primaryHref: '/app/submissions',
       primaryLabel: 'See accepted work',
-      secondaryHref: '/app/seasons',
-      secondaryLabel: 'Open season',
+      secondaryHref: '/app/uploads',
+      secondaryLabel: 'Open uploads',
       tone: 'emerald',
       media: (
         <PremiumArtworkPanel
@@ -215,7 +200,7 @@ export default async function AppDashboardPage() {
     },
     'returning-ready': {
       eyebrow: 'Creator Home',
-      title: 'You have everything you need for the next move',
+      title: 'You are ready for the next submission',
       subtitle: `${readyAssets.length} ready ${readyAssets.length === 1 ? 'piece is' : 'pieces are'} waiting in your library.`,
       primaryHref: '/app/uploads',
       primaryLabel: 'Review library',
@@ -250,7 +235,7 @@ export default async function AppDashboardPage() {
           meta={
             <>
               <span>{creatorName}</span>
-              {activeSeason ? <span>{activeSeason.title}</span> : null}
+              <span>On-demand creator workflow</span>
             </>
           }
           media={hero.media}
@@ -261,16 +246,16 @@ export default async function AppDashboardPage() {
         <div className="foundation-support-grid">
           <SupportPanel
             eyebrow="Now showing"
-            title={latestSubmission ? latestSubmission.title : 'Your next featured entry starts here'}
+            title={latestSubmission ? latestSubmission.title : 'Your next submission starts here'}
             description={
               latestSubmission
-                ? latestSubmission.description || 'Keep your strongest or most current piece close at hand.'
-                : 'Finish your profile, add media, and BETALENT will have something real to showcase.'
+                ? latestSubmission.description || 'Keep your current entry in focus.'
+                : 'Complete identity, upload media, then open submissions.'
             }
             tone="cobalt"
             action={
               <Link href={latestSubmission ? '/app/submissions' : '/app/profile'} className="foundation-quiet-link">
-                {latestSubmission ? 'Open submissions' : 'Finish your profile'}
+                {latestSubmission ? 'Open submissions' : 'Open profile identity'}
               </Link>
             }
           />
@@ -281,55 +266,20 @@ export default async function AppDashboardPage() {
               readyAssets.length > 0
                 ? `${readyAssets.length} ready ${readyAssets.length === 1 ? 'piece' : 'pieces'} waiting`
                 : processingAssets.length > 0
-                  ? 'Something new is on the way'
-                  : 'Your media shelf starts with one upload'
+                  ? 'Processing in progress'
+                  : 'Ready for first upload'
             }
             description={
               readyAssets.length > 0
-                ? 'Choose the media that deserves the next spotlight.'
+                ? 'Pick the strongest asset and attach it to a submission.'
                 : processingAssets.length > 0
-                  ? 'Processing runs in the background so the library stays calm.'
-                  : 'Once media arrives, the rest of the product opens up naturally.'
+                  ? 'Processing runs in the background; READY assets appear automatically.'
+                : 'Upload your first short performance to activate the workspace.'
             }
             tone={readyAssets.length > 0 ? 'emerald' : processingAssets.length > 0 ? 'gold' : 'violet'}
             action={<Link href="/app/uploads" className="foundation-quiet-link">Open uploads</Link>}
           />
         </div>
-
-        {seasonStages.length > 0 || seasonEpisodes.length > 0 ? (
-          <ContentRail
-            eyebrow="Season picks"
-            title={activeSeason ? activeSeason.title : 'Current season'}
-            subtitle="A tight look at what matters right now."
-          >
-            {seasonStages.slice(0, 2).map((stage) => (
-              <PremiumStageCard
-                key={stage.id}
-                href={`/app/seasons/${activeSeason?.slug}`}
-                theme="gold"
-                eyebrow={stage.stageType}
-                title={stage.title}
-                subtitle={stage.description || 'A live part of the current season.'}
-                meta={<span>Open season</span>}
-              />
-            ))}
-            {seasonEpisodes.slice(0, 2).map((episode) => (
-              <PremiumStageCard
-                key={episode.id}
-                href={`/app/seasons/${activeSeason?.slug}`}
-                theme="cobalt"
-                eyebrow="Episode"
-                title={episode.title}
-                subtitle={episode.description || 'A featured moment from the season.'}
-                meta={<span>Explore</span>}
-              />
-            ))}
-          </ContentRail>
-        ) : (
-          <PremiumEmptyState title="Season picks">
-            The next big season moment will appear here as soon as BETALENT has one to feature.
-          </PremiumEmptyState>
-        )}
 
         {latestSubmission ? (
           <SupportPanel

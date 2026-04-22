@@ -273,6 +273,11 @@ model User {
   notifications          Notification[]
   emailLogs              EmailLog[]
   creatorProfile         CreatorProfile?
+  likes                  SubmissionLike[]
+  views                  SubmissionViewEvent[]
+  following              CreatorFollow[] @relation("CreatorFollowFollower")
+  followers              CreatorFollow[] @relation("CreatorFollowCreator")
+  engagementStat         UserEngagementStat?
 }
 
 model Session {
@@ -675,9 +680,69 @@ model Submission {
   updatedAt   DateTime         @updatedAt
   judgeResults JudgeResult[]
   performances Performance[]
+  likes       SubmissionLike[]
+  viewEvents  SubmissionViewEvent[]
+  engagementStat SubmissionEngagementStat?
 
   @@index([userId, status])
   @@index([videoAssetId])
+}
+
+model SubmissionLike {
+  id           String     @id @default(cuid())
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([submissionId, userId])
+  @@index([submissionId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model CreatorFollow {
+  id         String   @id @default(cuid())
+  followerId String
+  follower   User     @relation("CreatorFollowFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  creatorId  String
+  creator    User     @relation("CreatorFollowCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([followerId, creatorId])
+  @@index([creatorId, createdAt])
+  @@index([followerId, createdAt])
+}
+
+model SubmissionViewEvent {
+  id           String     @id @default(cuid())
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  viewerUserId String
+  viewerUser   User       @relation(fields: [viewerUserId], references: [id], onDelete: Cascade)
+  viewerKey    String
+  dayBucket    DateTime
+  viewedAt     DateTime   @default(now())
+
+  @@unique([submissionId, viewerKey, dayBucket])
+  @@index([submissionId, viewedAt])
+  @@index([viewerUserId, viewedAt])
+}
+
+model SubmissionEngagementStat {
+  submissionId String     @id
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  likeCount    Int        @default(0)
+  viewCount    Int        @default(0)
+  updatedAt    DateTime   @updatedAt
+}
+
+model UserEngagementStat {
+  userId         String   @id
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  followerCount  Int      @default(0)
+  followingCount Int      @default(0)
+  updatedAt      DateTime @updatedAt
 }
 
 model JudgeResult {

@@ -12,6 +12,14 @@ interface SeasonDetailPageProps {
   params: Promise<{ slug: string }>;
 }
 
+const seasonStatusLabel: Record<string, string> = {
+  LIVE: 'ACTIVE',
+  UPCOMING: 'UPCOMING',
+  DRAFT: 'DRAFT',
+  COMPLETED: 'COMPLETED',
+  ARCHIVED: 'ARCHIVED',
+};
+
 export default async function SeasonDetailPage({ params }: SeasonDetailPageProps) {
   const { slug } = await params;
   const season = await SeasonService.getSeasonBySlug(slug);
@@ -35,7 +43,7 @@ export default async function SeasonDetailPage({ params }: SeasonDetailPageProps
       <SpotlightCard className="rounded-[1.7rem]">
         <PremiumMetaGrid
           rows={[
-            { label: 'Status', value: season.status },
+            { label: 'Status', value: seasonStatusLabel[season.status] || season.status },
             { label: 'Start', value: season.startAt ? season.startAt.toLocaleDateString() : 'TBC' },
             { label: 'End', value: season.endAt ? season.endAt.toLocaleDateString() : 'TBC' },
             { label: 'Program shape', value: `${stages.length} stages • ${episodes.length} episodes` },

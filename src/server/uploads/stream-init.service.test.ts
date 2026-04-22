@@ -32,7 +32,7 @@ test('upload init route baseline: creates draft asset, direct upload, and provid
       filename: 'demo.mp4',
       mimeType: 'video/mp4',
       size: 1024,
-      maxDurationSeconds: 600,
+      maxDurationSeconds: 120,
     },
   );
 
@@ -44,4 +44,30 @@ test('upload init route baseline: creates draft asset, direct upload, and provid
   assert.equal(result.videoAsset.id, 'asset_1');
   assert.equal(result.upload.url, 'https://stream.example/upload');
   assert.equal(result.providerAssetId, 'provider_1');
+});
+
+test('upload init route baseline: rejects durations above short-form limit', async () => {
+  await assert.rejects(
+    initializeStreamUploadWithDeps(
+      {
+        async createDraftVideoAsset() {
+          throw new Error('should not create draft');
+        },
+        async createDirectUpload() {
+          throw new Error('should not create direct upload');
+        },
+        async attachDirectUpload() {
+          throw new Error('should not attach direct upload');
+        },
+      },
+      'user_1',
+      {
+        filename: 'demo.mp4',
+        mimeType: 'video/mp4',
+        size: 1024,
+        maxDurationSeconds: 121,
+      },
+    ),
+    /up to 120 seconds/,
+  );
 });

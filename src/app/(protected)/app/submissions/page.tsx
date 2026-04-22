@@ -10,12 +10,14 @@ import {
   PremiumStageCard,
   SupportPanel,
 } from '@/components/premium';
+import { EngagementCountChip } from '@/components/engagement/EngagementCountChip';
+import { SubmissionEngagementBar } from '@/components/engagement/SubmissionEngagementBar';
 import { SubmissionDraftCreateForm, SubmissionDraftEditor } from '@/components/submissions/CreatorSubmissionForms';
 import { getSubmissionTheme } from '@/lib/content-presentation';
 import { SubmissionService } from '@/lib/services/submission.service';
 import { requireAuthenticatedOnboarded } from '@/server/auth/guard';
+import { SubmissionEngagementService } from '@/server/engagement/submission-engagement.service';
 import { VideoAssetService } from '@/lib/services/video-asset.service';
-import { isSubmissionReadOnlyForCreator } from '@/server/submissions/lifecycle';
 
 const submissionStatusLabel: Record<SubmissionStatus, string> = {
   DRAFT: 'Draft',
@@ -41,12 +43,28 @@ export default async function SubmissionsPage() {
     label: `${asset.originalName} • ${(asset.size / (1024 * 1024)).toFixed(1)} MB`,
   }));
   const draftSubmissions = submissions.filter((submission) => submission.status === SubmissionStatus.DRAFT);
-  const lockedSubmissions = submissions.filter((submission) => isSubmissionReadOnlyForCreator(submission.status));
+  const reviewSubmissions = submissions.filter(
+    (submission) =>
+      submission.status === SubmissionStatus.SUBMITTED || submission.status === SubmissionStatus.UNDER_REVIEW,
+  );
+  const outcomeSubmissions = submissions.filter(
+    (submission) =>
+      submission.status === SubmissionStatus.ACCEPTED ||
+      submission.status === SubmissionStatus.REJECTED ||
+      submission.status === SubmissionStatus.WITHDRAWN,
+  );
   const draftCount = submissions.filter((submission) => submission.status === SubmissionStatus.DRAFT).length;
   const reviewCount = submissions.filter((submission) => submission.status === SubmissionStatus.SUBMITTED || submission.status === SubmissionStatus.UNDER_REVIEW).length;
   const acceptedCount = submissions.filter((submission) => submission.status === SubmissionStatus.ACCEPTED).length;
   const readyAssetCount = readyAssets.length;
   const latestSubmission = submissions[0] ?? null;
+  const engagementBySubmissionId = await SubmissionEngagementService.getSubmissionSnapshots({
+    submissionRows: submissions.map((submission) => ({
+      id: submission.id,
+      status: submission.status,
+    })),
+    currentUserId: session.user.id,
+  });
 
   return (
     <AppPage
@@ -65,20 +83,20 @@ export default async function SubmissionsPage() {
           title={
             latestSubmission
               ? latestSubmission.status === SubmissionStatus.ACCEPTED
-                ? 'Lead with the piece that already landed'
+                ? 'Lead with accepted work'
                 : latestSubmission.status === SubmissionStatus.SUBMITTED || latestSubmission.status === SubmissionStatus.UNDER_REVIEW
-                  ? 'Your latest entry is already in motion'
-                  : 'Keep the next entry sharp and intentional'
+                  ? 'Your entry is in review'
+                  : 'Your draft is active'
               : readyAssetCount > 0
-                ? 'Ready media is waiting for its first entry'
-                : 'Entries begin the moment your library is ready'
+                ? 'Submission workspace is ready to open'
+                : 'Entries activate once your media library is ready'
           }
           description={
             latestSubmission
-              ? latestSubmission.description || 'Every entry should feel like a featured release, not a status checklist.'
+              ? latestSubmission.description || 'Submission is the core creator action.'
               : readyAssetCount > 0
-                ? 'You already have media ready to turn into something official.'
-                : 'Upload a piece first, then come back when there is something worth sending forward.'
+                ? 'Select READY media, shape a draft, then submit with intent.'
+                : 'Uploads prepares media. Submissions begins at READY.'
           }
           primaryAction={
             readyAssetCount > 0
@@ -110,21 +128,45 @@ export default async function SubmissionsPage() {
       }
     >
       <div className="foundation-page-stack">
+        <section className="foundation-panel foundation-tint-gold rounded-[1.55rem] p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="foundation-kicker">Ready to submit</p>
+              <h2 className="mt-2 text-[1.35rem] font-semibold text-white sm:text-[1.6rem]">
+                {readyAssetCount > 0
+                  ? 'Turn READY media into official entries'
+                  : 'Upload first, then make your move'}
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/62">
+                {readyAssetCount > 0
+                  ? 'Submission is the commitment point: shape a draft, then send it to review.'
+                  : 'Submissions unlock when at least one owned upload reaches READY.'}
+              </p>
+            </div>
+            <Link
+              href={readyAssetCount > 0 ? '#submission-workspace' : '/app/uploads'}
+              className="foundation-primary-button min-h-[3rem] px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.08em]"
+            >
+              {readyAssetCount > 0 ? 'Start from READY assets' : 'Open uploads'}
+            </Link>
+          </div>
+        </section>
+
         <section id="submission-workspace" className="foundation-panel rounded-[1.55rem] p-5 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="foundation-kicker">Creator workspace</p>
               <h2 className="mt-2 text-[1.35rem] font-semibold text-white sm:text-[1.6rem]">
-                Real draft authoring lives here now
+                Submission workspace
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/62">
-                Create from READY media only, keep drafts editable, and submit explicitly when the entry is actually ready to leave your hands.
+                Build from READY media, keep drafts editable, and submit only when the entry is final.
               </p>
             </div>
-            <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-white/58">
+            <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-white/58 sm:min-w-[15.5rem]">
               {readyAssetCount > 0
                 ? `${readyAssetCount} ready ${readyAssetCount === 1 ? 'asset is' : 'assets are'} available for new drafts.`
-                : 'No READY assets yet. Upload media before creating a draft.'}
+                : 'No READY assets yet. Upload first.'}
             </div>
           </div>
 
@@ -133,7 +175,7 @@ export default async function SubmissionsPage() {
               <SubmissionDraftCreateForm assets={readyAssetOptions} />
             ) : (
               <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-white/62">
-                Submission authoring unlocks as soon as at least one owned upload reaches READY.
+                Submission authoring unlocks when at least one owned upload reaches READY.
               </div>
             )}
           </div>
@@ -145,23 +187,30 @@ export default async function SubmissionsPage() {
             title={
               latestSubmission
                 ? latestSubmission.status === SubmissionStatus.DRAFT
-                  ? 'Finish the draft while the idea is fresh'
+                  ? 'Finish your draft'
                   : latestSubmission.status === SubmissionStatus.SUBMITTED || latestSubmission.status === SubmissionStatus.UNDER_REVIEW
-                    ? 'Stay close to the entry that is active now'
-                    : 'Use the strongest finished work to guide the next one'
-                : 'The first entry comes after the first ready upload'
+                    ? 'Track current review'
+                    : 'Build from accepted momentum'
+                : 'First entry starts after first READY asset'
             }
             description={
               latestSubmission
                 ? latestSubmission.status === SubmissionStatus.DRAFT
-                  ? 'Drafts should feel light, editable, and easy to return to.'
+                  ? 'Refine now, submit when final.'
                   : latestSubmission.status === SubmissionStatus.SUBMITTED || latestSubmission.status === SubmissionStatus.UNDER_REVIEW
-                    ? 'Keep the focus on the piece currently in front of reviewers.'
-                    : 'Finished work gives the whole profile a stronger center of gravity.'
-                : 'Nothing here should be forced before the media is ready.'
+                    ? 'Keep focus on the active review cycle.'
+                    : 'Use accepted work as the quality benchmark.'
+                : 'Do not force submissions before media is READY.'
             }
             tone="violet"
-            action={<Link href="/app/uploads" className="foundation-quiet-link">Open uploads</Link>}
+            action={
+              <Link
+                href={latestSubmission?.status === SubmissionStatus.DRAFT ? '#submission-workspace' : '/app/uploads'}
+                className="foundation-quiet-link"
+              >
+                {latestSubmission?.status === SubmissionStatus.DRAFT ? 'Return to draft workspace' : 'Open uploads'}
+              </Link>
+            }
           />
 
           <SupportPanel
@@ -181,11 +230,11 @@ export default async function SubmissionsPage() {
         {draftSubmissions.length > 0 ? (
           <ContentRail
             eyebrow="Drafts"
-            title="Editable entries"
-            subtitle="Drafts remain writable until you explicitly submit them."
+            title="Editable submissions"
+            subtitle="Refine each draft here, then submit when final."
           >
             {draftSubmissions.map((submission) => (
-              <section key={submission.id} className="foundation-panel foundation-tint-violet rounded-[1.4rem] p-5">
+              <section key={submission.id} className="foundation-panel foundation-tint-violet rounded-[1.4rem] p-5 sm:p-6">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="foundation-kicker">Draft</p>
@@ -210,22 +259,36 @@ export default async function SubmissionsPage() {
                     No READY asset is currently available for this draft, so editing and submission stay blocked until your library is ready again.
                   </div>
                 )}
+                {engagementBySubmissionId[submission.id] ? (
+                  <SubmissionEngagementBar
+                    submissionId={submission.id}
+                    initialLikeCount={engagementBySubmissionId[submission.id].likeCount}
+                    initialViewCount={engagementBySubmissionId[submission.id].viewCount}
+                    initialLiked={engagementBySubmissionId[submission.id].likedByCurrentUser}
+                    canLike={engagementBySubmissionId[submission.id].canLike}
+                    canView={engagementBySubmissionId[submission.id].canView}
+                  />
+                ) : null}
               </section>
             ))}
           </ContentRail>
         ) : null}
 
         {submissions.length === 0 ? (
-          <PremiumEmptyState title="Submission library">
-            Once your media is ready, your first entry will appear here as a proper featured piece.
+          <PremiumEmptyState title="Submission workspace">
+            <div className="space-y-3">
+              <p>This is where media becomes official entries, not where media is uploaded.</p>
+              <p>As soon as one asset reaches READY, your first draft can be created here.</p>
+              <Link href="/app/uploads" className="foundation-inline-action">Open uploads library</Link>
+            </div>
           </PremiumEmptyState>
-        ) : lockedSubmissions.length > 0 ? (
+        ) : reviewSubmissions.length > 0 ? (
           <ContentRail
-            eyebrow="Your entries"
-            title="Recent submissions"
-            subtitle="Submitted entries become read-only on the creator side and continue through the review lifecycle."
+            eyebrow="In review"
+            title="Read-only review queue"
+            subtitle="These entries are now in formal review and locked on the creator side."
           >
-            {lockedSubmissions.slice(0, 6).map((submission) => (
+            {reviewSubmissions.slice(0, 6).map((submission) => (
               <PremiumStageCard
                 key={submission.id}
                 imageUrl={submission.videoAsset.thumbnailUrl}
@@ -233,16 +296,26 @@ export default async function SubmissionsPage() {
                 eyebrow={submissionStatusLabel[submission.status]}
                 title={submission.title}
                 subtitle={
-                  submission.status === SubmissionStatus.ACCEPTED
-                    ? 'This piece already broke through.'
-                    : submission.status === SubmissionStatus.REJECTED
-                      ? 'Not selected this time.'
-                      : submission.description || 'Built from your linked media and ready to revisit.'
+                  submission.status === SubmissionStatus.SUBMITTED
+                    ? 'Submitted successfully. Review is pending.'
+                    : submission.description || 'Under review. Updates will appear here.'
                 }
                 meta={
                   <>
                     <span>{submission.videoAsset.status === VideoAssetStatus.READY ? 'Ready media' : submission.videoAsset.status}</span>
                     <span>{submission.judgeResults.length} updates</span>
+                    <EngagementCountChip
+                      icon="like"
+                      label="Likes"
+                      value={engagementBySubmissionId[submission.id]?.likeCount ?? 0}
+                      className="min-h-0 bg-white/[0.03] py-1"
+                    />
+                    <EngagementCountChip
+                      icon="view"
+                      label="Views"
+                      value={engagementBySubmissionId[submission.id]?.viewCount ?? 0}
+                      className="min-h-0 bg-white/[0.03] py-1"
+                    />
                   </>
                 }
               />
@@ -251,16 +324,59 @@ export default async function SubmissionsPage() {
         ) : (
           <SupportPanel
             eyebrow="Queue state"
-            title="Everything on this screen is still in draft"
-            description="Nothing is locked yet. Save the draft when you need to, then submit explicitly once the entry is ready to move into review."
+            title="Draft workspace is active"
+            description="Everything is editable. Refine drafts, then submit with intent."
             tone="gold"
           />
         )}
 
+        {outcomeSubmissions.length > 0 ? (
+          <ContentRail
+            eyebrow="Outcomes"
+            title="Completed decisions"
+            subtitle="Review outcomes are recorded here for calm follow-through."
+          >
+            {outcomeSubmissions.slice(0, 6).map((submission) => (
+              <PremiumStageCard
+                key={submission.id}
+                imageUrl={submission.videoAsset.thumbnailUrl}
+                theme={getSubmissionTheme(submission.status)}
+                eyebrow={submissionStatusLabel[submission.status]}
+                title={submission.title}
+                subtitle={
+                  submission.status === SubmissionStatus.ACCEPTED
+                    ? 'Accepted. Use this quality level as your benchmark.'
+                    : submission.status === SubmissionStatus.REJECTED
+                      ? 'Not selected. Refine and move forward with the next entry.'
+                      : 'Withdrawn from the current cycle.'
+                }
+                meta={
+                  <>
+                    <span>{submission.videoAsset.status === VideoAssetStatus.READY ? 'Ready media' : submission.videoAsset.status}</span>
+                    <span>{submission.judgeResults.length} updates</span>
+                    <EngagementCountChip
+                      icon="like"
+                      label="Likes"
+                      value={engagementBySubmissionId[submission.id]?.likeCount ?? 0}
+                      className="min-h-0 bg-white/[0.03] py-1"
+                    />
+                    <EngagementCountChip
+                      icon="view"
+                      label="Views"
+                      value={engagementBySubmissionId[submission.id]?.viewCount ?? 0}
+                      className="min-h-0 bg-white/[0.03] py-1"
+                    />
+                  </>
+                }
+              />
+            ))}
+          </ContentRail>
+        ) : null}
+
         <SupportPanel
           eyebrow="Use your library well"
           title={readyAssetCount > 0 ? `${readyAssetCount} ready ${readyAssetCount === 1 ? 'asset' : 'assets'} can support the next entry` : 'Your next entry starts in uploads'}
-          description="Uploads and submissions stay separate so each part of the product can stay calm and clear."
+          description="Uploads and submissions stay separate to keep workflow clear."
           tone={readyAssetCount > 0 ? 'cobalt' : 'ember'}
           action={<Link href="/app/uploads" className="foundation-quiet-link">Go to uploads</Link>}
         />

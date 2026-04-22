@@ -75,13 +75,13 @@ export function InternalShowSetupForms(props: {
           1. Create Season
         </h2>
         <p className="mt-1 text-xs leading-relaxed text-foreground/65">
-          BETALENT is asynchronous on-demand viewing — not live streaming. For a
-          season the member app should treat as <strong>current</strong>, pick
+          BETALENT is asynchronous on-demand viewing. For a
+          season the member app should treat as <strong>current / active</strong>, pick
           status{" "}
           <code className="rounded bg-foreground/5 px-1 font-mono text-[11px]">
             LIVE
           </code>{" "}
-          (schema label only). Optional dates help{" "}
+          (schema label only, presented as Active in UI). Optional dates help{" "}
           <code className="rounded bg-foreground/5 px-1 font-mono text-[11px]">
             getCurrentSeason
           </code>
@@ -111,8 +111,7 @@ export function InternalShowSetupForms(props: {
               <option value="DRAFT">DRAFT</option>
               <option value="UPCOMING">UPCOMING</option>
               <option value="LIVE">
-                LIVE — current / active season (stored as LIVE in schema;
-                not broadcast)
+                LIVE — current / active season (schema token only)
               </option>
               <option value="COMPLETED">COMPLETED</option>
               <option value="ARCHIVED">ARCHIVED</option>
@@ -145,8 +144,7 @@ export function InternalShowSetupForms(props: {
           <code className="rounded bg-foreground/5 px-1 font-mono text-[11px]">
             OPEN
           </code>{" "}
-          means the competition phase is open per rules below; it is not a
-          “live channel” state.
+          means the competition phase is open per rules below.
         </p>
         <form action={stageAction} className="mt-4 flex flex-col gap-3">
           <ActionNote state={stageState} />

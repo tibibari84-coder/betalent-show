@@ -54,7 +54,7 @@ export function AdminSeasonCreateForm() {
       </div>
 
       <p className="text-sm text-white/58">
-        New seasons must start in <strong className="text-white">Draft</strong> or <strong className="text-white">Upcoming</strong>. Going live or archiving is always an explicit follow-up action.
+        New seasons must start in <strong className="text-white">Draft</strong> or <strong className="text-white">Upcoming</strong>. Activating or archiving is always an explicit follow-up action.
       </p>
 
       <Button

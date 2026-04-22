@@ -2,11 +2,11 @@ export type ProductArea = "workspace" | "account" | "internal";
 
 export type ProductPageKey =
   | "app"
+  | "discovery"
   | "profile"
   | "creator"
   | "uploads"
   | "submissions"
-  | "seasons"
   | "settings";
 
 export type ProductPageDefinition = {
@@ -28,6 +28,15 @@ export const productPages: ProductPageDefinition[] = [
     note: "Now",
     area: "workspace",
     role: "Creator home / current state / next actions",
+  },
+  {
+    key: "discovery",
+    href: "/app/discovery",
+    label: "Discover",
+    short: "Ds",
+    note: "Feed",
+    area: "workspace",
+    role: "Short-performance discovery feed",
   },
   {
     key: "creator",
@@ -55,15 +64,6 @@ export const productPages: ProductPageDefinition[] = [
     note: "Entries",
     area: "workspace",
     role: "Competition workspace",
-  },
-  {
-    key: "seasons",
-    href: "/app/seasons",
-    label: "Seasons",
-    short: "Sn",
-    note: "Show",
-    area: "workspace",
-    role: "Content exploration / season navigation",
   },
   {
     key: "profile",

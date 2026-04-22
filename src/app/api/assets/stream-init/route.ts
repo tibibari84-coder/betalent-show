@@ -6,13 +6,13 @@ import { captureException, captureMessage } from '@/lib/sentry';
 import { getStreamConfigState, streamAdapter } from '@/lib/stream';
 import { VideoAssetService } from '@/lib/services/video-asset.service';
 import { AccessError, requireApiOnboarded } from '@/server/auth/guard';
-import { initializeStreamUploadWithDeps } from '@/server/uploads/stream-init.service';
+import { initializeStreamUploadWithDeps, MAX_SHORT_VIDEO_DURATION_SECONDS } from '@/server/uploads/stream-init.service';
 
 const streamInitSchema = z.object({
   filename: z.string().min(1),
   mimeType: z.string().min(1),
   size: z.number().int().positive(),
-  maxDurationSeconds: z.number().int().positive().max(60 * 60 * 12).default(600),
+  maxDurationSeconds: z.number().int().positive().max(MAX_SHORT_VIDEO_DURATION_SECONDS).default(MAX_SHORT_VIDEO_DURATION_SECONDS),
 });
 
 export async function POST(request: NextRequest) {

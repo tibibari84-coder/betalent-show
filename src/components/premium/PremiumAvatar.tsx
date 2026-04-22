@@ -1,3 +1,7 @@
+'use client';
+
+import { useState } from 'react';
+
 import { cn } from '@/lib/utils/cn';
 import { getInitials } from '@/lib/content-presentation';
 
@@ -6,6 +10,9 @@ export function PremiumAvatar(props: {
   imageUrl?: string | null;
   className?: string;
 }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const shouldRenderImage = Boolean(props.imageUrl) && !imageFailed;
+
   return (
     <div
       className={cn(
@@ -13,9 +20,14 @@ export function PremiumAvatar(props: {
         props.className,
       )}
     >
-      {props.imageUrl ? (
+      {shouldRenderImage ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={props.imageUrl} alt={props.name} className="h-full w-full object-cover" />
+        <img
+          src={props.imageUrl!}
+          alt={props.name}
+          className="h-full w-full object-cover"
+          onError={() => setImageFailed(true)}
+        />
       ) : (
         <span>{getInitials(props.name || 'BT')}</span>
       )}

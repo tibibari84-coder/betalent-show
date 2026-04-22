@@ -40,6 +40,7 @@ export function ProfileForm({ user, creatorProfile }: ProfileFormProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl || null);
   const [avatarUploadKey, setAvatarUploadKey] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarPreviewFailed, setAvatarPreviewFailed] = useState(false);
 
   const {
     register,
@@ -65,6 +66,17 @@ export function ProfileForm({ user, creatorProfile }: ProfileFormProps) {
 
     setAvatarUploading(true);
     setFeedback(null);
+    setAvatarPreviewFailed(false);
+
+    if (!file.type.startsWith('image/')) {
+      setAvatarUploading(false);
+      setFeedback({
+        type: 'error',
+        message: 'Please choose an image file for your avatar.',
+      });
+      event.target.value = '';
+      return;
+    }
 
     try {
       const response = await fetch('/api/assets/r2-upload-url', {
@@ -79,12 +91,16 @@ export function ProfileForm({ user, creatorProfile }: ProfileFormProps) {
 
       const data = (await response.json()) as {
         error?: string;
+        code?: string;
         uploadUrl?: string;
         assetUrl?: string;
         key?: string;
       };
 
       if (!response.ok || !data.uploadUrl || !data.assetUrl || !data.key) {
+        if (data.code === 'ASSET_PUBLIC_DELIVERY_UNAVAILABLE') {
+          throw new Error('Avatar upload is temporarily unavailable. Please try again later.');
+        }
         throw new Error(data.error || 'Unable to create avatar upload URL.');
       }
 
@@ -226,9 +242,14 @@ export function ProfileForm({ user, creatorProfile }: ProfileFormProps) {
         <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] p-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
-              {avatarUrl ? (
+              {avatarUrl && !avatarPreviewFailed ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarUrl} alt="Avatar preview" className="h-full w-full object-cover" />
+                <img
+                  src={avatarUrl}
+                  alt="Avatar preview"
+                  className="h-full w-full object-cover"
+                  onError={() => setAvatarPreviewFailed(true)}
+                />
               ) : (
                 <span className="text-xs uppercase tracking-[0.18em] text-white/42">No avatar</span>
               )}

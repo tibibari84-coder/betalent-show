@@ -166,7 +166,7 @@ async function ensureSingleLiveSeason(nextStatus: SeasonStatus, ignoreSeasonId?:
   });
 
   if (existingLive) {
-    throw new Error(`Season "${existingLive.title}" is already LIVE. Complete or archive it before publishing another live season.`);
+    throw new Error(`Season "${existingLive.title}" is already ACTIVE (LIVE in schema). Complete or archive it before activating another season.`);
   }
 }
 
@@ -188,7 +188,7 @@ function ensureStageStatusAllowedForSeason(stageStatus: StageStatus, seasonStatu
     seasonStatus !== SeasonStatus.LIVE &&
     seasonStatus !== SeasonStatus.COMPLETED
   ) {
-    throw new Error("Only LIVE or COMPLETED seasons can hold active, judging, voting, results, or completed stages.");
+    throw new Error("Only ACTIVE (LIVE in schema) or COMPLETED seasons can hold active, judging, voting, results, or completed stages.");
   }
 }
 
@@ -207,7 +207,7 @@ function ensureEpisodeStatusAllowedForContext(
 
   if (episodeStatus === EpisodeStatus.PUBLISHED) {
     if (seasonStatus !== SeasonStatus.LIVE && seasonStatus !== SeasonStatus.COMPLETED) {
-      throw new Error("Episodes can only be published while the parent season is LIVE or COMPLETED.");
+      throw new Error("Episodes can only be published while the parent season is ACTIVE (LIVE in schema) or COMPLETED.");
     }
 
     if (stageStatus && stageStatus !== StageStatus.OPEN && stageStatus !== StageStatus.JUDGING && stageStatus !== StageStatus.VOTING && stageStatus !== StageStatus.RESULTS && stageStatus !== StageStatus.COMPLETED) {

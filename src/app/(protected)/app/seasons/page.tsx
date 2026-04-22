@@ -16,14 +16,21 @@ import { EpisodeService } from '@/lib/services/episode.service';
 import { SeasonService } from '@/lib/services/season.service';
 import { StageService } from '@/lib/services/stage.service';
 
-type SeasonsState = 'empty' | 'live' | 'upcoming' | 'library';
+type SeasonsState = 'empty' | 'active' | 'upcoming' | 'library';
+const seasonStatusLabel: Record<string, string> = {
+  LIVE: 'ACTIVE',
+  UPCOMING: 'UPCOMING',
+  DRAFT: 'DRAFT',
+  COMPLETED: 'COMPLETED',
+  ARCHIVED: 'ARCHIVED',
+};
 
 export default async function SeasonsPage() {
   const seasons = await SeasonService.getAllSeasons();
   const featuredSeason = seasons.find((season) => season.status === 'LIVE') ?? seasons[0] ?? null;
   const liveCount = seasons.filter((season) => season.status === 'LIVE').length;
   const upcomingCount = seasons.filter((season) => season.status === 'UPCOMING' || season.status === 'DRAFT').length;
-  const seasonsState: SeasonsState = seasons.length === 0 ? 'empty' : liveCount > 0 ? 'live' : upcomingCount > 0 ? 'upcoming' : 'library';
+  const seasonsState: SeasonsState = seasons.length === 0 ? 'empty' : liveCount > 0 ? 'active' : upcomingCount > 0 ? 'upcoming' : 'library';
   const [stages, episodes] = featuredSeason
     ? await Promise.all([
         StageService.getStagesBySeason(featuredSeason.id),
@@ -39,9 +46,9 @@ export default async function SeasonsPage() {
           tone="show"
           title={
             seasonsState === 'empty'
-              ? 'No season programming yet'
-              : seasonsState === 'live'
-                ? 'Season navigation is live'
+              ? 'Season programming will appear here'
+              : seasonsState === 'active'
+                ? 'Active season programming'
                 : seasonsState === 'upcoming'
                   ? 'Upcoming season library'
                   : 'Season archive and library'
@@ -50,7 +57,7 @@ export default async function SeasonsPage() {
           artwork={
             <PremiumArtworkPanel
               theme={featuredSeason ? getSeasonTheme(featuredSeason.status) : 'violet'}
-              eyebrow={featuredSeason?.status || 'Season'}
+              eyebrow={featuredSeason ? seasonStatusLabel[featuredSeason.status] || featuredSeason.status : 'Season'}
               title={featuredSeason?.title || 'Season cover'}
               detail={featuredSeason?.description || 'Season cards should feel like real cover treatments, not plain admin rows.'}
               monogram={featuredSeason?.title.slice(0, 2).toUpperCase() || 'SN'}
@@ -59,7 +66,7 @@ export default async function SeasonsPage() {
           }
           meta={
             <>
-              <PremiumStatusChip label="Live" value={liveCount} />
+              <PremiumStatusChip label="Active" value={liveCount} />
               <PremiumStatusChip label="Upcoming" value={upcomingCount} />
             </>
           }
@@ -67,15 +74,19 @@ export default async function SeasonsPage() {
       }
     >
       {seasons.length === 0 ? (
-        <PremiumEmptyState title="No seasons configured">
-          Season navigation will appear here once programming is configured.
+        <PremiumEmptyState title="Seasons overview">
+          <div className="space-y-3">
+            <p>This surface becomes the programming map for active, upcoming, and archive seasons.</p>
+            <p>When the first season is published, stage and episode rails will populate automatically.</p>
+            <Link href="/app" className="foundation-inline-action">Return to creator home</Link>
+          </div>
         </PremiumEmptyState>
       ) : (
         <>
           <section className="foundation-panel rounded-[1.55rem] p-4 sm:rounded-[1.95rem] sm:p-6">
             <div className="grid gap-3 sm:grid-cols-3">
               <PremiumMetricCard label="State" value={seasonsState} />
-              <PremiumMetricCard label="Live now" value={liveCount} />
+              <PremiumMetricCard label="Active now" value={liveCount} />
               <PremiumMetricCard label="Upcoming" value={upcomingCount} />
             </div>
           </section>
@@ -87,7 +98,7 @@ export default async function SeasonsPage() {
               action={<Link href={`/app/seasons/${featuredSeason.slug}`} className="foundation-inline-action">Open season</Link>}
             >
               <div className="flex flex-wrap gap-2">
-                <PremiumStatusChip label="Status" value={featuredSeason.status} />
+                <PremiumStatusChip label="Status" value={seasonStatusLabel[featuredSeason.status] || featuredSeason.status} />
                 <PremiumStatusChip label="Stages" value={stages.length} />
                 <PremiumStatusChip label="Episodes" value={episodes.length} />
               </div>
@@ -147,7 +158,7 @@ export default async function SeasonsPage() {
                 key={season.id}
                 href={`/app/seasons/${season.slug}`}
                 theme={getSeasonTheme(season.status)}
-                eyebrow={season.status}
+                eyebrow={seasonStatusLabel[season.status] || season.status}
                 title={season.title}
                 subtitle={season.description || 'Configured season metadata ready for public presentation.'}
                 meta={<span className="foundation-inline-action">Open season</span>}

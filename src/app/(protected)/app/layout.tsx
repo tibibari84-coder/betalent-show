@@ -17,7 +17,7 @@ export default async function ProtectedAppLayout({
   const pathname = await getRequestedPathname('/app');
   const allNavItems = [...workspaceNavItems, ...accountNavItems];
   const mobilePrimaryNav = workspaceNavItems.filter((item) =>
-    ['/app', '/app/creator', '/app/uploads', '/app/submissions'].includes(item.href),
+    ['/app', '/app/discovery', '/app/uploads', '/app/submissions'].includes(item.href),
   );
   const currentMobileItem =
     mobilePrimaryNav.find((item) =>

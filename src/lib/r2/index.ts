@@ -65,6 +65,10 @@ export function getR2ConfigState(purpose?: R2AssetPurpose) {
   };
 }
 
+export function isR2PublicDeliveryRequiredForPurpose(purpose: R2AssetPurpose) {
+  return publicAssetPurposes.has(purpose);
+}
+
 export async function createR2UploadUrl(
   options: R2SignedUploadUrlOptions,
 ): Promise<R2SignedUploadUrlResult> {
@@ -76,7 +80,7 @@ export async function createR2UploadUrl(
 
     throw new Error(
       needsPublicDelivery
-        ? 'Cloudflare R2 public delivery is not configured for this asset type.'
+        ? 'Avatar delivery is not available in this environment.'
         : 'Cloudflare R2 storage is not configured.',
     );
   }

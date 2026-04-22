@@ -51,8 +51,13 @@ export async function PUT(request: NextRequest) {
     }
 
     if (error instanceof ProfileValidationError) {
+      const cleanedError =
+        error.message === 'Avatar storage is not configured in this environment.'
+          ? 'Avatar save is temporarily unavailable. Please try again later.'
+          : error.message;
+
       return NextResponse.json(
-        { error: error.message, fieldErrors: error.fieldErrors },
+        { error: cleanedError, fieldErrors: error.fieldErrors },
         { status: error.fieldErrors ? 400 : 409 },
       );
     }

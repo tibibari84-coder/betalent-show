@@ -4,7 +4,6 @@ import { VideoAssetStatus } from '@prisma/client';
 import { DirectVideoUploadCard } from '@/components/uploads/DirectVideoUploadCard';
 import {
   AppPage,
-  ContentRail,
   FeatureSurface,
   PremiumArtworkPanel,
   PremiumEmptyState,
@@ -18,7 +17,7 @@ import { requireAuthenticatedOnboarded } from '@/server/auth/guard';
 
 const statusLabel: Record<VideoAssetStatus, string> = {
   UPLOADING: 'Uploading',
-  PROCESSING: 'Processing',
+  PROCESSING: 'Preparing',
   READY: 'Ready',
   FAILED: 'Needs another try',
   DELETED: 'Removed',
@@ -26,13 +25,40 @@ const statusLabel: Record<VideoAssetStatus, string> = {
 
 export const dynamic = 'force-dynamic';
 
-export default async function UploadsPage() {
+export default async function UploadsPage(props: {
+  searchParams?: Promise<{ asset?: string }>;
+}) {
+  const searchParams = props.searchParams ? await props.searchParams : undefined;
   const session = await requireAuthenticatedOnboarded('/app/uploads');
   const assets = await VideoAssetService.getVideoAssetsByUser(session.user.id);
   const readyAssets = assets.filter((asset) => asset.status === VideoAssetStatus.READY);
   const processingAssets = assets.filter((asset) => asset.status === VideoAssetStatus.PROCESSING || asset.status === VideoAssetStatus.UPLOADING);
   const failedAssets = assets.filter((asset) => asset.status === VideoAssetStatus.FAILED);
   const featuredAsset = readyAssets[0] ?? processingAssets[0] ?? failedAssets[0] ?? assets[0] ?? null;
+  const selectedAssetId = searchParams?.asset;
+  const detailAsset = assets.find((asset) => asset.id === selectedAssetId) ?? featuredAsset;
+  const detailPlaybackUrl = detailAsset?.playbackUrl || detailAsset?.previewUrl || null;
+  const detailStatus = detailAsset?.status;
+  const detailPrimaryAction =
+    detailStatus === VideoAssetStatus.READY
+      ? {
+          href: '/app/submissions#submission-workspace',
+          label: 'Attach to submission',
+        }
+      : detailStatus === VideoAssetStatus.PROCESSING || detailStatus === VideoAssetStatus.UPLOADING
+        ? {
+            href: '/app/uploads',
+            label: 'Continue processing wait',
+          }
+        : detailStatus === VideoAssetStatus.FAILED
+          ? {
+              href: '#upload-panel',
+              label: 'Retry this upload',
+            }
+          : {
+              href: '/app/uploads',
+              label: 'Return to library',
+            };
 
   return (
     <AppPage
@@ -54,15 +80,15 @@ export default async function UploadsPage() {
             !streamEnabled
               ? 'Uploads are unavailable in this environment'
               : featuredAsset
-                ? 'Build a library that feels worth opening'
-                : 'Your media library starts with one standout performance'
+                ? 'Short-performance composer'
+                : 'Start your short-performance library with one standout vertical upload'
           }
           description={
             !streamEnabled
               ? 'This environment cannot create new media right now, but your existing library still stays visible.'
               : featuredAsset
-                ? 'Every ready upload becomes a reusable BETALENT asset with its own cover treatment and momentum.'
-                : 'The first upload turns this screen from empty space into something cinematic.'
+                ? 'Select an asset, keep focus on preview, then move READY work into submission.'
+                : 'Import one short vertical performance to activate composer flow and preview.'
           }
           primaryAction={
             streamEnabled
@@ -85,7 +111,7 @@ export default async function UploadsPage() {
               detail={
                 featuredAsset
                   ? `${statusLabel[featuredAsset.status]} · ${(featuredAsset.size / (1024 * 1024)).toFixed(1)} MB`
-                  : 'Once a piece lands here, BETALENT can use it across the product.'
+                  : 'Once a performance lands here, BETALENT prepares it for submission attachment.'
               }
               imageUrl={featuredAsset?.thumbnailUrl}
               monogram={featuredAsset ? undefined : 'UP'}
@@ -112,60 +138,167 @@ export default async function UploadsPage() {
 
         <div className="foundation-support-grid">
           <SupportPanel
-            eyebrow="Ready to use"
+            eyebrow="Library health"
             title={
               readyAssets.length > 0
-                ? `${readyAssets.length} ${readyAssets.length === 1 ? 'piece is' : 'pieces are'} ready to feature`
-                : 'Nothing is ready just yet'
+                ? `${readyAssets.length} ${readyAssets.length === 1 ? 'asset is' : 'assets are'} ready to attach`
+                : processingAssets.length > 0
+                  ? 'Upload pipeline is active'
+                  : 'Ready for first vertical upload'
             }
             description={
               readyAssets.length > 0
-                ? 'Use your strongest ready media wherever you need it next.'
-                : 'As soon as processing finishes, the library becomes much more useful.'
+                ? 'READY assets can be attached immediately in the submission workspace.'
+                : processingAssets.length > 0
+                  ? 'Uploaded files move through transfer and preparation before READY unlocks.'
+                  : 'Import one short mobile-first performance to begin.'
             }
-            tone={readyAssets.length > 0 ? 'emerald' : 'cobalt'}
-            action={<Link href="/app/submissions" className="foundation-quiet-link">Use media in entries</Link>}
+            tone={readyAssets.length > 0 ? 'emerald' : processingAssets.length > 0 ? 'gold' : 'cobalt'}
+            action={<Link href="/app/submissions#submission-workspace" className="foundation-quiet-link">Attach media in submissions</Link>}
           />
           <SupportPanel
             eyebrow="Delivery"
             title={streamWebhookVerificationEnabled ? 'Automatic readiness is turned on' : 'Readiness updates are limited here'}
             description={
               streamWebhookVerificationEnabled
-                ? 'The moment a piece becomes ready, BETALENT can treat it like a finished asset.'
-                : 'Pieces may take a little longer to reflect their final status in this environment.'
+                ? 'READY appears automatically when secure processing completes.'
+                : 'READY state may update with a short delay in this environment.'
             }
             tone={streamWebhookVerificationEnabled ? 'violet' : 'gold'}
           />
         </div>
 
         {assets.length === 0 ? (
-          <PremiumEmptyState title="Media library">
-            Bring in one strong performance and this space immediately starts to feel like a real collection.
+          <PremiumEmptyState title="Media workspace">
+            <div className="space-y-3">
+              <p>Your upload composer activates when the first short performance lands.</p>
+              <p>Use this space to move from selected file to READY asset before entering submissions.</p>
+              <Link href="#upload-panel" className="foundation-inline-action">Upload your first performance</Link>
+            </div>
           </PremiumEmptyState>
         ) : (
-          <ContentRail
-            eyebrow="Library"
-            title="Recent media"
-            subtitle="A cleaner, more editorial look at what is available now."
-          >
-            {assets.slice(0, 6).map((asset) => (
-              <PremiumStageCard
-                key={asset.id}
-                imageUrl={asset.thumbnailUrl}
-                theme={getAssetTheme(asset.status)}
-                eyebrow={statusLabel[asset.status]}
-                title={asset.originalName}
-                subtitle={
-                  asset.status === VideoAssetStatus.READY
-                    ? 'Ready to feature in the next move.'
-                    : asset.status === VideoAssetStatus.FAILED
-                      ? 'This upload needs another attempt.'
-                      : 'Still settling into the library.'
-                }
-                meta={<span>{(asset.size / (1024 * 1024)).toFixed(1)} MB</span>}
-              />
-            ))}
-          </ContentRail>
+          <section className="foundation-panel rounded-[1.55rem] p-5 sm:p-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="foundation-kicker">Media workspace</p>
+                <h2 className="mt-2 text-[1.35rem] font-semibold text-white sm:text-[1.6rem]">Library + focused preview</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/62">
+                  Track each asset state clearly: selected, uploading, preparing, ready, or retry needed.
+                </p>
+              </div>
+              <Link href="/app/submissions#submission-workspace" className="foundation-inline-action">
+                Open submission attachment
+              </Link>
+            </div>
+
+            <div className="mt-6 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+              <div className="rounded-[1.25rem] border border-white/8 bg-white/[0.03] p-4 lg:order-2">
+                <p className="text-xs uppercase tracking-[0.12em] text-white/48">Focused asset</p>
+                <div className="mt-3 space-y-4">
+                  <div className="overflow-hidden rounded-[1.1rem] border border-white/10 bg-black/30">
+                    {detailAsset && detailAsset.status === VideoAssetStatus.READY && detailPlaybackUrl ? (
+                      <video
+                        controls
+                        preload="metadata"
+                        poster={detailAsset.thumbnailUrl || undefined}
+                        className="aspect-[9/16] w-full bg-black"
+                        src={detailPlaybackUrl}
+                      />
+                    ) : (
+                      <PremiumArtworkPanel
+                        theme={detailAsset ? getAssetTheme(detailAsset.status) : 'cobalt'}
+                        eyebrow={detailAsset ? statusLabel[detailAsset.status] : 'Preview'}
+                        title={detailAsset?.originalName || 'Selected asset'}
+                        detail={
+                          detailAsset
+                            ? detailAsset.status === VideoAssetStatus.FAILED
+                              ? 'Upload did not complete. Retry with a final short-performance file.'
+                              : detailAsset.status === VideoAssetStatus.PROCESSING || detailAsset.status === VideoAssetStatus.UPLOADING
+                                ? 'Transfer or preparation is in progress. Playable preview appears automatically at READY.'
+                                : 'Choose an asset from the library to inspect here.'
+                            : 'Choose an asset from the library to inspect here.'
+                        }
+                        imageUrl={detailAsset?.thumbnailUrl}
+                        monogram={detailAsset ? undefined : 'PV'}
+                        className="min-h-[16rem] rounded-none border-0"
+                      />
+                    )}
+                  </div>
+
+                  <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full border border-white/12 bg-white/[0.05] px-3 py-1 text-xs uppercase tracking-[0.1em] text-white/70">
+                        {detailAsset ? statusLabel[detailAsset.status] : 'No selection'}
+                      </span>
+                      {detailAsset ? (
+                        <span className="rounded-full border border-white/12 bg-white/[0.05] px-3 py-1 text-xs uppercase tracking-[0.1em] text-white/58">
+                          {(detailAsset.size / (1024 * 1024)).toFixed(1)} MB
+                        </span>
+                      ) : null}
+                      {detailAsset?.mimeType ? (
+                        <span className="rounded-full border border-white/12 bg-white/[0.05] px-3 py-1 text-xs uppercase tracking-[0.1em] text-white/58">
+                          {detailAsset.mimeType}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <h3 className="mt-4 text-lg font-semibold text-white">
+                      {detailAsset?.originalName || 'Media detail preview'}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-white/64">
+                      {detailAsset
+                        ? detailAsset.status === VideoAssetStatus.READY
+                          ? 'This short performance is READY and can now move into a submission draft.'
+                          : detailAsset.status === VideoAssetStatus.FAILED
+                            ? 'Replace or retry this upload to return it to the READY pipeline.'
+                            : 'Keep this asset selected while upload and preparation complete.'
+                        : 'Select an asset from your library to see focused detail, status, and next action.'}
+                    </p>
+
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <Link href={detailPrimaryAction.href} className="foundation-primary-button min-h-[2.9rem] px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.08em]">
+                        {detailPrimaryAction.label}
+                      </Link>
+                      <Link href="/app/uploads" className="foundation-quiet-link">
+                        Return to library
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[1.25rem] border border-white/8 bg-white/[0.03] p-4 lg:order-1">
+                <p className="text-xs uppercase tracking-[0.12em] text-white/48">Library</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {assets.slice(0, 8).map((asset) => (
+                    <PremiumStageCard
+                      key={asset.id}
+                      href={`/app/uploads?asset=${asset.id}`}
+                      imageUrl={asset.thumbnailUrl}
+                      theme={getAssetTheme(asset.status)}
+                      eyebrow={statusLabel[asset.status]}
+                      title={asset.originalName}
+                      subtitle={
+                        asset.status === VideoAssetStatus.READY
+                          ? 'Ready for submission attachment.'
+                          : asset.status === VideoAssetStatus.FAILED
+                            ? 'Retry needed.'
+                            : asset.status === VideoAssetStatus.UPLOADING
+                              ? 'Uploading.'
+                              : 'Preparing preview.'
+                      }
+                      meta={
+                        <>
+                          <span>{(asset.size / (1024 * 1024)).toFixed(1)} MB</span>
+                          <span>{detailAsset?.id === asset.id ? 'Selected' : 'Open detail'}</span>
+                        </>
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
         )}
       </div>
     </AppPage>

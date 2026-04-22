@@ -31,7 +31,7 @@ const seasonTransitions: Record<string, string[]> = {
 const seasonStatusLabels: Record<string, string> = {
   DRAFT: "Draft",
   UPCOMING: "Upcoming",
-  LIVE: "Live",
+  LIVE: "Active",
   COMPLETED: "Completed",
   ARCHIVED: "Archived",
 };

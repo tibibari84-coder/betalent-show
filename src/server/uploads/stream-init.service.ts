@@ -7,6 +7,8 @@ type StreamInitInput = {
   maxDurationSeconds: number;
 };
 
+export const MAX_SHORT_VIDEO_DURATION_SECONDS = 120;
+
 type StreamInitDeps = {
   createDraftVideoAsset: (input: {
     userId: string;
@@ -35,6 +37,10 @@ export async function initializeStreamUploadWithDeps(
   userId: string,
   input: StreamInitInput,
 ) {
+  if (input.maxDurationSeconds > MAX_SHORT_VIDEO_DURATION_SECONDS) {
+    throw new Error(`BETALENT supports short uploaded performances up to ${MAX_SHORT_VIDEO_DURATION_SECONDS} seconds.`);
+  }
+
   const draftAsset = await deps.createDraftVideoAsset({
     userId,
     filename: input.filename,

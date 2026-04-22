@@ -16,7 +16,7 @@ export default async function AdminDashboardPage() {
       <PremiumHero
         eyebrow="Admin"
         tone="archive"
-        title={<>Show control is live</>}
+        title={<>Show control is active</>}
         subtitle="Operate structure, review submissions, and verify audit-backed change history."
       />
 

@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { captureException, captureMessage } from '@/lib/sentry';
 import { AccessError, requireApiOnboarded } from '@/server/auth/guard';
-import { createR2UploadUrl, getR2ConfigState } from '@/lib/r2';
+import { createR2UploadUrl, getR2ConfigState, isR2PublicDeliveryRequiredForPurpose } from '@/lib/r2';
 
 const createUploadUrlSchema = z.object({
   fileName: z.string().min(1),
@@ -28,13 +28,16 @@ export async function POST(request: NextRequest) {
     const config = getR2ConfigState(purpose);
 
     if (!config.enabled) {
+      const publicDeliveryRequired = isR2PublicDeliveryRequiredForPurpose(purpose);
+      const missingPublicDelivery = publicDeliveryRequired && !config.publicDeliveryConfigured;
+
       return NextResponse.json(
         {
           provider: config.provider,
-          error:
-            config.publicDeliveryConfigured || !['avatar', 'profile', 'static'].includes(purpose)
-              ? 'R2 storage is not configured.'
-              : 'R2 public delivery is not configured for this asset type.',
+          error: missingPublicDelivery
+            ? 'Avatar upload is temporarily unavailable. Please try again later.'
+            : 'Asset upload is temporarily unavailable. Please try again later.',
+          code: missingPublicDelivery ? 'ASSET_PUBLIC_DELIVERY_UNAVAILABLE' : 'ASSET_STORAGE_UNAVAILABLE',
           missing: config.missing,
         },
         { status: 503 },

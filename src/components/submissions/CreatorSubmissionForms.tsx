@@ -55,7 +55,7 @@ export function SubmissionDraftCreateForm({
             name="title"
             required
             className="foundation-form-input h-12 rounded-[1rem] px-4"
-            placeholder="Name the piece you want to send forward"
+            placeholder="Title this entry"
           />
         </label>
 
@@ -68,7 +68,7 @@ export function SubmissionDraftCreateForm({
             defaultValue=""
           >
             <option value="" disabled className="bg-black text-white">
-              Choose a ready upload
+              Select READY asset
             </option>
             {assets.map((asset) => (
               <option key={asset.id} value={asset.id} className="bg-black text-white">
@@ -94,7 +94,7 @@ export function SubmissionDraftCreateForm({
         disabled={pending}
         className="foundation-primary-button min-h-[3.1rem] rounded-full px-5 text-sm font-semibold"
       >
-        {pending ? "Saving..." : "Create draft"}
+        {pending ? "Creating..." : "Create submission draft"}
       </Button>
     </form>
   );
@@ -164,22 +164,22 @@ export function SubmissionDraftEditor({
           disabled={updating}
           className="foundation-chip rounded-full px-4 py-2 text-[0.76rem] uppercase tracking-[0.08em]"
         >
-          {updating ? "Saving..." : "Save draft"}
+          {updating ? "Saving..." : "Save changes"}
         </Button>
       </form>
 
-      <form action={submitAction} className="space-y-3">
+      <form action={submitAction} className="space-y-3 rounded-[1rem] border border-emerald-500/20 bg-emerald-500/[0.08] p-4">
         <input type="hidden" name="id" value={draft.id} />
         <SubmissionActionFeedback state={submitState} />
-        <p className="text-sm text-white/54">
-          Submitting locks this entry for creator-side editing and moves it into the real review lifecycle.
+        <p className="text-sm text-emerald-100/90">
+          Ready to submit. This locks creator editing and moves the entry into review.
         </p>
         <Button
           type="submit"
           disabled={submitting}
           className="foundation-primary-button min-h-[3.1rem] rounded-full px-5 text-sm font-semibold"
         >
-          {submitting ? "Submitting..." : "Submit entry"}
+          {submitting ? "Submitting..." : "Submit for review"}
         </Button>
       </form>
     </div>

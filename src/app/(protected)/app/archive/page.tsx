@@ -12,7 +12,7 @@ export default async function ArchivePage() {
       <h1 className="text-3xl font-bold">Archive</h1>
       <p className="text-gray-400">
         Archive browsing is only exposed when archived competition data exists. This page reports
-        the current persisted archive state instead of pretending a public archive is live.
+        the current persisted archive state without implying a currently running public broadcast surface.
       </p>
 
       <div className="grid gap-4 md:grid-cols-3">
