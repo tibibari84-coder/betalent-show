@@ -86,6 +86,10 @@ Notes:
 - missing provider env must produce explicit disabled/skipped behavior
 - provider wrappers must never report success without a real upstream response
 
+Provider release checklist:
+
+- [docs/provider-production-finalization.md](docs/provider-production-finalization.md)
+
 ## Neon Setup
 
 1. Create a Neon project and database.
@@ -168,6 +172,7 @@ Current coverage:
 - upload lifecycle failures
 - profile and creator mutation routes
 - admin review/status mutations
+- onboarding and submission email outcome reporting
 
 ## PostHog Setup
 
@@ -180,10 +185,10 @@ Current coverage:
 
 Current status:
 
-- the server wrapper is wired
+- the active server wrapper is wired
 - disabled when keys are absent
 - event payloads are sanitized before capture
-- current funnel coverage includes profile completion, avatar upload intent, upload lifecycle, and admin submission review
+- current funnel coverage includes profile completion, avatar upload intent, upload lifecycle, creator submission start/submit, and admin submission review
 
 ## Resend Setup
 
@@ -198,6 +203,7 @@ Current status:
 - the email wrapper is wired to onboarding welcome and submission lifecycle notifications
 - sends are skipped explicitly when the provider is not configured
 - failed sends remain explicit and observable instead of being reported as success
+- release safety details live in `docs/provider-production-finalization.md`
 
 ## Local Development
 
@@ -249,6 +255,7 @@ npx prisma migrate dev
 npm run db:seed
 npm run lint
 npm run typecheck
+npm test
 npm run build
 ```
 

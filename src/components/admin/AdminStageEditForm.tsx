@@ -29,6 +29,26 @@ type StageRecord = {
 };
 
 const initialState = {};
+const stageTransitions: Record<string, string[]> = {
+  DRAFT: ["UPCOMING", "ARCHIVED"],
+  UPCOMING: ["DRAFT", "OPEN", "ARCHIVED"],
+  OPEN: ["JUDGING", "VOTING", "RESULTS", "COMPLETED", "ARCHIVED"],
+  JUDGING: ["VOTING", "RESULTS", "COMPLETED", "ARCHIVED"],
+  VOTING: ["RESULTS", "COMPLETED", "ARCHIVED"],
+  RESULTS: ["COMPLETED", "ARCHIVED"],
+  COMPLETED: ["ARCHIVED"],
+  ARCHIVED: [],
+};
+const stageStatusLabels: Record<string, string> = {
+  DRAFT: "Draft",
+  UPCOMING: "Upcoming",
+  OPEN: "Open",
+  JUDGING: "Judging",
+  VOTING: "Voting",
+  RESULTS: "Results",
+  COMPLETED: "Completed",
+  ARCHIVED: "Archived",
+};
 
 function toDateTimeLocal(value: Date | null) {
   if (!value) return "";
@@ -41,6 +61,7 @@ export function AdminStageEditForm(props: {
 }) {
   const [updateState, updateAction, updating] = useActionState(updateStageAdminAction, initialState);
   const [archiveState, archiveAction, archiving] = useActionState(archiveStageAdminAction, initialState);
+  const availableStatuses = [props.stage.status, ...stageTransitions[props.stage.status]];
 
   return (
     <div className="space-y-4">
@@ -79,14 +100,11 @@ export function AdminStageEditForm(props: {
           </FormField>
           <FormField label="Status">
             <select name="status" defaultValue={props.stage.status} className="foundation-form-input h-12 px-4">
-              <option value="DRAFT">Draft</option>
-              <option value="UPCOMING">Upcoming</option>
-              <option value="OPEN">Open</option>
-              <option value="JUDGING">Judging</option>
-              <option value="VOTING">Voting</option>
-              <option value="RESULTS">Results</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="ARCHIVED">Archived</option>
+              {availableStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {stageStatusLabels[status]}
+                </option>
+              ))}
             </select>
           </FormField>
         </div>
@@ -116,6 +134,13 @@ export function AdminStageEditForm(props: {
             <Input name="resultsAt" type="datetime-local" defaultValue={toDateTimeLocal(props.stage.resultsAt)} className="foundation-form-input h-12 px-4" />
           </FormField>
         </div>
+        <p className="text-sm text-white/58">
+          Current lifecycle: <strong className="text-white">{stageStatusLabels[props.stage.status]}</strong>.
+          {" "}
+          {stageTransitions[props.stage.status].length > 0
+            ? `Allowed next states: ${stageTransitions[props.stage.status].map((status) => stageStatusLabels[status]).join(", ")}.`
+            : "No further lifecycle moves are allowed from this state."}
+        </p>
         <Button type="submit" disabled={updating} className="foundation-chip text-[0.7rem]">
           {updating ? "Saving..." : "Save stage"}
         </Button>

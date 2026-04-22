@@ -1,18 +1,15 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { SubmissionStatus, VideoAssetStatus } from '@prisma/client';
 
 import {
   AppPage,
   ContentRail,
-  PremiumAvatar,
+  FeatureSurface,
   PremiumArtworkPanel,
-  PremiumCtaModule,
   PremiumEmptyState,
-  PremiumHero,
-  PremiumMetricCard,
   PremiumStageCard,
-  PremiumStatusChip,
-  StatusCard,
+  SupportPanel,
 } from '@/components/premium';
 import { getAssetTheme, getSubmissionTheme } from '@/lib/content-presentation';
 import { EpisodeService } from '@/lib/services/episode.service';
@@ -85,132 +82,154 @@ export default async function AppDashboardPage() {
   const heroByState: Record<
     HomeState,
     {
+      eyebrow: string;
       title: string;
       subtitle: string;
       primaryHref: string;
       primaryLabel: string;
       secondaryHref: string;
       secondaryLabel: string;
-      artwork: React.ReactNode;
+      tone: 'violet' | 'cobalt' | 'gold' | 'emerald';
+      media: ReactNode;
     }
   > = {
     'profile-setup': {
-      title: 'Build your creator card',
-      subtitle: 'Finish identity, bio, and location so BETALENT can present you like a real contender.',
+      eyebrow: 'Creator Home',
+      title: 'Build the version of you people remember',
+      subtitle: 'Finish your profile, voice, and city so BETALENT feels curated from the first glance.',
       primaryHref: '/app/profile',
       primaryLabel: 'Complete profile',
       secondaryHref: '/app/creator',
       secondaryLabel: 'Open creator',
-      artwork: (
+      tone: 'violet',
+      media: (
         <PremiumArtworkPanel
           theme="violet"
-          eyebrow="Creator setup"
-          title="Identity first"
-          detail="Name, handle, bio, and avatar become your on-platform cover."
+          eyebrow="Featured"
+          title="Creator profile"
+          detail="Identity, portrait, and bio become your cover treatment across the product."
           monogram={user.username ? `@${user.username}` : creatorName.slice(0, 2).toUpperCase()}
+          className="min-h-[15rem]"
         />
       ),
     },
     'first-upload': {
-      title: 'Upload your first performance',
-      subtitle: 'Your home is ready. Media is the next real product step.',
+      eyebrow: 'Creator Home',
+      title: 'Start with one great performance',
+      subtitle: 'Your library only needs one strong piece to make the whole product feel alive.',
       primaryHref: '/app/uploads',
-      primaryLabel: 'Start upload',
+      primaryLabel: 'Upload media',
       secondaryHref: '/app/seasons',
-      secondaryLabel: 'Browse season',
-      artwork: (
+      secondaryLabel: 'Browse the season',
+      tone: 'cobalt',
+      media: (
         <PremiumArtworkPanel
           theme="cobalt"
-          eyebrow="Media queue"
-          title="First asset"
-          detail="Upload a video to unlock submission previews and media rails."
+          eyebrow="Media"
+          title="First upload"
+          detail="Bring in one piece of performance media, then build from there."
           monogram="01"
+          className="min-h-[15rem]"
         />
       ),
     },
     'upload-processing': {
-      title: 'Your media is moving',
-      subtitle: `${processingAssets.length} asset${processingAssets.length === 1 ? '' : 's'} are still processing.`,
+      eyebrow: 'Creator Home',
+      title: 'Your next piece is almost ready',
+      subtitle: `${processingAssets.length} upload${processingAssets.length === 1 ? '' : 's'} are moving through processing.`,
       primaryHref: '/app/uploads',
-      primaryLabel: 'Track media',
+      primaryLabel: 'Track uploads',
       secondaryHref: '/app/submissions',
-      secondaryLabel: 'Open submissions',
-      artwork: (
+      secondaryLabel: 'See entries',
+      tone: 'gold',
+      media: (
         <PremiumArtworkPanel
           theme="gold"
-          eyebrow="Processing"
-          title={`${processingAssets.length} in motion`}
-          detail="Wait for READY status before using media in submissions."
+          eyebrow="In motion"
+          title={processingAssets[0]?.originalName || 'Processing now'}
+          detail="BETALENT will bring it forward the moment it becomes ready."
           imageUrl={processingAssets[0]?.thumbnailUrl}
-          monogram={processingAssets[0] ? undefined : 'PR'}
+          className="min-h-[15rem]"
         />
       ),
     },
     'draft-active': {
-      title: 'Draft submission in progress',
-      subtitle: `Continue "${draftSubmission?.title}" while your current season context is live.`,
+      eyebrow: 'Creator Home',
+      title: 'One entry is already taking shape',
+      subtitle: `Pick up where you left off with ${draftSubmission?.title || 'your draft'} and keep the momentum.`,
       primaryHref: '/app/submissions',
       primaryLabel: 'Continue draft',
       secondaryHref: '/app/uploads',
-      secondaryLabel: 'Open uploads',
-      artwork: (
+      secondaryLabel: 'Open library',
+      tone: 'violet',
+      media: (
         <PremiumArtworkPanel
           theme={getSubmissionTheme(draftSubmission?.status ?? SubmissionStatus.DRAFT)}
-          eyebrow="Draft live"
-          title={draftSubmission?.title || 'Draft entry'}
-          detail="Refine the entry before the official review flow starts."
+          eyebrow="Draft"
+          title={draftSubmission?.title || 'Current draft'}
+          detail="Refine the idea before you send it forward."
           imageUrl={draftSubmission?.videoAsset.thumbnailUrl}
+          className="min-h-[15rem]"
         />
       ),
     },
     'review-active': {
-      title: 'Submission under review',
-      subtitle: `${reviewSubmission?.title} is already in the decision flow.`,
+      eyebrow: 'Creator Home',
+      title: 'Your latest entry is now under review',
+      subtitle: `${reviewSubmission?.title || 'Your submission'} is already in the official decision flow.`,
       primaryHref: '/app/submissions',
-      primaryLabel: 'View status',
+      primaryLabel: 'View entry',
       secondaryHref: '/app/seasons',
       secondaryLabel: 'Open season',
-      artwork: (
+      tone: 'cobalt',
+      media: (
         <PremiumArtworkPanel
           theme={getSubmissionTheme(reviewSubmission?.status ?? SubmissionStatus.SUBMITTED)}
-          eyebrow="In review"
-          title={reviewSubmission?.title || 'Active entry'}
-          detail="Review states stay visible here so home answers what is active now."
+          eyebrow="Under review"
+          title={reviewSubmission?.title || 'Featured entry'}
+          detail="Stay close to the piece that is active right now."
           imageUrl={reviewSubmission?.videoAsset.thumbnailUrl}
+          className="min-h-[15rem]"
         />
       ),
     },
     success: {
-      title: 'Accepted work on file',
-      subtitle: `${acceptedSubmission?.title} is your strongest current result.`,
+      eyebrow: 'Creator Home',
+      title: 'You already have work worth featuring',
+      subtitle: `${acceptedSubmission?.title || 'Your accepted piece'} is the strongest signal in your current cycle.`,
       primaryHref: '/app/submissions',
-      primaryLabel: 'Review accepted',
+      primaryLabel: 'See accepted work',
       secondaryHref: '/app/seasons',
       secondaryLabel: 'Open season',
-      artwork: (
+      tone: 'emerald',
+      media: (
         <PremiumArtworkPanel
           theme="emerald"
           eyebrow="Accepted"
           title={acceptedSubmission?.title || 'Accepted entry'}
-          detail="Returning creators should immediately see their best active result."
+          detail="This is the piece BETALENT can confidently build around."
           imageUrl={acceptedSubmission?.videoAsset.thumbnailUrl}
+          className="min-h-[15rem]"
         />
       ),
     },
     'returning-ready': {
-      title: 'Ready for the next move',
-      subtitle: `${readyAssets.length} READY asset${readyAssets.length === 1 ? '' : 's'} can support your next submission.`,
+      eyebrow: 'Creator Home',
+      title: 'You have everything you need for the next move',
+      subtitle: `${readyAssets.length} ready ${readyAssets.length === 1 ? 'piece is' : 'pieces are'} waiting in your library.`,
       primaryHref: '/app/uploads',
-      primaryLabel: 'Review READY media',
+      primaryLabel: 'Review library',
       secondaryHref: '/app/submissions',
-      secondaryLabel: 'Open submissions',
-      artwork: (
+      secondaryLabel: 'Open entries',
+      tone: 'emerald',
+      media: (
         <PremiumArtworkPanel
           theme={getAssetTheme(readyAssets[0]?.status ?? VideoAssetStatus.READY)}
-          eyebrow="Ready media"
-          title={readyAssets[0]?.originalName || 'READY assets'}
-          detail="Use your best thumbnail-backed asset as the next featured move."
+          eyebrow="Ready now"
+          title={readyAssets[0]?.originalName || 'Featured media'}
+          detail="Choose your strongest ready piece and move on it."
           imageUrl={readyAssets[0]?.thumbnailUrl}
+          className="min-h-[15rem]"
         />
       ),
     },
@@ -221,219 +240,108 @@ export default async function AppDashboardPage() {
   return (
     <AppPage
       hero={
-        <>
-          <section className="foundation-home-mobile sm:hidden">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[0.76rem] font-semibold tracking-[0.08em] text-white/56">
-                  {new Intl.DateTimeFormat('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                  }).format(new Date())}
-                </p>
-                <h1 className="mt-4 text-[3.35rem] font-semibold tracking-[-0.07em] text-white">
-                  Home
-                </h1>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="foundation-orb-button" aria-hidden="true">
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    className="h-6 w-6 text-white/78"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.9"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M5 5 19 19" />
-                    <path d="m15.5 8.5 3.5 3.5V8.5Z" />
-                    <path d="M8.5 15.5 5 12v3.5Z" />
-                  </svg>
-                </span>
-                <PremiumAvatar
-                  name={creatorName}
-                  className="h-14 w-14 border-white/12 bg-[#9bc4f5] text-[0.88rem] tracking-[0.08em] text-[#0b1520]"
-                />
-              </div>
-            </div>
-
-            <div className="min-h-[26vh]" />
-
-            <div className="foundation-home-promo">
-              <div className="flex flex-col items-center text-center">
-                <p className="text-[3.1rem] font-semibold tracking-[-0.08em] text-white">
-                  {homeState === 'profile-setup' ? 'Profile' : 'Creator'}
-                </p>
-                <p className="mt-3 max-w-[19rem] text-[1.02rem] font-semibold leading-tight text-white/78">
-                  {hero.subtitle}
-                </p>
-              </div>
-              <div className="mt-6 flex items-center gap-3">
-                <Link href={hero.primaryHref} className="foundation-home-primary-cta">
-                  {hero.primaryLabel}
-                </Link>
-                <Link href={hero.secondaryHref} className="foundation-home-info-cta" aria-label={hero.secondaryLabel}>
-                  i
-                </Link>
-              </div>
-              <div className="mt-6 flex items-center justify-center gap-3">
-                <span className="h-2.5 w-10 rounded-full bg-white/82" />
-                <span className="h-2.5 w-2.5 rounded-full bg-white/32" />
-                <span className="h-2.5 w-2.5 rounded-full bg-white/32" />
-                <span className="h-2.5 w-2.5 rounded-full bg-white/32" />
-                <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
-              </div>
-            </div>
-          </section>
-
-          <PremiumHero
-            className="hidden sm:block"
-            eyebrow="Creator Home"
-            tone="lobby"
-            title={hero.title}
-            subtitle={hero.subtitle}
-            artwork={hero.artwork}
-            actions={
-              <>
-                <Link href={hero.primaryHref} className="foundation-hero-cta-primary">
-                  {hero.primaryLabel}
-                </Link>
-                <Link href={hero.secondaryHref} className="foundation-hero-cta-secondary">
-                  {hero.secondaryLabel}
-                </Link>
-              </>
-            }
-            meta={
-              <>
-                <PremiumStatusChip label="State" value={homeState.replace('-', ' ')} />
-                {activeSeason ? <PremiumStatusChip label="Season" value={activeSeason.title} /> : null}
-              </>
-            }
-          />
-        </>
+        <FeatureSurface
+          eyebrow={hero.eyebrow}
+          title={hero.title}
+          description={hero.subtitle}
+          tone={hero.tone}
+          primaryAction={<Link href={hero.primaryHref} className="foundation-hero-cta-primary">{hero.primaryLabel}</Link>}
+          secondaryAction={<Link href={hero.secondaryHref} className="foundation-hero-cta-secondary">{hero.secondaryLabel}</Link>}
+          meta={
+            <>
+              <span>{creatorName}</span>
+              {activeSeason ? <span>{activeSeason.title}</span> : null}
+            </>
+          }
+          media={hero.media}
+        />
       }
     >
-      <section className="foundation-panel rounded-[1.6rem] p-4 sm:rounded-[2rem] sm:p-6">
-        <div className="flex flex-col gap-5">
-          <div className="space-y-2">
-            <p className="foundation-kicker">Current state</p>
-            <h2 className="text-[1.5rem] font-semibold tracking-tight text-white sm:text-2xl">{creatorName}</h2>
-            <p className="max-w-md text-[13px] text-white/62 sm:text-sm">{hero.subtitle}</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <PremiumMetricCard label="Where you are" value="Creator home" tone="cobalt" />
-            <PremiumMetricCard label="Active now" value={homeState.replace('-', ' ')} tone="violet" />
-            <PremiumMetricCard
-              label="Next move"
-              value={<Link href={hero.primaryHref} className="inline-flex text-lg font-semibold text-white">{hero.primaryLabel}</Link>}
-              tone="gold"
-            />
-          </div>
-        </div>
-      </section>
-
-      {seasonStages.length > 0 || seasonEpisodes.length > 0 ? (
-        <ContentRail
-          eyebrow="Current show"
-          title={activeSeason ? activeSeason.title : 'Season context'}
-          subtitle="Content-led rails now reflect the active season structure."
-        >
-          {seasonStages.slice(0, 3).map((stage) => (
-            <PremiumStageCard
-              key={stage.id}
-              href={`/app/seasons/${activeSeason?.slug}`}
-              theme="gold"
-              eyebrow={stage.stageType}
-              title={stage.title}
-              subtitle={stage.description || `${stage.status.toLowerCase()} stage in the active season.`}
-              meta={<span>{stage.status}</span>}
-            />
-          ))}
-          {seasonEpisodes.slice(0, 2).map((episode) => (
-            <PremiumStageCard
-              key={episode.id}
-              href={`/app/seasons/${activeSeason?.slug}`}
-              theme="cobalt"
-              eyebrow="Episode"
-              title={episode.title}
-              subtitle={episode.description || `${episode.status.toLowerCase()} episode slot.`}
-              meta={<span>{episode.status}</span>}
-            />
-          ))}
-        </ContentRail>
-      ) : null}
-
-      {homeState === 'upload-processing' ? (
-        <ContentRail eyebrow="Processing" title="Moving through pipeline" subtitle="Media states should feel explicit, not implied.">
-          {processingAssets.map((asset) => (
-            <PremiumStageCard
-              key={asset.id}
-              href="/app/uploads"
-              imageUrl={asset.thumbnailUrl}
-              theme={getAssetTheme(asset.status)}
-              eyebrow={asset.status}
-              title={asset.originalName}
-              subtitle="This asset is still being prepared."
-              meta={<span>{asset.mimeType}</span>}
-            />
-          ))}
-        </ContentRail>
-      ) : null}
-
-      {(homeState === 'draft-active' || homeState === 'review-active' || homeState === 'success') && latestSubmission ? (
-        <div className="foundation-page-cluster" data-columns="split">
-          <StatusCard
-            eyebrow="Submission focus"
-            title={latestSubmission.title}
-            action={<Link href="/app/submissions" className="foundation-inline-action">Open workspace</Link>}
-            tone="cobalt"
-          >
-            Latest truth: {latestSubmission.status.replace('_', ' ').toLowerCase()}.
-          </StatusCard>
-          <PremiumArtworkPanel
-            className="min-h-[14rem]"
-            theme={getSubmissionTheme(latestSubmission.status)}
-            eyebrow="Submission preview"
-            title={latestSubmission.title}
-            detail={latestSubmission.description || 'Submission preview driven by the linked media asset.'}
-            imageUrl={latestSubmission.videoAsset.thumbnailUrl}
-            meta={<span>{latestSubmission.videoAsset.status}</span>}
-          />
-        </div>
-      ) : (
-        <div className="foundation-page-cluster" data-columns="split">
-          <StatusCard
-            eyebrow="Submission state"
-            title={latestSubmission ? latestSubmission.title : 'No submission history yet'}
-            action={
-              <Link href={latestSubmission ? '/app/submissions' : '/app/uploads'} className="foundation-inline-action">
-                {latestSubmission ? 'Review submissions' : 'Go to uploads'}
-              </Link>
+      <div className="foundation-page-stack">
+        <div className="foundation-support-grid">
+          <SupportPanel
+            eyebrow="Now showing"
+            title={latestSubmission ? latestSubmission.title : 'Your next featured entry starts here'}
+            description={
+              latestSubmission
+                ? latestSubmission.description || 'Keep your strongest or most current piece close at hand.'
+                : 'Finish your profile, add media, and BETALENT will have something real to showcase.'
             }
             tone="cobalt"
-          >
-            {latestSubmission
-              ? `Latest status: ${latestSubmission.status.replace('_', ' ').toLowerCase()}.`
-              : 'Upload media first, then return here when submission tools are in motion.'}
-          </StatusCard>
+            action={
+              <Link href={latestSubmission ? '/app/submissions' : '/app/profile'} className="foundation-quiet-link">
+                {latestSubmission ? 'Open submissions' : 'Finish your profile'}
+              </Link>
+            }
+          />
 
-          {activeSeason ? (
-            <PremiumCtaModule
-              eyebrow="Season"
-              title={activeSeason.title}
-              description={`${activeSeason.status.toLowerCase()} season is the current programming context.`}
-              action={<Link href={`/app/seasons/${activeSeason.slug}`} className="foundation-inline-action">Open season</Link>}
-              tone="violet"
-            />
-          ) : (
-            <PremiumEmptyState title="No active season">
-              Season navigation will appear here once programming is configured.
-            </PremiumEmptyState>
-          )}
+          <SupportPanel
+            eyebrow="Your library"
+            title={
+              readyAssets.length > 0
+                ? `${readyAssets.length} ready ${readyAssets.length === 1 ? 'piece' : 'pieces'} waiting`
+                : processingAssets.length > 0
+                  ? 'Something new is on the way'
+                  : 'Your media shelf starts with one upload'
+            }
+            description={
+              readyAssets.length > 0
+                ? 'Choose the media that deserves the next spotlight.'
+                : processingAssets.length > 0
+                  ? 'Processing runs in the background so the library stays calm.'
+                  : 'Once media arrives, the rest of the product opens up naturally.'
+            }
+            tone={readyAssets.length > 0 ? 'emerald' : processingAssets.length > 0 ? 'gold' : 'violet'}
+            action={<Link href="/app/uploads" className="foundation-quiet-link">Open uploads</Link>}
+          />
         </div>
-      )}
+
+        {seasonStages.length > 0 || seasonEpisodes.length > 0 ? (
+          <ContentRail
+            eyebrow="Season picks"
+            title={activeSeason ? activeSeason.title : 'Current season'}
+            subtitle="A tight look at what matters right now."
+          >
+            {seasonStages.slice(0, 2).map((stage) => (
+              <PremiumStageCard
+                key={stage.id}
+                href={`/app/seasons/${activeSeason?.slug}`}
+                theme="gold"
+                eyebrow={stage.stageType}
+                title={stage.title}
+                subtitle={stage.description || 'A live part of the current season.'}
+                meta={<span>Open season</span>}
+              />
+            ))}
+            {seasonEpisodes.slice(0, 2).map((episode) => (
+              <PremiumStageCard
+                key={episode.id}
+                href={`/app/seasons/${activeSeason?.slug}`}
+                theme="cobalt"
+                eyebrow="Episode"
+                title={episode.title}
+                subtitle={episode.description || 'A featured moment from the season.'}
+                meta={<span>Explore</span>}
+              />
+            ))}
+          </ContentRail>
+        ) : (
+          <PremiumEmptyState title="Season picks">
+            The next big season moment will appear here as soon as BETALENT has one to feature.
+          </PremiumEmptyState>
+        )}
+
+        {latestSubmission ? (
+          <SupportPanel
+            eyebrow="Featured entry"
+            title={latestSubmission.title}
+            description={latestSubmission.description || 'Your latest entry remains the cleanest reflection of where you are right now.'}
+            tone={latestSubmission.status === SubmissionStatus.ACCEPTED ? 'emerald' : latestSubmission.status === SubmissionStatus.REJECTED ? 'ember' : 'violet'}
+            aside={<span className="text-sm text-white/52">{latestSubmission.videoAsset.status}</span>}
+            action={<Link href="/app/submissions" className="foundation-quiet-link">Open entry details</Link>}
+          />
+        ) : null}
+      </div>
     </AppPage>
   );
 }

@@ -88,6 +88,11 @@ export default async function AdminDashboardPage() {
                     <p className="text-sm text-white/56">
                       {entry.entityType} · {entry.entityId}
                     </p>
+                    {entry.details ? (
+                      <p className="mt-1 text-xs text-white/44">
+                        {JSON.stringify(entry.details)}
+                      </p>
+                    ) : null}
                   </div>
                   <p className="text-xs text-white/44">
                     {entry.user?.displayName || entry.user?.username || entry.user?.email || 'System'} · {entry.createdAt.toLocaleString()}

@@ -11,6 +11,10 @@ import { Textarea } from "@/components/ui/Textarea";
 import { AdminFeedback } from "./AdminFeedback";
 
 const initialState = {};
+const createStageStatuses = [
+  { value: "DRAFT", label: "Draft" },
+  { value: "UPCOMING", label: "Upcoming" },
+] as const;
 
 export function AdminStageCreateForm(props: {
   seasons: Array<{ id: string; title: string; status: string }>;
@@ -53,14 +57,11 @@ export function AdminStageCreateForm(props: {
         </FormField>
         <FormField label="Status">
           <select name="status" className="foundation-form-input h-12 px-4" defaultValue="DRAFT">
-            <option value="DRAFT">Draft</option>
-            <option value="UPCOMING">Upcoming</option>
-            <option value="OPEN">Open</option>
-            <option value="JUDGING">Judging</option>
-            <option value="VOTING">Voting</option>
-            <option value="RESULTS">Results</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="ARCHIVED">Archived</option>
+            {createStageStatuses.map((status) => (
+              <option key={status.value} value={status.value}>
+                {status.label}
+              </option>
+            ))}
           </select>
         </FormField>
       </div>
@@ -90,6 +91,9 @@ export function AdminStageCreateForm(props: {
           <Input name="resultsAt" type="datetime-local" className="foundation-form-input h-12 px-4" />
         </FormField>
       </div>
+      <p className="text-sm text-white/58">
+        New stages must begin in <strong className="text-white">Draft</strong> or <strong className="text-white">Upcoming</strong>. Opening, judging, results, and archive moves are explicit lifecycle actions after creation.
+      </p>
       <Button type="submit" disabled={pending} className="foundation-primary-button h-11 px-5 text-sm font-semibold uppercase tracking-[0.08em]">
         {pending ? "Creating..." : "Create stage"}
       </Button>

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { appRoutes, showSurfaceRevalidatePaths } from "@/lib/app-routes";
 import { getSession } from "@/server/auth/session";
 
 import { isAuditionReviewerEmail } from "@/server/auditions/reviewer.guard";
@@ -13,6 +14,15 @@ export type ShowHandoffActionState = {
   ok?: boolean;
   performanceId?: string;
 };
+
+function revalidateHandoffSurfaces() {
+  for (const path of showSurfaceRevalidatePaths) {
+    if (path === appRoutes.archive) {
+      continue;
+    }
+    revalidatePath(path);
+  }
+}
 
 export async function mapAuditionToShowAction(
   _prev: ShowHandoffActionState | undefined,
@@ -43,10 +53,7 @@ export async function mapAuditionToShowAction(
       seasonIdOverride: seasonIdOverride || null,
     });
 
-    revalidatePath("/internal/show/audition-handoff");
-    revalidatePath("/app/auditions");
-    revalidatePath("/app/show");
-    revalidatePath("/app/profile");
+    revalidateHandoffSurfaces();
 
     return { ok: true, performanceId: result.performanceId };
   } catch (e) {

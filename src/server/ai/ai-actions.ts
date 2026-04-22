@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { showSurfaceRevalidatePaths } from "@/lib/app-routes";
 import { getSession } from "@/server/auth/session";
 import { isAuditionReviewerEmail } from "@/server/auditions/reviewer.guard";
 import { prisma } from "@/server/db/prisma";
@@ -38,10 +39,9 @@ async function gateOperator(): Promise<
 }
 
 function revalidateAppSurfaces(): void {
-  revalidatePath("/app");
-  revalidatePath("/app/show");
-  revalidatePath("/app/results");
-  revalidatePath("/app/profile");
+  for (const path of showSurfaceRevalidatePaths) {
+    revalidatePath(path);
+  }
 }
 
 export async function generateJudgeAction(
@@ -60,7 +60,7 @@ export async function generateJudgeAction(
 
   try {
     const { id } = await generateJudgeForPerformance(performanceId);
-    revalidatePath("/internal/ai");
+    revalidateAppSurfaces();
     return { ok: true, detail: `Generated judge output ${id}` };
   } catch (e) {
     return {
@@ -85,7 +85,7 @@ export async function generateHostStageAction(
 
   try {
     const { id } = await generateHostForStage({ stageId });
-    revalidatePath("/internal/ai");
+    revalidateAppSurfaces();
     return { ok: true, detail: `Generated host output ${id}` };
   } catch (e) {
     return {
@@ -110,7 +110,7 @@ export async function generateHostStageResultAction(
 
   try {
     const { id } = await generateHostForStageResult(stageResultId);
-    revalidatePath("/internal/ai");
+    revalidateAppSurfaces();
     return { ok: true, detail: `Generated host output ${id}` };
   } catch (e) {
     return {
@@ -138,7 +138,7 @@ export async function generateProducerPlacementAction(
   try {
     const { id } =
       await generateProducerForEditorialPlacement(editorialPlacementId);
-    revalidatePath("/internal/ai");
+    revalidateAppSurfaces();
     return { ok: true, detail: `Generated producer output ${id}` };
   } catch (e) {
     return {
@@ -190,7 +190,6 @@ export async function reviewAiOutputAction(
 
   try {
     await updateAiOutputStatus({ id, status: "REVIEWED" });
-    revalidatePath("/internal/ai");
     revalidateAppSurfaces();
     return { ok: true, detail: "Marked REVIEWED." };
   } catch (e) {
@@ -232,7 +231,6 @@ export async function publishAiOutputAction(
       ids,
     });
 
-    revalidatePath("/internal/ai");
     revalidateAppSurfaces();
     return { ok: true, detail: "Published." };
   } catch (e) {
@@ -261,7 +259,6 @@ export async function archiveAiOutputAction(
       id,
       status: "ARCHIVED",
     });
-    revalidatePath("/internal/ai");
     revalidateAppSurfaces();
     return { ok: true, detail: "Archived." };
   } catch (e) {

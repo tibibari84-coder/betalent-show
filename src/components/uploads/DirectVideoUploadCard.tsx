@@ -100,11 +100,11 @@ export function DirectVideoUploadCard() {
   }
 
   return (
-    <div className="foundation-panel rounded-[1.45rem] p-4 sm:rounded-[1.6rem] sm:p-6" aria-busy={state.isUploading}>
-      <p className="foundation-kicker">Direct video upload</p>
-      <h2 className="mt-3 text-[1.3rem] font-semibold text-white sm:text-xl">Create a new media asset</h2>
-      <p className="mt-3 max-w-xl text-[13px] leading-relaxed text-white/64 sm:text-sm">
-        Start the asset here, let Stream process it in the background, then bring READY media into submissions.
+    <div className="foundation-panel foundation-tint-cobalt rounded-[1.8rem] p-5 sm:rounded-[2rem] sm:p-6" aria-busy={state.isUploading}>
+      <p className="foundation-kicker">Add Media</p>
+      <h2 className="mt-3 text-[1.45rem] font-semibold tracking-[-0.04em] text-white sm:text-[1.7rem]">Bring in the next featured performance</h2>
+      <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-white/64 sm:text-sm">
+        Drop in a video, let BETALENT prepare it in the background, and use the finished piece wherever it belongs next.
       </p>
 
       <div className="mt-4 space-y-4">
@@ -116,7 +116,7 @@ export function DirectVideoUploadCard() {
         />
 
         {file ? (
-          <div className="flex items-center justify-between gap-3 rounded-[1rem] border border-white/8 bg-white/[0.04] px-4 py-3 text-[13px] text-white/68 sm:rounded-[1.2rem] sm:text-sm">
+          <div className="flex items-center justify-between gap-3 rounded-[1.2rem] border border-white/8 bg-white/[0.04] px-4 py-3 text-[13px] text-white/68 sm:rounded-[1.2rem] sm:text-sm">
             <span className="min-w-0 truncate">{file.name}</span>
             <span>{(file.size / (1024 * 1024)).toFixed(1)} MB</span>
           </div>
@@ -130,9 +130,9 @@ export function DirectVideoUploadCard() {
           type="button"
           onClick={onSubmit}
           disabled={!file || state.isUploading}
-          className="foundation-primary-button px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.08em] transition disabled:cursor-not-allowed disabled:opacity-60"
+          className="foundation-primary-button min-h-[3.2rem] px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.08em] transition disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {state.isUploading ? 'Uploading…' : 'Start Upload'}
+          {state.isUploading ? 'Uploading…' : 'Add this video'}
         </button>
 
         {state.info ? <p className="text-sm text-emerald-300" role="status">{state.info}</p> : null}

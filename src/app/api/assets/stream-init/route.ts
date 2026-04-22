@@ -6,6 +6,7 @@ import { captureException, captureMessage } from '@/lib/sentry';
 import { getStreamConfigState, streamAdapter } from '@/lib/stream';
 import { VideoAssetService } from '@/lib/services/video-asset.service';
 import { AccessError, requireApiOnboarded } from '@/server/auth/guard';
+import { initializeStreamUploadWithDeps } from '@/server/uploads/stream-init.service';
 
 const streamInitSchema = z.object({
   filename: z.string().min(1),
@@ -19,7 +20,12 @@ export async function POST(request: NextRequest) {
 
   if (!streamConfig.enabled) {
     return NextResponse.json(
-      { error: 'Cloudflare Stream is not configured.', missing: streamConfig.missing },
+      {
+        provider: streamConfig.provider,
+        error: 'Cloudflare Stream is not configured.',
+        missing: streamConfig.missingDirectUpload,
+        webhookVerificationMissing: streamConfig.missingWebhookVerification,
+      },
       { status: 503 },
     );
   }
@@ -32,48 +38,29 @@ export async function POST(request: NextRequest) {
     sessionUserId = session.user.id;
 
     const body = streamInitSchema.parse(await request.json());
-    const draftAsset = await VideoAssetService.createDraftVideoAsset({
-      userId: session.user.id,
-      filename: body.filename,
-      originalName: body.filename,
-      size: body.size,
-      mimeType: body.mimeType,
-    });
-
-    videoAssetId = draftAsset.id;
-
-    const directUpload = await streamAdapter.createDirectUpload({
-      creatorId: session.user.id,
-      maxDurationSeconds: body.maxDurationSeconds,
-      metadata: {
-        videoAssetId: draftAsset.id,
-        userId: session.user.id,
-        filename: draftAsset.originalName,
+    const initialized = await initializeStreamUploadWithDeps(
+      {
+        createDraftVideoAsset: VideoAssetService.createDraftVideoAsset,
+        createDirectUpload: streamAdapter.createDirectUpload.bind(streamAdapter),
+        attachDirectUpload: VideoAssetService.attachDirectUpload,
       },
-    });
+      session.user.id,
+      body,
+    );
 
-    await VideoAssetService.attachDirectUpload(draftAsset.id, {
-      providerAssetId: directUpload.uid,
-      uploadUrl: directUpload.uploadURL,
-    });
+    videoAssetId = initialized.videoAsset.id;
 
     await trackEvent(POSTHOG_EVENTS.upload_started, {
       distinctId: session.user.id,
-      videoAssetId: draftAsset.id,
-      providerAssetId: directUpload.uid,
-      filename: draftAsset.originalName,
+      videoAssetId: initialized.videoAsset.id,
+      providerAssetId: initialized.providerAssetId,
+      filename: initialized.originalName,
     });
 
     return NextResponse.json({
       ok: true,
-      videoAsset: {
-        id: draftAsset.id,
-        status: draftAsset.status,
-      },
-      upload: {
-        url: directUpload.uploadURL,
-        formField: 'file',
-      },
+      videoAsset: initialized.videoAsset,
+      upload: initialized.upload,
     });
   } catch (error) {
     if (error instanceof AccessError) {

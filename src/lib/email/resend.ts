@@ -3,12 +3,8 @@ import 'server-only';
 import { Resend } from 'resend';
 
 import { env } from '@/lib/env';
-import { captureException, captureMessage } from '@/lib/sentry';
-
-export type EmailSendResult =
-  | { ok: true; skipped: false; id: string | null }
-  | { ok: false; skipped: true; reason: string }
-  | { ok: false; skipped: false; reason: string };
+import { captureException } from '@/lib/sentry';
+import { sendEmailWithDeps, type EmailSendResult } from './resend-logic';
 
 const resendClient = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 const defaultFrom = env.RESEND_FROM_EMAIL || null;
@@ -21,50 +17,15 @@ async function sendEmail(args: {
   html: string;
   tag: string;
 }): Promise<EmailSendResult> {
-  if (!resendClient || !defaultFrom) {
-    captureMessage('Resend send skipped because provider is not configured.', 'info', {
-      tag: args.tag,
-      to: args.to,
-    });
-    return {
-      ok: false,
-      skipped: true,
-      reason: 'Resend is not configured for this environment.',
-    };
-  }
-
-  try {
-    const response = await resendClient.emails.send({
-      from: defaultFrom,
-      to: args.to,
-      subject: args.subject,
-      html: args.html,
-    });
-
-    captureMessage('Resend email sent.', 'info', {
-      tag: args.tag,
-      to: args.to,
-      emailId: typeof response.data?.id === 'string' ? response.data.id : null,
-    });
-
-    return {
-      ok: true,
-      skipped: false,
-      id: typeof response.data?.id === 'string' ? response.data.id : null,
-    };
-  } catch (error) {
-    captureException(error, {
-      provider: 'resend',
-      tag: args.tag,
-      to: args.to,
-    });
-
-    return {
-      ok: false,
-      skipped: false,
-      reason: error instanceof Error ? error.message : 'Resend send failed.',
-    };
-  }
+  return sendEmailWithDeps(
+    {
+      providerEnabled: resendEnabled,
+      defaultFrom,
+      send: (input) => resendClient!.emails.send(input),
+      onError: captureException,
+    },
+    args,
+  );
 }
 
 export async function sendWelcomeEmail(to: string, displayName: string | null) {

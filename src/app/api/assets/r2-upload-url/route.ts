@@ -30,10 +30,12 @@ export async function POST(request: NextRequest) {
     if (!config.enabled) {
       return NextResponse.json(
         {
+          provider: config.provider,
           error:
             config.publicDeliveryConfigured || !['avatar', 'profile', 'static'].includes(purpose)
               ? 'R2 storage is not configured.'
               : 'R2 public delivery is not configured for this asset type.',
+          missing: config.missing,
         },
         { status: 503 },
       );

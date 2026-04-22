@@ -4,20 +4,16 @@ import { SubmissionStatus, VideoAssetStatus } from '@prisma/client';
 import {
   AppPage,
   ContentRail,
+  FeatureSurface,
+  PremiumArtworkPanel,
   PremiumAvatar,
-  PremiumCtaModule,
-  PremiumHero,
-  PremiumMetricCard,
   PremiumStageCard,
-  PremiumStatusChip,
-  StatusCard,
+  SupportPanel,
 } from '@/components/premium';
 import { requireAuthenticatedOnboarded } from '@/server/auth/guard';
 import { prisma } from '@/server/db/prisma';
 import { SubmissionService } from '@/lib/services/submission.service';
 import { VideoAssetService } from '@/lib/services/video-asset.service';
-
-type CreatorState = 'legacy-role' | 'setup' | 'active' | 'returning';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,129 +35,131 @@ export default async function CreatorPage() {
   const readyAssets = assets.filter((asset) => asset.status === VideoAssetStatus.READY).length;
   const drafts = submissions.filter((submission) => submission.status === SubmissionStatus.DRAFT).length;
   const profileReady = Boolean(user.displayName && user.username && user.creatorProfile?.bio);
-  const roleNeedsClarification = Boolean(user.onboardingCompletedAt && user.role === 'USER');
-  const creatorState: CreatorState = roleNeedsClarification
-    ? 'legacy-role'
-    : !profileReady
-      ? 'setup'
-      : readyAssets > 0 || drafts > 0
-        ? 'active'
-        : 'returning';
+  const needsAccountAlignment = Boolean(user.onboardingCompletedAt && user.role === 'USER');
 
   return (
     <AppPage
       hero={
-        <PremiumHero
+        <FeatureSurface
           eyebrow="Creator"
-          tone="profile"
-          title={
-            creatorState === 'legacy-role'
-              ? 'Creator access needs alignment'
-              : creatorState === 'setup'
-                ? 'Set your creator identity'
-                : creatorState === 'active'
-                  ? 'Creator control is active'
-                  : 'Creator profile is ready'
+          tone="violet"
+          title={profileReady ? 'Shape the public version of you' : 'Your creator profile is almost there'}
+          description={
+            profileReady
+              ? 'This is where your portrait, bio, and voice stay sharp before the next release.'
+              : 'Finish the essentials once, and BETALENT can present you with confidence across the product.'
           }
-          subtitle={
-            creatorState === 'legacy-role'
-              ? 'Onboarding is complete, but the stored role still reads USER.'
-              : creatorState === 'setup'
-                ? 'Finish the profile details that define how BETALENT presents you.'
-                : creatorState === 'active'
-                  ? 'Your creator workspace now has real media or submission activity.'
-                  : 'Your creator profile is stable and ready for the next cycle.'
+          primaryAction={<Link href="/app/profile" className="foundation-hero-cta-primary">Edit profile</Link>}
+          secondaryAction={<Link href="/app/settings" className="foundation-hero-cta-secondary">Account settings</Link>}
+          meta={
+            <>
+              <span>{user.displayName || user.email}</span>
+              {user.username ? <span>@{user.username}</span> : null}
+            </>
           }
-          artwork={
+          media={
             <div className="flex items-end justify-end">
               <PremiumAvatar
                 name={user.displayName || user.email}
                 imageUrl={user.avatarUrl}
-                className="h-36 w-36 shadow-[0_28px_70px_-32px_rgba(0,0,0,0.9)]"
+                className="h-36 w-36 border-white/12 bg-white/[0.06] text-base tracking-[0.08em] text-white shadow-[0_28px_70px_-32px_rgba(0,0,0,0.9)]"
               />
             </div>
-          }
-          meta={
-            <>
-              <PremiumStatusChip label="Role" value={user.role} />
-              <PremiumStatusChip label="Drafts" value={drafts} />
-              <PremiumStatusChip label="READY media" value={readyAssets} />
-            </>
           }
         />
       }
     >
-      <section className="foundation-panel rounded-[1.55rem] p-4 sm:rounded-[1.95rem] sm:p-6">
-        <div className="grid gap-3 sm:grid-cols-3">
-          <PremiumMetricCard label="State" value={creatorState} />
-          <PremiumMetricCard label="Role" value={user.role} />
-          <PremiumMetricCard label="Current focus" value={drafts > 0 ? `${drafts} draft${drafts === 1 ? '' : 's'}` : `${readyAssets} ready asset${readyAssets === 1 ? '' : 's'}`} />
+      <div className="foundation-page-stack">
+        <div className="foundation-support-grid">
+          <SupportPanel
+            eyebrow="Identity"
+            title={
+              profileReady
+                ? `${user.displayName || 'Your creator profile'} is ready to be seen`
+                : 'A few details still unlock the full BETALENT presentation'
+            }
+            description={
+              profileReady
+                ? user.creatorProfile?.bio || 'Your identity stack is in place and ready for the next release.'
+                : 'Add your name, handle, bio, and location so the product can feel intentional instead of empty.'
+            }
+            tone="violet"
+            action={<Link href="/app/profile" className="foundation-quiet-link">Open profile editor</Link>}
+          />
+
+          <SupportPanel
+            eyebrow="Momentum"
+            title={
+              drafts > 0
+                ? `${drafts} draft${drafts === 1 ? '' : 's'} already in progress`
+                : readyAssets > 0
+                  ? `${readyAssets} ready ${readyAssets === 1 ? 'asset' : 'assets'} available`
+                  : 'Build your next move from profile first'
+            }
+            description={
+              drafts > 0
+                ? 'Your next story is already started. Keep it moving.'
+                : readyAssets > 0
+                  ? 'Your library is stocked enough to move into submissions when you want.'
+                  : 'Once the profile feels right, uploads and entries start to make sense.'
+            }
+            tone={drafts > 0 ? 'gold' : readyAssets > 0 ? 'emerald' : 'cobalt'}
+            action={<Link href={drafts > 0 ? '/app/submissions' : '/app/uploads'} className="foundation-quiet-link">{drafts > 0 ? 'Continue entries' : 'Open uploads'}</Link>}
+          />
         </div>
-        {roleNeedsClarification ? (
-          <p className="mt-4 text-sm text-white/62">
-            This account has completed creator onboarding, but the stored role still reads `USER`. Access is being treated as creator-ready in the UI until the account record is aligned.
-          </p>
-        ) : null}
-      </section>
 
-      <ContentRail
-        eyebrow="Controls"
-        title="Quick settings"
-        subtitle="Profile, media, and account are now content-led creator controls."
-      >
-        <PremiumStageCard
-          href="/app/profile"
-          theme="violet"
-          eyebrow="Identity"
-          title={profileReady ? 'Profile is live' : 'Finish creator profile'}
-          subtitle={profileReady ? 'Name, handle, bio, and avatar are in place.' : 'Display name, handle, bio, and avatar still need work.'}
-          meta={<span className="foundation-inline-action">Edit profile</span>}
-        />
-        <PremiumStageCard
-          href="/app/uploads"
-          theme="cobalt"
-          eyebrow="Media"
-          title="Manage upload pipeline"
-          subtitle={`${readyAssets} READY assets are on file.`}
-          meta={<span className="foundation-inline-action">Open uploads</span>}
-        />
-        <PremiumStageCard
-          href="/app/submissions"
-          theme="gold"
-          eyebrow="Competition"
-          title={drafts > 0 ? 'Continue draft entries' : 'Review submissions'}
-          subtitle="Creator control should always point back to active work."
-          meta={<span className="foundation-inline-action">Open submissions</span>}
-        />
-      </ContentRail>
-
-      <div className="foundation-page-cluster" data-columns="split">
-        <StatusCard
-          eyebrow="Creator status"
-          title={
-            <>
-              {user.displayName || 'Creator profile'} {user.username ? <span className="text-white/48">@{user.username}</span> : null}
-            </>
-          }
+        <ContentRail
+          eyebrow="Keep close"
+          title="Creator essentials"
+          subtitle="A tighter set of surfaces that matter most on mobile."
         >
-          <dl className="mt-3 grid gap-4 sm:grid-cols-2">
-            <div className="foundation-metric-card">
-              <dt className="text-xs uppercase tracking-[0.18em] text-white/42">Location</dt>
-              <dd className="mt-2 text-sm text-white">{[user.city, user.country].filter(Boolean).join(', ') || 'Not set'}</dd>
-            </div>
-            <div className="foundation-metric-card">
-              <dt className="text-xs uppercase tracking-[0.18em] text-white/42">Audition intent</dt>
-              <dd className="mt-2 text-sm text-white">{user.wantsToAudition ? 'Interested' : 'Not marked yet'}</dd>
-            </div>
-          </dl>
-        </StatusCard>
+          <PremiumStageCard
+            href="/app/profile"
+            theme="violet"
+            eyebrow="Profile"
+            title={profileReady ? 'Portrait, handle, and bio' : 'Finish the essentials'}
+            subtitle={profileReady ? 'Your profile is polished enough to lead with.' : 'These details shape the entire BETALENT presence.'}
+            meta={<span>Edit now</span>}
+          />
+          <PremiumStageCard
+            href="/app/uploads"
+            theme="cobalt"
+            eyebrow="Media"
+            title="Your library"
+            subtitle={readyAssets > 0 ? `${readyAssets} ready ${readyAssets === 1 ? 'piece' : 'pieces'} waiting.` : 'Bring in the next performance that deserves a spotlight.'}
+            meta={<span>Open library</span>}
+          />
+          <PremiumStageCard
+            href="/app/submissions"
+            theme="gold"
+            eyebrow="Entries"
+            title={drafts > 0 ? 'Continue what you started' : 'When it is time, send the work forward'}
+            subtitle="Submissions should feel like an editorial move, not a form stack."
+            meta={<span>View entries</span>}
+          />
+        </ContentRail>
 
-        <PremiumCtaModule
-          eyebrow="Bio"
-          title={user.creatorProfile?.bio ? 'Creator introduction on file' : 'No creator introduction yet'}
-          description={user.creatorProfile?.bio || 'Use the profile editor to add a short creator introduction.'}
-          action={<Link href="/app/profile" className="foundation-chip text-[0.7rem]">Edit profile</Link>}
-          secondaryAction={<Link href="/app/settings" className="foundation-chip text-[0.7rem]">Account settings</Link>}
+        <SupportPanel
+          eyebrow="About you"
+          title={[user.city, user.country].filter(Boolean).join(', ') || 'Add the city that frames your story'}
+          description={
+            needsAccountAlignment
+              ? 'Your profile is usable today, but the account record still needs an operator sync behind the scenes.'
+              : user.wantsToAudition
+                ? 'BETALENT knows you want to audition. Keep the profile strong enough to back that intent.'
+                : 'A strong creator page starts with simple, believable context and a voice that feels like you.'
+          }
+          tone={needsAccountAlignment ? 'ember' : 'cobalt'}
+          action={<Link href="/app/settings" className="foundation-quiet-link">Review account</Link>}
+          aside={
+            <PremiumArtworkPanel
+              theme={needsAccountAlignment ? 'ember' : 'violet'}
+              title={user.username ? `@${user.username}` : 'Creator'}
+              detail={user.creatorProfile?.bio ? 'Bio on file' : 'Bio still missing'}
+              monogram={user.username ? `@${user.username}` : (user.displayName || user.email).slice(0, 2).toUpperCase()}
+              className="min-h-[11rem] w-full sm:w-[13rem]"
+            />
+          }
         />
       </div>
     </AppPage>

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import { POSTHOG_EVENTS, identifyUser, trackEvent } from "@/lib/analytics/posthog";
 import { sendWelcomeEmail } from "@/lib/email/resend";
-import { captureException } from "@/lib/sentry";
+import { captureException, captureMessage } from "@/lib/sentry";
 import { prisma } from "@/server/db/prisma";
 import { getSession } from "@/server/auth/session";
 
@@ -111,7 +111,16 @@ export async function completeOnboardingAction(
       role: updatedUser.role,
       wantsToAudition,
     });
-    await sendWelcomeEmail(updatedUser.email, displayName);
+    const emailResult = await sendWelcomeEmail(updatedUser.email, displayName);
+    captureMessage(
+      'Welcome email flow completed.',
+      emailResult.ok ? 'info' : emailResult.skipped ? 'warning' : 'error',
+      {
+        userId: updatedUser.id,
+        result: emailResult.ok ? 'sent' : emailResult.skipped ? 'skipped' : 'failed',
+        reason: emailResult.ok ? null : emailResult.reason,
+      },
+    );
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

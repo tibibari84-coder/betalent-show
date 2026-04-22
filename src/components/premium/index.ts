@@ -1,4 +1,5 @@
 export { AppPage } from "./AppPage";
+export { FeatureSurface } from "./FeatureSurface";
 export { PremiumArtworkPanel } from "./PremiumArtworkPanel";
 export { PremiumAvatar } from "./PremiumAvatar";
 export { ContentRail } from "./ContentRail";
@@ -20,3 +21,4 @@ export { PremiumStatusChip } from "./PremiumStatusChip";
 export { StatusCard } from "./StatusCard";
 export { SectionHeader } from "./SectionHeader";
 export { SpotlightCard } from "./SpotlightCard";
+export { SupportPanel } from "./SupportPanel";

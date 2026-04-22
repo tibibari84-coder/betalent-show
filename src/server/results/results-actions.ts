@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { AdvancementDecisionKind } from "@prisma/client";
 
+import { showSurfaceRevalidatePaths } from "@/lib/app-routes";
 import { getSession } from "@/server/auth/session";
 import { isAuditionReviewerEmail } from "@/server/auditions/reviewer.guard";
 
@@ -20,6 +21,12 @@ export type ResultsActionState = {
   ok?: boolean;
   id?: string;
 };
+
+function revalidateShowSurfaces() {
+  for (const path of showSurfaceRevalidatePaths) {
+    revalidatePath(path);
+  }
+}
 
 async function gateOperator(): Promise<
   | { ok: true; session: NonNullable<Awaited<ReturnType<typeof getSession>>> }
@@ -63,7 +70,7 @@ export async function createDraftStageResultAction(
       title,
       summary: summary || null,
     });
-    revalidatePath("/internal/results/publish");
+    revalidateShowSurfaces();
     return { ok: true, id: sr.id };
   } catch (e) {
     return {
@@ -130,8 +137,7 @@ export async function replaceStageResultEntriesAction(
 
   try {
     await replaceStageResultEntries(stageResultId, rows);
-    revalidatePath("/internal/results/publish");
-    revalidatePath("/app/results");
+    revalidateShowSurfaces();
     return { ok: true, id: stageResultId };
   } catch (e) {
     return {
@@ -156,10 +162,7 @@ export async function publishStageResultAction(
 
   try {
     await publishStageResult(stageResultId);
-    revalidatePath("/internal/results/publish");
-    revalidatePath("/app/results");
-    revalidatePath("/app/show");
-    revalidatePath("/app/profile");
+    revalidateShowSurfaces();
     return { ok: true, id: stageResultId };
   } catch (e) {
     return {
@@ -216,8 +219,7 @@ export async function recordAdvancementDecisionAction(
       note: note || null,
       stageResultId: stageResultId || null,
     });
-    revalidatePath("/internal/results/publish");
-    revalidatePath("/app/profile");
+    revalidateShowSurfaces();
     return { ok: true, id: row.id };
   } catch (e) {
     return {

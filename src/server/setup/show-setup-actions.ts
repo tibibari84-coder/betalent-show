@@ -10,6 +10,7 @@ import type {
   StageType,
 } from "@prisma/client";
 
+import { appRoutes, showSurfaceRevalidatePaths } from "@/lib/app-routes";
 import { getSession } from "@/server/auth/session";
 import {
   isAuditionReviewerEmail,
@@ -32,6 +33,15 @@ export type ShowSetupActionState = {
   ok?: boolean;
   detail?: string;
 };
+
+function revalidateShowSetupSurfaces(includeProfile = false) {
+  for (const path of showSurfaceRevalidatePaths) {
+    if (!includeProfile && path === appRoutes.profile) {
+      continue;
+    }
+    revalidatePath(path);
+  }
+}
 
 async function gateOperator(): Promise<
   { ok: true } | { ok: false; error: string }
@@ -173,10 +183,7 @@ export async function createSeasonSetupAction(
       endAt,
     });
 
-    revalidatePath("/app");
-    revalidatePath("/app/show");
-    revalidatePath("/app/auditions");
-    revalidatePath("/internal/show/setup");
+    revalidateShowSetupSurfaces();
 
     return {
       ok: true,
@@ -270,10 +277,7 @@ export async function createStageSetupAction(
       resultsAt,
     });
 
-    revalidatePath("/app");
-    revalidatePath("/app/show");
-    revalidatePath("/app/auditions");
-    revalidatePath("/internal/show/setup");
+    revalidateShowSetupSurfaces();
 
     return {
       ok: true,
@@ -348,10 +352,7 @@ export async function createAuditionWindowSetupAction(
       maxSubmissionsPerUser,
     });
 
-    revalidatePath("/app");
-    revalidatePath("/app/show");
-    revalidatePath("/app/auditions");
-    revalidatePath("/internal/show/setup");
+    revalidateShowSetupSurfaces();
 
     return {
       ok: true,
@@ -424,9 +425,7 @@ export async function createEpisodeSetupAction(
       publishedAt,
     });
 
-    revalidatePath("/app");
-    revalidatePath("/app/show");
-    revalidatePath("/internal/show/setup");
+    revalidateShowSetupSurfaces();
 
     return {
       ok: true,

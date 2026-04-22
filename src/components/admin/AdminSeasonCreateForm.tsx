@@ -11,6 +11,10 @@ import { Textarea } from "@/components/ui/Textarea";
 import { AdminFeedback } from "./AdminFeedback";
 
 const initialState = {};
+const createSeasonStatuses = [
+  { value: "DRAFT", label: "Draft" },
+  { value: "UPCOMING", label: "Upcoming" },
+] as const;
 
 export function AdminSeasonCreateForm() {
   const [state, action, pending] = useActionState(createSeasonAdminAction, initialState);
@@ -34,11 +38,11 @@ export function AdminSeasonCreateForm() {
       <div className="grid gap-4 md:grid-cols-3">
         <FormField label="Status">
           <select name="status" defaultValue="DRAFT" className="foundation-form-input h-12 px-4">
-            <option value="DRAFT">Draft</option>
-            <option value="UPCOMING">Upcoming</option>
-            <option value="LIVE">Live</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="ARCHIVED">Archived</option>
+            {createSeasonStatuses.map((status) => (
+              <option key={status.value} value={status.value}>
+                {status.label}
+              </option>
+            ))}
           </select>
         </FormField>
         <FormField label="Start At">
@@ -48,6 +52,10 @@ export function AdminSeasonCreateForm() {
           <Input name="endAt" type="datetime-local" className="foundation-form-input h-12 px-4" />
         </FormField>
       </div>
+
+      <p className="text-sm text-white/58">
+        New seasons must start in <strong className="text-white">Draft</strong> or <strong className="text-white">Upcoming</strong>. Going live or archiving is always an explicit follow-up action.
+      </p>
 
       <Button
         type="submit"

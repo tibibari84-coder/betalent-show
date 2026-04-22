@@ -21,6 +21,20 @@ type SeasonRecord = {
 };
 
 const initialState = {};
+const seasonTransitions: Record<string, string[]> = {
+  DRAFT: ["UPCOMING", "ARCHIVED"],
+  UPCOMING: ["DRAFT", "LIVE", "ARCHIVED"],
+  LIVE: ["COMPLETED", "ARCHIVED"],
+  COMPLETED: ["ARCHIVED"],
+  ARCHIVED: [],
+};
+const seasonStatusLabels: Record<string, string> = {
+  DRAFT: "Draft",
+  UPCOMING: "Upcoming",
+  LIVE: "Live",
+  COMPLETED: "Completed",
+  ARCHIVED: "Archived",
+};
 
 function toDateTimeLocal(value: Date | null) {
   if (!value) return "";
@@ -30,6 +44,7 @@ function toDateTimeLocal(value: Date | null) {
 export function AdminSeasonEditForm(props: { season: SeasonRecord }) {
   const [updateState, updateAction, updating] = useActionState(updateSeasonAdminAction, initialState);
   const [archiveState, archiveAction, archiving] = useActionState(archiveSeasonAdminAction, initialState);
+  const availableStatuses = [props.season.status, ...seasonTransitions[props.season.status]];
 
   return (
     <div className="space-y-4">
@@ -50,11 +65,11 @@ export function AdminSeasonEditForm(props: { season: SeasonRecord }) {
         <div className="grid gap-4 md:grid-cols-3">
           <FormField label="Status">
             <select name="status" defaultValue={props.season.status} className="foundation-form-input h-12 px-4">
-              <option value="DRAFT">Draft</option>
-              <option value="UPCOMING">Upcoming</option>
-              <option value="LIVE">Live</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="ARCHIVED">Archived</option>
+              {availableStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {seasonStatusLabels[status]}
+                </option>
+              ))}
             </select>
           </FormField>
           <FormField label="Start At">
@@ -64,6 +79,13 @@ export function AdminSeasonEditForm(props: { season: SeasonRecord }) {
             <Input name="endAt" type="datetime-local" defaultValue={toDateTimeLocal(props.season.endAt)} className="foundation-form-input h-12 px-4" />
           </FormField>
         </div>
+        <p className="text-sm text-white/58">
+          Current lifecycle: <strong className="text-white">{seasonStatusLabels[props.season.status]}</strong>.
+          {" "}
+          {seasonTransitions[props.season.status].length > 0
+            ? `Allowed next states: ${seasonTransitions[props.season.status].map((status) => seasonStatusLabels[status]).join(", ")}.`
+            : "No further lifecycle moves are allowed from this state."}
+        </p>
         <Button type="submit" disabled={updating} className="foundation-chip text-[0.7rem]">
           {updating ? "Saving..." : "Save season"}
         </Button>

@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { env } from '@/lib/env';
+import { captureMessage } from '@/lib/sentry';
 
 import { CloudflareR2Adapter } from './cloudflare-r2.adapter';
 import {
@@ -8,6 +9,7 @@ import {
   R2SignedUploadUrlOptions,
   R2SignedUploadUrlResult,
 } from './types';
+import { buildR2AssetUrl, getR2KeyFromAssetUrl } from './url';
 
 const storageConfigured = Boolean(
   env.R2_PROVIDER === 'cloudflare' &&
@@ -24,6 +26,7 @@ const adapter = storageConfigured ? new CloudflareR2Adapter() : null;
 
 export const r2Enabled = storageConfigured;
 export const r2PublicDeliveryEnabled = publicDeliveryConfigured;
+export { buildR2AssetUrl, getR2KeyFromAssetUrl };
 
 export function getR2ConfigState(purpose?: R2AssetPurpose) {
   const missing: string[] = [];
@@ -47,11 +50,18 @@ export function getR2ConfigState(purpose?: R2AssetPurpose) {
     missing.push('R2_PUBLIC_BASE_URL');
   }
 
+  const missingPublicDelivery =
+    purpose && publicAssetPurposes.has(purpose) && !env.R2_PUBLIC_BASE_URL
+      ? ['R2_PUBLIC_BASE_URL']
+      : [];
+
   return {
+    provider: 'cloudflare-r2' as const,
     enabled: missing.length === 0,
     storageConfigured,
     publicDeliveryConfigured,
     missing,
+    missingPublicDelivery,
   };
 }
 
@@ -76,4 +86,32 @@ export async function createR2UploadUrl(
   }
 
   return adapter.getSignedUploadUrl(options);
+}
+
+export async function deleteR2ObjectForUser(options: {
+  userId: string;
+  purpose: R2AssetPurpose;
+  assetUrl: string;
+}): Promise<boolean> {
+  if (!adapter) {
+    return false;
+  }
+
+  const key = getR2KeyFromAssetUrl(options.assetUrl);
+  if (!key || !key.startsWith(`${options.purpose}/${options.userId}/`)) {
+    return false;
+  }
+
+  try {
+    await adapter.deleteObject(key);
+    return true;
+  } catch (error) {
+    captureMessage('Cloudflare R2 object deletion failed.', 'warning', {
+      key,
+      purpose: options.purpose,
+      userId: options.userId,
+      error: error instanceof Error ? error.message : 'unknown',
+    });
+    return false;
+  }
 }

@@ -38,6 +38,7 @@ export function ProfileForm({ user, creatorProfile }: ProfileFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl || null);
+  const [avatarUploadKey, setAvatarUploadKey] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
   const {
@@ -80,9 +81,10 @@ export function ProfileForm({ user, creatorProfile }: ProfileFormProps) {
         error?: string;
         uploadUrl?: string;
         assetUrl?: string;
+        key?: string;
       };
 
-      if (!response.ok || !data.uploadUrl || !data.assetUrl) {
+      if (!response.ok || !data.uploadUrl || !data.assetUrl || !data.key) {
         throw new Error(data.error || 'Unable to create avatar upload URL.');
       }
 
@@ -118,9 +120,10 @@ export function ProfileForm({ user, creatorProfile }: ProfileFormProps) {
       }
 
       setAvatarUrl(data.assetUrl);
+      setAvatarUploadKey(data.key);
       setFeedback({
         type: 'success',
-        message: 'Avatar uploaded. Save the profile to persist it.',
+        message: 'Avatar uploaded. Save the profile to make it official.',
       });
     } catch (error) {
       setFeedback({
@@ -138,7 +141,7 @@ export function ProfileForm({ user, creatorProfile }: ProfileFormProps) {
     setFeedback(null);
 
     try {
-      const userResponse = await fetch('/api/user/profile', {
+      const response = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -146,33 +149,28 @@ export function ProfileForm({ user, creatorProfile }: ProfileFormProps) {
           username: data.username,
           city: data.city,
           country: data.country,
-          avatarUrl: avatarUrl || undefined,
-        }),
-      });
-
-      const creatorResponse = await fetch('/api/creator/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+          avatarUrl: avatarUrl || null,
+          avatarUploadKey,
           bio: data.bio,
           website: data.website,
         }),
       });
 
-      const userPayload = (await userResponse.json()) as { error?: string };
-      const creatorPayload = (await creatorResponse.json()) as { error?: string };
+      const payload = (await response.json()) as {
+        error?: string;
+        fieldErrors?: {
+          username?: string;
+        };
+      };
 
-      if (!userResponse.ok) {
-        if (userResponse.status === 409) {
-          throw new Error('That username is already taken.');
+      if (!response.ok) {
+        if (payload.fieldErrors?.username || response.status === 409) {
+          throw new Error(payload.fieldErrors?.username || 'That username is already taken.');
         }
-        throw new Error(userPayload.error || 'Unable to update your account profile.');
+        throw new Error(payload.error || 'Unable to update your profile.');
       }
 
-      if (!creatorResponse.ok) {
-        throw new Error(creatorPayload.error || 'Unable to update your creator profile.');
-      }
-
+      setAvatarUploadKey(null);
       setFeedback({
         type: 'success',
         message: 'Profile saved successfully.',

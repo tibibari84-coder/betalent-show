@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useMemo, useState } from "react";
 
 import { archiveEpisodeAdminAction, updateEpisodeAdminAction } from "@/server/admin/show-admin-actions";
 import { Button } from "@/components/ui/Button";
@@ -24,6 +24,18 @@ type EpisodeRecord = {
 };
 
 const initialState = {};
+const episodeTransitions: Record<string, string[]> = {
+  DRAFT: ["SCHEDULED", "ARCHIVED"],
+  SCHEDULED: ["DRAFT", "PUBLISHED", "ARCHIVED"],
+  PUBLISHED: ["ARCHIVED"],
+  ARCHIVED: [],
+};
+const episodeStatusLabels: Record<string, string> = {
+  DRAFT: "Draft",
+  SCHEDULED: "Scheduled",
+  PUBLISHED: "Published",
+  ARCHIVED: "Archived",
+};
 
 function toDateTimeLocal(value: Date | null) {
   if (!value) return "";
@@ -37,6 +49,12 @@ export function AdminEpisodeEditForm(props: {
 }) {
   const [updateState, updateAction, updating] = useActionState(updateEpisodeAdminAction, initialState);
   const [archiveState, archiveAction, archiving] = useActionState(archiveEpisodeAdminAction, initialState);
+  const [seasonId, setSeasonId] = useState(props.episode.seasonId);
+  const availableStatuses = [props.episode.status, ...episodeTransitions[props.episode.status]];
+  const visibleStages = useMemo(
+    () => props.stages.filter((stage) => stage.seasonId === seasonId),
+    [props.stages, seasonId],
+  );
 
   return (
     <div className="space-y-4">
@@ -45,7 +63,13 @@ export function AdminEpisodeEditForm(props: {
         <AdminFeedback state={updateState} />
         <div className="grid gap-4 md:grid-cols-2">
           <FormField label="Season">
-            <select name="seasonId" defaultValue={props.episode.seasonId} className="foundation-form-input h-12 px-4" required>
+            <select
+              name="seasonId"
+              defaultValue={props.episode.seasonId}
+              className="foundation-form-input h-12 px-4"
+              required
+              onChange={(event) => setSeasonId(event.target.value)}
+            >
               {props.seasons.map((season) => (
                 <option key={season.id} value={season.id}>
                   {season.title} ({season.status})
@@ -56,7 +80,7 @@ export function AdminEpisodeEditForm(props: {
           <FormField label="Stage">
             <select name="stageId" defaultValue={props.episode.stageId || ""} className="foundation-form-input h-12 px-4">
               <option value="">No stage</option>
-              {props.stages.map((stage) => (
+              {visibleStages.map((stage) => (
                 <option key={stage.id} value={stage.id}>
                   {stage.season.title} → {stage.title}
                 </option>
@@ -81,10 +105,11 @@ export function AdminEpisodeEditForm(props: {
         <div className="grid gap-4 md:grid-cols-3">
           <FormField label="Status">
             <select name="status" defaultValue={props.episode.status} className="foundation-form-input h-12 px-4">
-              <option value="DRAFT">Draft</option>
-              <option value="SCHEDULED">Scheduled</option>
-              <option value="PUBLISHED">Published</option>
-              <option value="ARCHIVED">Archived</option>
+              {availableStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {episodeStatusLabels[status]}
+                </option>
+              ))}
             </select>
           </FormField>
           <FormField label="Premiere At">
@@ -94,6 +119,13 @@ export function AdminEpisodeEditForm(props: {
             <Input name="publishedAt" type="datetime-local" defaultValue={toDateTimeLocal(props.episode.publishedAt)} className="foundation-form-input h-12 px-4" />
           </FormField>
         </div>
+        <p className="text-sm text-white/58">
+          Current lifecycle: <strong className="text-white">{episodeStatusLabels[props.episode.status]}</strong>.
+          {" "}
+          {episodeTransitions[props.episode.status].length > 0
+            ? `Allowed next states: ${episodeTransitions[props.episode.status].map((status) => episodeStatusLabels[status]).join(", ")}.`
+            : "No further lifecycle moves are allowed from this state."}
+        </p>
         <Button type="submit" disabled={updating} className="foundation-chip text-[0.7rem]">
           {updating ? "Saving..." : "Save episode"}
         </Button>

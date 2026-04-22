@@ -2,6 +2,17 @@ import { AdminSubmissionStatusForm } from '@/components/admin/AdminSubmissionSta
 import { PremiumHero } from '@/components/premium';
 import { allowedSubmissionTransitions, listAdminRecentSubmissions, listAdminSubmissionQueue } from '@/server/admin/show-admin.service';
 
+function getReviewContext(status: string) {
+  switch (status) {
+    case 'SUBMITTED':
+      return 'Ready for an explicit move into review. Direct accept/reject is intentionally blocked.';
+    case 'UNDER_REVIEW':
+      return 'Review is active. Acceptance or rejection now becomes available.';
+    default:
+      return 'No additional review context is available.';
+  }
+}
+
 export default async function AdminSubmissionsPage() {
   const [queue, recent] = await Promise.all([
     listAdminSubmissionQueue(),
@@ -37,10 +48,17 @@ export default async function AdminSubmissionsPage() {
                     <p>Asset: {submission.videoAsset.originalName}</p>
                     <p>Asset status: {submission.videoAsset.status}</p>
                     <p>Submitted: {submission.submittedAt?.toLocaleString() || submission.createdAt.toLocaleString()}</p>
+                    <p>Judge results: {submission.judgeResults.length}</p>
+                    <p>Review note: {getReviewContext(submission.status)}</p>
                   </div>
                   <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-white/66">
                     Allowed next states: {allowedSubmissionTransitions[submission.status].length > 0 ? allowedSubmissionTransitions[submission.status].join(', ') : 'none'}
                   </div>
+                  {submission.videoAsset.status !== 'READY' ? (
+                    <div className="rounded-[1rem] border border-amber-500/20 bg-amber-500/[0.08] px-4 py-3 text-sm text-amber-100">
+                      Review is blocked until the linked asset reaches READY.
+                    </div>
+                  ) : null}
                 </div>
                 <div className="w-full max-w-sm space-y-4">
                   <AdminSubmissionStatusForm

@@ -1,20 +1,10 @@
 import 'server-only';
 
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { env } from '@/lib/env';
+import { buildR2AssetUrl } from './url';
 import { R2SignedUploadUrlOptions, R2SignedUploadUrlResult, R2StorageAdapter } from './types';
-
-function buildAssetUrl(key: string) {
-  const encodedKey = key.split('/').map(encodeURIComponent).join('/');
-  const publicBaseUrl = env.R2_PUBLIC_BASE_URL?.replace(/\/$/, '');
-
-  if (publicBaseUrl) {
-    return `${publicBaseUrl}/${encodedKey}`;
-  }
-
-  return `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${env.R2_BUCKET_NAME}/${encodedKey}`;
-}
 
 export class CloudflareR2Adapter implements R2StorageAdapter {
   private client: S3Client;
@@ -41,8 +31,17 @@ export class CloudflareR2Adapter implements R2StorageAdapter {
       expiresIn: expiresInSeconds,
     });
 
-    const assetUrl = buildAssetUrl(key);
+    const assetUrl = buildR2AssetUrl(key);
 
     return { uploadUrl, assetUrl, key };
+  }
+
+  async deleteObject(key: string): Promise<void> {
+    await this.client.send(
+      new DeleteObjectCommand({
+        Bucket: env.R2_BUCKET_NAME,
+        Key: key,
+      }),
+    );
   }
 }

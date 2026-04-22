@@ -14,7 +14,12 @@ import {
 } from "@/lib/email/resend";
 import { captureMessage } from "@/lib/sentry";
 import { prisma } from "@/server/db/prisma";
+import {
+  prepareSubmissionStatusChange,
+} from "@/server/submissions/lifecycle";
 import { writeAuditLog } from "./audit-log.service";
+
+export { allowedSubmissionTransitions } from "@/server/submissions/lifecycle";
 
 const optionalDate = z
   .string()
@@ -95,7 +100,7 @@ const submissionStatusSchema = z.object({
 });
 
 export const allowedSeasonTransitions: Record<SeasonStatus, SeasonStatus[]> = {
-  DRAFT: [SeasonStatus.UPCOMING, SeasonStatus.LIVE, SeasonStatus.ARCHIVED],
+  DRAFT: [SeasonStatus.UPCOMING, SeasonStatus.ARCHIVED],
   UPCOMING: [SeasonStatus.DRAFT, SeasonStatus.LIVE, SeasonStatus.ARCHIVED],
   LIVE: [SeasonStatus.COMPLETED, SeasonStatus.ARCHIVED],
   COMPLETED: [SeasonStatus.ARCHIVED],
@@ -103,7 +108,7 @@ export const allowedSeasonTransitions: Record<SeasonStatus, SeasonStatus[]> = {
 };
 
 export const allowedStageTransitions: Record<StageStatus, StageStatus[]> = {
-  DRAFT: [StageStatus.UPCOMING, StageStatus.OPEN, StageStatus.ARCHIVED],
+  DRAFT: [StageStatus.UPCOMING, StageStatus.ARCHIVED],
   UPCOMING: [StageStatus.DRAFT, StageStatus.OPEN, StageStatus.ARCHIVED],
   OPEN: [StageStatus.JUDGING, StageStatus.VOTING, StageStatus.RESULTS, StageStatus.COMPLETED, StageStatus.ARCHIVED],
   JUDGING: [StageStatus.VOTING, StageStatus.RESULTS, StageStatus.COMPLETED, StageStatus.ARCHIVED],
@@ -114,20 +119,15 @@ export const allowedStageTransitions: Record<StageStatus, StageStatus[]> = {
 };
 
 export const allowedEpisodeTransitions: Record<EpisodeStatus, EpisodeStatus[]> = {
-  DRAFT: [EpisodeStatus.SCHEDULED, EpisodeStatus.PUBLISHED, EpisodeStatus.ARCHIVED],
+  DRAFT: [EpisodeStatus.SCHEDULED, EpisodeStatus.ARCHIVED],
   SCHEDULED: [EpisodeStatus.DRAFT, EpisodeStatus.PUBLISHED, EpisodeStatus.ARCHIVED],
   PUBLISHED: [EpisodeStatus.ARCHIVED],
   ARCHIVED: [],
 };
 
-export const allowedSubmissionTransitions: Record<SubmissionStatus, SubmissionStatus[]> = {
-  DRAFT: [SubmissionStatus.SUBMITTED, SubmissionStatus.WITHDRAWN],
-  SUBMITTED: [SubmissionStatus.UNDER_REVIEW, SubmissionStatus.ACCEPTED, SubmissionStatus.REJECTED, SubmissionStatus.WITHDRAWN],
-  UNDER_REVIEW: [SubmissionStatus.ACCEPTED, SubmissionStatus.REJECTED, SubmissionStatus.WITHDRAWN],
-  ACCEPTED: [],
-  REJECTED: [],
-  WITHDRAWN: [],
-};
+const allowedSeasonCreationStatuses = new Set<SeasonStatus>([SeasonStatus.DRAFT, SeasonStatus.UPCOMING]);
+const allowedStageCreationStatuses = new Set<StageStatus>([StageStatus.DRAFT, StageStatus.UPCOMING]);
+const allowedEpisodeCreationStatuses = new Set<EpisodeStatus>([EpisodeStatus.DRAFT, EpisodeStatus.SCHEDULED]);
 
 function ensureTransition<T extends string>(from: T, to: T, allowedMap: Record<T, T[]>, entityLabel: string) {
   if (from === to) return;
@@ -139,6 +139,80 @@ function ensureTransition<T extends string>(from: T, to: T, allowedMap: Record<T
 function ensureDateOrder(openAt: Date | null, closeAt: Date | null, label: string) {
   if (openAt && closeAt && openAt.getTime() >= closeAt.getTime()) {
     throw new Error(`${label} open date must be before close date.`);
+  }
+}
+
+function ensureChronology(startAt: Date | null, endAt: Date | null, entityLabel: string) {
+  if (startAt && endAt && startAt.getTime() >= endAt.getTime()) {
+    throw new Error(`${entityLabel} start date must be before end date.`);
+  }
+}
+
+function ensureCreateStatus<T extends string>(status: T, allowedStatuses: Set<T>, entityLabel: string) {
+  if (!allowedStatuses.has(status)) {
+    throw new Error(`${entityLabel} records must start in a safe draft or scheduled state. Publish or archive them explicitly after creation.`);
+  }
+}
+
+async function ensureSingleLiveSeason(nextStatus: SeasonStatus, ignoreSeasonId?: string) {
+  if (nextStatus !== SeasonStatus.LIVE) return;
+
+  const existingLive = await prisma.season.findFirst({
+    where: {
+      status: SeasonStatus.LIVE,
+      ...(ignoreSeasonId ? { id: { not: ignoreSeasonId } } : {}),
+    },
+    select: { id: true, title: true },
+  });
+
+  if (existingLive) {
+    throw new Error(`Season "${existingLive.title}" is already LIVE. Complete or archive it before publishing another live season.`);
+  }
+}
+
+function ensureStageStatusAllowedForSeason(stageStatus: StageStatus, seasonStatus: SeasonStatus) {
+  if (stageStatus === StageStatus.ARCHIVED || stageStatus === StageStatus.DRAFT) {
+    return;
+  }
+
+  if (seasonStatus === SeasonStatus.DRAFT || seasonStatus === SeasonStatus.ARCHIVED) {
+    throw new Error("Stage activation is blocked until the parent season leaves DRAFT and is not archived.");
+  }
+
+  if (
+    (stageStatus === StageStatus.OPEN ||
+      stageStatus === StageStatus.JUDGING ||
+      stageStatus === StageStatus.VOTING ||
+      stageStatus === StageStatus.RESULTS ||
+      stageStatus === StageStatus.COMPLETED) &&
+    seasonStatus !== SeasonStatus.LIVE &&
+    seasonStatus !== SeasonStatus.COMPLETED
+  ) {
+    throw new Error("Only LIVE or COMPLETED seasons can hold active, judging, voting, results, or completed stages.");
+  }
+}
+
+function ensureEpisodeStatusAllowedForContext(
+  episodeStatus: EpisodeStatus,
+  seasonStatus: SeasonStatus,
+  stageStatus: StageStatus | null,
+) {
+  if (episodeStatus === EpisodeStatus.ARCHIVED || episodeStatus === EpisodeStatus.DRAFT) {
+    return;
+  }
+
+  if (seasonStatus === SeasonStatus.DRAFT || seasonStatus === SeasonStatus.ARCHIVED) {
+    throw new Error("Episode scheduling or publishing is blocked until the parent season is no longer draft or archived.");
+  }
+
+  if (episodeStatus === EpisodeStatus.PUBLISHED) {
+    if (seasonStatus !== SeasonStatus.LIVE && seasonStatus !== SeasonStatus.COMPLETED) {
+      throw new Error("Episodes can only be published while the parent season is LIVE or COMPLETED.");
+    }
+
+    if (stageStatus && stageStatus !== StageStatus.OPEN && stageStatus !== StageStatus.JUDGING && stageStatus !== StageStatus.VOTING && stageStatus !== StageStatus.RESULTS && stageStatus !== StageStatus.COMPLETED) {
+      throw new Error("Episodes linked to a stage can only be published when that stage is operational or completed.");
+    }
   }
 }
 
@@ -204,6 +278,10 @@ export function parseSubmissionStatusInput(formData: FormData) {
 }
 
 export async function createSeasonMutation(actorUserId: string, input: ReturnType<typeof parseSeasonInput>) {
+  ensureCreateStatus(input.status, allowedSeasonCreationStatuses, "Season");
+  ensureChronology(input.startAt, input.endAt, "Season");
+  await ensureSingleLiveSeason(input.status);
+
   const slug = input.slug ? slugify(input.slug) : slugify(input.title);
   if (!slug) {
     throw new Error("Season slug is required.");
@@ -238,6 +316,8 @@ export async function updateSeasonMutation(actorUserId: string, input: ReturnTyp
   if (!current) throw new Error("Season not found.");
 
   ensureTransition(current.status, input.status, allowedSeasonTransitions, "Season");
+  ensureChronology(input.startAt, input.endAt, "Season");
+  await ensureSingleLiveSeason(input.status, current.id);
 
   const slug = input.slug ? slugify(input.slug) : slugify(input.title);
   if (!slug) throw new Error("Season slug is required.");
@@ -271,10 +351,32 @@ export async function updateSeasonMutation(actorUserId: string, input: ReturnTyp
 }
 
 export async function archiveSeasonMutation(actorUserId: string, input: ReturnType<typeof parseArchiveInput>) {
-  const current = await prisma.season.findUnique({ where: { id: input.id } });
+  const current = await prisma.season.findUnique({
+    where: { id: input.id },
+    include: {
+      _count: {
+        select: {
+          stages: {
+            where: {
+              status: { not: StageStatus.ARCHIVED },
+            },
+          },
+          episodes: {
+            where: {
+              status: { not: EpisodeStatus.ARCHIVED },
+            },
+          },
+        },
+      },
+    },
+  });
   if (!current) throw new Error("Season not found.");
 
   ensureTransition(current.status, SeasonStatus.ARCHIVED, allowedSeasonTransitions, "Season");
+
+  if (current._count.stages > 0 || current._count.episodes > 0) {
+    throw new Error("Archive child stages and episodes first. Public or operational children cannot remain attached to an archived season.");
+  }
 
   const row = await prisma.season.update({
     where: { id: input.id },
@@ -293,12 +395,18 @@ export async function archiveSeasonMutation(actorUserId: string, input: ReturnTy
 }
 
 export async function createStageMutation(actorUserId: string, input: ReturnType<typeof parseStageInput>) {
-  const season = await prisma.season.findUnique({ where: { id: input.seasonId }, select: { id: true } });
+  ensureCreateStatus(input.status, allowedStageCreationStatuses, "Stage");
+
+  const season = await prisma.season.findUnique({
+    where: { id: input.seasonId },
+    select: { id: true, status: true, title: true },
+  });
   if (!season) throw new Error("Season not found.");
 
   ensureDateOrder(input.submissionsOpenAt, input.submissionsCloseAt, "Submission");
   ensureDateOrder(input.judgingOpenAt, input.judgingCloseAt, "Judging");
   ensureDateOrder(input.votingOpenAt, input.votingCloseAt, "Voting");
+  ensureStageStatusAllowedForSeason(input.status, season.status);
 
   const slug = input.slug ? slugify(input.slug) : slugify(input.title);
   if (!slug) throw new Error("Stage slug is required.");
@@ -345,13 +453,17 @@ export async function updateStageMutation(actorUserId: string, input: ReturnType
   const current = await prisma.stage.findUnique({ where: { id: input.id } });
   if (!current) throw new Error("Stage not found.");
 
-  const season = await prisma.season.findUnique({ where: { id: input.seasonId }, select: { id: true } });
+  const season = await prisma.season.findUnique({
+    where: { id: input.seasonId },
+    select: { id: true, status: true, title: true },
+  });
   if (!season) throw new Error("Season not found.");
 
   ensureTransition(current.status, input.status, allowedStageTransitions, "Stage");
   ensureDateOrder(input.submissionsOpenAt, input.submissionsCloseAt, "Submission");
   ensureDateOrder(input.judgingOpenAt, input.judgingCloseAt, "Judging");
   ensureDateOrder(input.votingOpenAt, input.votingCloseAt, "Voting");
+  ensureStageStatusAllowedForSeason(input.status, season.status);
 
   const slug = input.slug ? slugify(input.slug) : slugify(input.title);
   if (!slug) throw new Error("Stage slug is required.");
@@ -395,10 +507,27 @@ export async function updateStageMutation(actorUserId: string, input: ReturnType
 }
 
 export async function archiveStageMutation(actorUserId: string, input: ReturnType<typeof parseArchiveInput>) {
-  const current = await prisma.stage.findUnique({ where: { id: input.id } });
+  const current = await prisma.stage.findUnique({
+    where: { id: input.id },
+    include: {
+      _count: {
+        select: {
+          episodes: {
+            where: {
+              status: { not: EpisodeStatus.ARCHIVED },
+            },
+          },
+        },
+      },
+    },
+  });
   if (!current) throw new Error("Stage not found.");
 
   ensureTransition(current.status, StageStatus.ARCHIVED, allowedStageTransitions, "Stage");
+
+  if (current._count.episodes > 0) {
+    throw new Error("Archive linked episodes first. An archived stage cannot leave scheduled or published episodes behind.");
+  }
 
   const row = await prisma.stage.update({
     where: { id: input.id },
@@ -417,18 +546,27 @@ export async function archiveStageMutation(actorUserId: string, input: ReturnTyp
 }
 
 export async function createEpisodeMutation(actorUserId: string, input: ReturnType<typeof parseEpisodeInput>) {
-  const season = await prisma.season.findUnique({ where: { id: input.seasonId }, select: { id: true } });
+  ensureCreateStatus(input.status, allowedEpisodeCreationStatuses, "Episode");
+
+  const season = await prisma.season.findUnique({
+    where: { id: input.seasonId },
+    select: { id: true, status: true, title: true },
+  });
   if (!season) throw new Error("Season not found.");
 
+  let stageStatus: StageStatus | null = null;
   if (input.stageId) {
     const stage = await prisma.stage.findFirst({
       where: { id: input.stageId, seasonId: input.seasonId },
-      select: { id: true },
+      select: { id: true, status: true },
     });
     if (!stage) {
       throw new Error("Stage must belong to the selected season.");
     }
+    stageStatus = stage.status;
   }
+
+  ensureEpisodeStatusAllowedForContext(input.status, season.status, stageStatus);
 
   const slug = input.slug ? slugify(input.slug) : slugify(input.title);
   if (!slug) throw new Error("Episode slug is required.");
@@ -472,21 +610,30 @@ export async function updateEpisodeMutation(actorUserId: string, input: ReturnTy
 
   ensureTransition(current.status, input.status, allowedEpisodeTransitions, "Episode");
 
-  const season = await prisma.season.findUnique({ where: { id: input.seasonId }, select: { id: true } });
+  const season = await prisma.season.findUnique({
+    where: { id: input.seasonId },
+    select: { id: true, status: true, title: true },
+  });
   if (!season) throw new Error("Season not found.");
 
+  let stageStatus: StageStatus | null = null;
   if (input.stageId) {
     const stage = await prisma.stage.findFirst({
       where: { id: input.stageId, seasonId: input.seasonId },
-      select: { id: true },
+      select: { id: true, status: true },
     });
     if (!stage) {
       throw new Error("Stage must belong to the selected season.");
     }
+    stageStatus = stage.status;
   }
 
+  ensureEpisodeStatusAllowedForContext(input.status, season.status, stageStatus);
   const slug = input.slug ? slugify(input.slug) : slugify(input.title);
   if (!slug) throw new Error("Episode slug is required.");
+
+  const effectivePublishedAt =
+    input.status === EpisodeStatus.PUBLISHED ? input.publishedAt ?? current.publishedAt ?? new Date() : null;
 
   const row = await prisma.episode.update({
     where: { id: input.id },
@@ -499,7 +646,7 @@ export async function updateEpisodeMutation(actorUserId: string, input: ReturnTy
       orderIndex: input.orderIndex,
       status: input.status,
       premiereAt: input.premiereAt,
-      publishedAt: input.publishedAt,
+      publishedAt: effectivePublishedAt,
     },
   });
 
@@ -576,16 +723,18 @@ export async function updateSubmissionReviewStatusMutation(
     }
   }
 
-  ensureTransition(current.status, input.status, allowedSubmissionTransitions, "Submission");
+  const transition = prepareSubmissionStatusChange({
+    currentStatus: current.status,
+    nextStatus: input.status,
+    currentSubmittedAt: current.submittedAt,
+    assetStatus: current.videoAsset.status,
+  });
 
   const updated = await prisma.submission.update({
     where: { id: input.id },
     data: {
       status: input.status,
-      submittedAt:
-        current.submittedAt || input.status === SubmissionStatus.SUBMITTED || input.status === SubmissionStatus.UNDER_REVIEW
-          ? current.submittedAt ?? new Date()
-          : null,
+      submittedAt: transition.submittedAt,
     },
     include: {
       user: true,
@@ -607,6 +756,9 @@ export async function updateSubmissionReviewStatusMutation(
       userId: updated.userId,
       videoAssetId: updated.videoAssetId,
       title: updated.title,
+      videoAssetStatus: current.videoAsset.status,
+      judgeResultCount: current.judgeResults.length,
+      lifecycleNote: transition.lifecycleNote,
     },
   });
 

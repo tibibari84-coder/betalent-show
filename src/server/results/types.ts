@@ -10,7 +10,7 @@ export type StageResultEntryInput = {
   highlightLabel?: string | null;
 };
 
-/** Safe, read-only payload for `/app/results` — only `PUBLISHED` packages. */
+/** Safe, read-only payload for current creator-facing show surfaces — only `PUBLISHED` packages. */
 export type PublicStageResultPayload = {
   stageResultId: string;
   title: string;

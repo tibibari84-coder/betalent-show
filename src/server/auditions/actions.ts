@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { AuditionSubmissionType } from "@prisma/client";
 
+import { appRoutes } from "@/lib/app-routes";
 import { getSession } from "@/server/auth/session";
 import { prisma } from "@/server/db/prisma";
 
@@ -27,6 +28,11 @@ export type AuditionActionState = {
   error?: string;
   ok?: boolean;
 };
+
+function revalidateCreatorAuditionTouchpoints() {
+  revalidatePath(appRoutes.home);
+  revalidatePath(appRoutes.creator);
+}
 
 function parseSubmissionType(raw: string): AuditionSubmissionType | null {
   if (
@@ -90,7 +96,7 @@ export async function createAuditionDraftAction(
     return { error: msg };
   }
 
-  revalidatePath("/app/auditions");
+  revalidateCreatorAuditionTouchpoints();
   return { ok: true };
 }
 
@@ -128,7 +134,7 @@ export async function submitAuditionDraftAction(
     return { error: msg };
   }
 
-  revalidatePath("/app/auditions");
+  revalidateCreatorAuditionTouchpoints();
   return { ok: true };
 }
 
@@ -156,7 +162,7 @@ export async function withdrawAuditionSubmissionAction(
     return { error: msg };
   }
 
-  revalidatePath("/app/auditions");
+  revalidateCreatorAuditionTouchpoints();
   return { ok: true };
 }
 
@@ -207,7 +213,7 @@ export async function auditionReviewDecisionAction(
     return { error: msg };
   }
 
-  revalidatePath("/internal/auditions/review");
+  revalidateCreatorAuditionTouchpoints();
   return { ok: true };
 }
 

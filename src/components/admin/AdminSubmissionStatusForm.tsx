@@ -8,6 +8,12 @@ import { Button } from "@/components/ui/Button";
 import { AdminFeedback } from "./AdminFeedback";
 
 const initialState = {};
+const submissionActionLabels: Record<string, string> = {
+  UNDER_REVIEW: "Start review",
+  ACCEPTED: "Accept submission",
+  REJECTED: "Reject submission",
+  WITHDRAWN: "Withdraw from queue",
+};
 
 export function AdminSubmissionStatusForm(props: {
   submissionId: string;
@@ -28,6 +34,9 @@ export function AdminSubmissionStatusForm(props: {
     <form action={action} className="space-y-3">
       <input type="hidden" name="id" value={props.submissionId} />
       <AdminFeedback state={state} />
+      <p className="text-sm text-white/58">
+        Current queue state: <strong className="text-white">{props.currentStatus.replace("_", " ")}</strong>.
+      </p>
       <div className="flex flex-wrap gap-2">
         {props.allowedNext.map((status) => (
           <Button
@@ -38,7 +47,7 @@ export function AdminSubmissionStatusForm(props: {
             disabled={pending}
             className="foundation-chip text-[0.7rem]"
           >
-            {pending ? "Saving..." : status.replace("_", " ")}
+            {pending ? "Saving..." : submissionActionLabels[status] || status.replace("_", " ")}
           </Button>
         ))}
       </div>

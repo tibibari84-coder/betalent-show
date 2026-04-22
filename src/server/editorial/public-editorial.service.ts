@@ -1,5 +1,6 @@
 import type { EditorialPageScope, EditorialPlacement } from "@prisma/client";
 
+import { appRoutes } from "@/lib/app-routes";
 import { prisma } from "@/server/db/prisma";
 
 import type { PublicEditorialPlacement } from "./types";
@@ -54,11 +55,10 @@ function ctaHrefFromPlacement(row: EditorialPlacement): string | null {
     case "STAGE":
     case "EPISODE":
     case "PERFORMANCE":
-      return "/app/show";
-    case "CONTESTANT":
-      return "/app/profile";
     case "STAGE_RESULT":
-      return "/app/results";
+      return appRoutes.seasons;
+    case "CONTESTANT":
+      return null;
     default:
       return null;
   }

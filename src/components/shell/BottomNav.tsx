@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { appRoutes } from "@/lib/app-routes";
 import { cn } from "@/lib/utils/cn";
 
 const NAV = [
   { href: "/app", label: "Home", Icon: IconHome },
-  { href: "/app/show", label: "Show", Icon: IconShow },
-  { href: "/app/auditions", label: "Auditions", Icon: IconMic },
-  { href: "/app/results", label: "Results", Icon: IconResults },
-  { href: "/app/profile", label: "Profile", Icon: IconProfile },
+  { href: appRoutes.creator, label: "Creator", Icon: IconCreator },
+  { href: appRoutes.uploads, label: "Uploads", Icon: IconUploads },
+  { href: appRoutes.submissions, label: "Entries", Icon: IconEntries },
+  { href: appRoutes.profile, label: "Profile", Icon: IconProfile },
 ] as const;
 
 function isActive(pathname: string, href: string) {
@@ -144,7 +145,7 @@ function IconHome({ active }: { active: boolean }) {
   );
 }
 
-function IconShow({ active }: { active: boolean }) {
+function IconCreator({ active }: { active: boolean }) {
   return (
     <svg
       aria-hidden
@@ -156,13 +157,13 @@ function IconShow({ active }: { active: boolean }) {
       stroke="currentColor"
       strokeWidth="1.75"
     >
-      <rect x="3.5" y="5.5" width="17" height="13" rx="2.5" />
-      <path d="M7 10h10M7 14h7" strokeLinecap="round" opacity="0.55" />
+      <circle cx="12" cy="8.5" r="3.5" />
+      <path d="M5 20a7 7 0 0 1 14 0" />
     </svg>
   );
 }
 
-function IconMic({ active }: { active: boolean }) {
+function IconUploads({ active }: { active: boolean }) {
   return (
     <svg
       aria-hidden
@@ -174,14 +175,14 @@ function IconMic({ active }: { active: boolean }) {
       stroke="currentColor"
       strokeWidth="1.75"
     >
-      <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 1 0-6 0v4a3 3 0 0 0 3 3Z" />
-      <path d="M19 11a7 7 0 0 1-14 0" />
-      <path d="M12 18v3" />
+      <path d="M12 16V5" />
+      <path d="m7.5 9.5 4.5-4.5 4.5 4.5" />
+      <rect x="4" y="16.5" width="16" height="3.5" rx="1.75" />
     </svg>
   );
 }
 
-function IconResults({ active }: { active: boolean }) {
+function IconEntries({ active }: { active: boolean }) {
   return (
     <svg
       aria-hidden
@@ -193,8 +194,8 @@ function IconResults({ active }: { active: boolean }) {
       stroke="currentColor"
       strokeWidth="1.75"
     >
-      <path d="M8 21h8M12 17V3" />
-      <path d="m5 9 3-3 4 4 5-7 3 4" />
+      <rect x="4" y="5" width="16" height="14" rx="2.5" />
+      <path d="M8 9h8M8 13h8M8 17h5" strokeLinecap="round" opacity="0.7" />
     </svg>
   );
 }

@@ -16,10 +16,19 @@ export default async function ProtectedAppLayout({
   const session = await requireAuthenticatedOnboarded('/app');
   const pathname = await getRequestedPathname('/app');
   const allNavItems = [...workspaceNavItems, ...accountNavItems];
+  const mobilePrimaryNav = workspaceNavItems.filter((item) =>
+    ['/app', '/app/creator', '/app/uploads', '/app/submissions'].includes(item.href),
+  );
+  const currentMobileItem =
+    mobilePrimaryNav.find((item) =>
+      item.href === '/app'
+        ? pathname === '/app' || pathname === '/app/'
+        : pathname === item.href || pathname.startsWith(`${item.href}/`),
+    ) ?? mobilePrimaryNav[0];
 
   return (
     <div className="foundation-shell text-white">
-      <header className="foundation-topbar">
+      <header className="foundation-topbar hidden sm:block">
         <div className="foundation-app-column">
           <FloatingTopChrome
             title="Creator OS"
@@ -84,6 +93,47 @@ export default async function ProtectedAppLayout({
               </nav>
             }
           />
+        </div>
+      </header>
+
+      <header className="foundation-mobile-header sm:hidden">
+        <div className="foundation-app-column px-4">
+          <div className="foundation-mobile-header-shell">
+            <div className="foundation-mobile-header-row">
+              <div className="min-w-0">
+                <p className="foundation-mobile-brand">BETALENT</p>
+                <p className="foundation-mobile-current">{currentMobileItem?.label}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Link href="/app/settings" aria-label="Open settings">
+                  <PremiumAvatar
+                    name={session.user.displayName || session.user.email}
+                    imageUrl={session.user.avatarUrl}
+                    className="h-11 w-11 border-white/10 bg-white/[0.06] text-[0.7rem] tracking-[0.08em] text-white/88"
+                  />
+                </Link>
+              </div>
+            </div>
+
+            <nav className="foundation-mobile-tabbar" aria-label="Primary">
+              {mobilePrimaryNav.map((item) => {
+                const isActive =
+                  item.href === '/app'
+                    ? pathname === '/app' || pathname === '/app/'
+                    : pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`foundation-mobile-tab ${isActive ? 'foundation-mobile-tab-active' : ''}`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
         </div>
       </header>
 

@@ -1,7 +1,16 @@
 import { prisma } from '@/lib/prisma';
-import { Prisma, Submission, SubmissionStatus } from '@prisma/client';
+import { Prisma, Submission, SubmissionStatus, VideoAssetStatus } from '@prisma/client';
 import { captureMessage } from '@/lib/sentry';
 import { VideoAssetService } from './video-asset.service';
+import {
+  allowedSubmissionTransitions,
+  prepareSubmissionStatusChange,
+} from '@/server/submissions/lifecycle';
+import {
+  createSubmissionDraftWithDeps,
+  submitSubmissionDraftWithDeps,
+  updateSubmissionDraftWithDeps,
+} from '@/server/submissions/draft-logic';
 
 export type SubmissionWithRelations = Prisma.SubmissionGetPayload<{
   include: {
@@ -28,14 +37,31 @@ export type SubmissionListItem = Prisma.SubmissionGetPayload<{
 }>;
 
 export class SubmissionService {
-  static readonly allowedStatusTransitions: Record<SubmissionStatus, SubmissionStatus[]> = {
-    DRAFT: [SubmissionStatus.SUBMITTED, SubmissionStatus.WITHDRAWN],
-    SUBMITTED: [SubmissionStatus.UNDER_REVIEW, SubmissionStatus.ACCEPTED, SubmissionStatus.REJECTED, SubmissionStatus.WITHDRAWN],
-    UNDER_REVIEW: [SubmissionStatus.ACCEPTED, SubmissionStatus.REJECTED, SubmissionStatus.WITHDRAWN],
-    ACCEPTED: [],
-    REJECTED: [],
-    WITHDRAWN: [],
-  };
+  static readonly allowedStatusTransitions = allowedSubmissionTransitions;
+
+  static async createSubmissionDraft(data: {
+    userId: string;
+    videoAssetId: string;
+    title: string;
+    description?: string;
+  }): Promise<Submission> {
+    return createSubmissionDraftWithDeps({
+      getReadyVideoAssetForSubmission: VideoAssetService.getReadyVideoAssetForSubmission,
+      createSubmission: (submission) =>
+        prisma.submission.create({
+          data: submission,
+        }),
+      findSubmissionForEdit: async () => null,
+      updateSubmission: async () => {
+        throw new Error('Not implemented in create submission path.');
+      },
+    }, {
+      userId: data.userId,
+      videoAssetId: data.videoAssetId,
+      title: data.title,
+      description: data.description,
+    });
+  }
 
   static async createSubmission(data: {
     userId: string;
@@ -43,23 +69,92 @@ export class SubmissionService {
     title: string;
     description?: string;
   }): Promise<Submission> {
-    await VideoAssetService.getReadyVideoAssetForSubmission(data.videoAssetId, data.userId);
+    return SubmissionService.createSubmissionDraft(data);
+  }
 
-    return prisma.submission.create({
-      data: {
-        ...data,
-        status: SubmissionStatus.DRAFT,
+  static async updateSubmissionDraft(data: {
+    id: string;
+    userId: string;
+    videoAssetId: string;
+    title: string;
+    description?: string;
+  }): Promise<Submission> {
+    return updateSubmissionDraftWithDeps({
+      getReadyVideoAssetForSubmission: VideoAssetService.getReadyVideoAssetForSubmission,
+      createSubmission: async () => {
+        throw new Error('Not implemented in update submission path.');
       },
+      findSubmissionForEdit: (id) =>
+        prisma.submission.findUnique({
+          where: { id },
+          include: {
+            videoAsset: {
+              select: {
+                id: true,
+                status: true,
+              },
+            },
+          },
+        }),
+      updateSubmission: (id, submission) =>
+        prisma.submission.update({
+          where: { id },
+          data: submission,
+        }),
+    }, {
+      id: data.id,
+      userId: data.userId,
+      videoAssetId: data.videoAssetId,
+      title: data.title,
+      description: data.description,
+    });
+  }
+
+  static async submitSubmissionDraft(data: {
+    id: string;
+    userId: string;
+  }): Promise<Submission> {
+    return submitSubmissionDraftWithDeps({
+      getReadyVideoAssetForSubmission: VideoAssetService.getReadyVideoAssetForSubmission,
+      createSubmission: async () => {
+        throw new Error('Not implemented in submit submission path.');
+      },
+      findSubmissionForEdit: (id) =>
+        prisma.submission.findUnique({
+          where: { id },
+          include: {
+            videoAsset: {
+              select: {
+                id: true,
+                status: true,
+              },
+            },
+          },
+        }),
+      updateSubmission: (id, submission) =>
+        prisma.submission.update({
+          where: { id },
+          data: submission,
+        }),
+    }, {
+      id: data.id,
+      userId: data.userId,
     });
   }
 
   static async updateSubmissionStatus(
     id: string,
-    status: SubmissionStatus
+    status: SubmissionStatus,
   ): Promise<Submission> {
     const current = await prisma.submission.findUnique({
       where: { id },
-      select: { id: true, status: true, userId: true, title: true },
+      include: {
+        videoAsset: {
+          select: {
+            status: true,
+          },
+        },
+      },
     });
 
     if (!current) {
@@ -70,14 +165,19 @@ export class SubmissionService {
       return prisma.submission.findUniqueOrThrow({ where: { id } });
     }
 
-    const allowed = SubmissionService.allowedStatusTransitions[current.status];
-    if (!allowed.includes(status)) {
-      throw new Error(`Invalid submission status transition: ${current.status} -> ${status}.`);
-    }
+    const transition = prepareSubmissionStatusChange({
+      currentStatus: current.status,
+      nextStatus: status,
+      currentSubmittedAt: current.submittedAt,
+      assetStatus: current.videoAsset.status as VideoAssetStatus,
+    });
 
     const updated = await prisma.submission.update({
       where: { id },
-      data: { status },
+      data: {
+        status,
+        submittedAt: transition.submittedAt,
+      },
     });
 
     captureMessage('Submission status updated.', 'info', {
@@ -86,6 +186,7 @@ export class SubmissionService {
       title: current.title,
       previousStatus: current.status,
       nextStatus: status,
+      lifecycleNote: transition.lifecycleNote,
     });
 
     return updated;

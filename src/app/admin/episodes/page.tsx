@@ -25,7 +25,7 @@ export default async function AdminEpisodesPage() {
         <div className="mt-6">
           <AdminEpisodeCreateForm
             seasons={seasons.map((season) => ({ id: season.id, title: season.title, status: season.status }))}
-            stages={stages.map((stage) => ({ id: stage.id, title: stage.title, season: { title: stage.season.title } }))}
+            stages={stages.map((stage) => ({ id: stage.id, title: stage.title, seasonId: stage.seasonId, season: { title: stage.season.title } }))}
           />
         </div>
       </section>

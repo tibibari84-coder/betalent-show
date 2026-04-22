@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { showSurfaceRevalidatePaths } from "@/lib/app-routes";
 import type { EditorialTargetType } from "@prisma/client";
 
 import { getSession } from "@/server/auth/session";
@@ -15,6 +16,12 @@ export type EditorialActionState = {
   ok?: boolean;
   detail?: string;
 };
+
+function revalidateEditorialSurfaces() {
+  for (const path of showSurfaceRevalidatePaths) {
+    revalidatePath(path);
+  }
+}
 
 async function gateOperator(): Promise<
   | { ok: true }
@@ -38,7 +45,7 @@ export async function ensureDefaultEditorialSlotsAction(): Promise<EditorialActi
 
   try {
     const n = await ensureDefaultEditorialSlots();
-    revalidatePath("/internal/editorial");
+    revalidateEditorialSurfaces();
     return { ok: true, detail: `Created ${n} new default slot(s).` };
   } catch (e) {
     return {
@@ -95,10 +102,7 @@ export async function createDraftPlacementAction(
         return Number.isFinite(n) ? n : null;
       })(),
     });
-    revalidatePath("/internal/editorial");
-    revalidatePath("/app");
-    revalidatePath("/app/show");
-    revalidatePath("/app/results");
+    revalidateEditorialSurfaces();
     return { ok: true };
   } catch (e) {
     return {
@@ -123,10 +127,7 @@ export async function publishPlacementAction(
 
   try {
     await publishEditorialPlacement(placementId);
-    revalidatePath("/internal/editorial");
-    revalidatePath("/app");
-    revalidatePath("/app/show");
-    revalidatePath("/app/results");
+    revalidateEditorialSurfaces();
     return { ok: true };
   } catch (e) {
     return {

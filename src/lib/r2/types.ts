@@ -15,4 +15,5 @@ export interface R2SignedUploadUrlResult {
 
 export interface R2StorageAdapter {
   getSignedUploadUrl(options: R2SignedUploadUrlOptions): Promise<R2SignedUploadUrlResult>;
+  deleteObject(key: string): Promise<void>;
 }
