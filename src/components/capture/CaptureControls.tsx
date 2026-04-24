@@ -1,7 +1,7 @@
 'use client';
 
-function formatDuration(ms: number) {
-  const totalSeconds = Math.ceil(ms / 1000);
+function formatRemaining(ms: number) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -13,88 +13,98 @@ export function CaptureControls(props: {
   elapsedMs: number;
   remainingMs: number;
   maxDurationMs: number;
-  durationOptions: number[];
+  durationOptions: readonly number[];
   selectedDurationMs: number;
-  canSwitchCamera?: boolean;
+  canSwitchCamera: boolean;
+  recorderError?: string | null;
   onStart: () => void;
   onStop: () => void;
   onRequestLibrary: () => void;
   onSelectDuration: (durationMs: number) => void;
-  onSwitchCamera?: () => void;
+  onSwitchCamera: () => void;
 }) {
-  const progress = Math.min(100, Math.round((props.elapsedMs / props.maxDurationMs) * 100));
+  const progress = Math.min(100, (props.elapsedMs / props.maxDurationMs) * 100);
+  const selectedSeconds = props.selectedDurationMs / 1000;
 
   return (
-    <div className="space-y-4 rounded-[1.4rem] border border-white/10 bg-black/45 p-4 shadow-[0_-20px_50px_-35px_rgba(0,0,0,0.95)] backdrop-blur-xl">
-      <div className="flex items-center justify-between text-xs uppercase tracking-[0.1em] text-white/62">
-        <span>{props.isRecording ? 'Recording' : 'Duration selected'}</span>
-        <span>{formatDuration(props.remainingMs)} left</span>
+    <div className="space-y-4">
+      <div className="mx-auto max-w-[18rem] overflow-hidden rounded-full bg-white/[0.14]">
+        <div className="h-1 rounded-full bg-white transition-all duration-100" style={{ width: `${progress}%` }} />
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {props.durationOptions.map((durationMs) => {
-          const isSelected = durationMs === props.selectedDurationMs;
-          return (
+      <div className="rounded-[1.8rem] border border-white/10 bg-black/34 px-4 py-5 shadow-[0_-24px_60px_-36px_rgba(0,0,0,1)] backdrop-blur-xl">
+        <div className="flex items-center justify-center">
+          <div className="flex rounded-full border border-white/10 bg-white/[0.05] p-1">
+            {props.durationOptions.map((durationMs) => {
+              const isSelected = props.selectedDurationMs === durationMs;
+              return (
+                <button
+                  key={durationMs}
+                  type="button"
+                  disabled={props.isRecording}
+                  onClick={() => props.onSelectDuration(durationMs)}
+                  className={`min-h-9 min-w-14 rounded-full px-3 text-xs font-semibold transition ${
+                    isSelected ? 'bg-white text-black' : 'text-white/68'
+                  } disabled:cursor-not-allowed disabled:opacity-55`}
+                >
+                  {durationMs / 1000}s
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {props.recorderError ? (
+          <p className="mt-3 rounded-[1rem] border border-red-400/20 bg-red-500/[0.08] px-3 py-2 text-sm text-red-100">
+            {props.recorderError}
+          </p>
+        ) : null}
+
+        <p className="mt-4 text-center text-[1.35rem] font-semibold tracking-[-0.05em] text-white">
+          {props.isRecording ? formatRemaining(props.remainingMs) : `${selectedSeconds}s`}
+        </p>
+
+        <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <button
+            type="button"
+            onClick={props.onRequestLibrary}
+            disabled={props.isRecording}
+            className="justify-self-start rounded-full border border-white/14 bg-white/[0.06] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/78 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Library
+          </button>
+
+          {props.isRecording ? (
             <button
-              key={durationMs}
               type="button"
-              onClick={() => props.onSelectDuration(durationMs)}
-              disabled={props.isRecording}
-              className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] transition ${
-                isSelected
-                  ? 'border-white/28 bg-white text-black'
-                  : 'border-white/12 bg-white/[0.05] text-white/74 hover:bg-white/[0.1]'
-              } disabled:cursor-not-allowed disabled:opacity-50`}
+              onClick={props.onStop}
+              className="h-[5rem] w-[5rem] rounded-full border-[6px] border-white bg-[#0d0d10] text-[10px] font-semibold uppercase tracking-[0.08em] text-white shadow-[0_22px_56px_-24px_rgba(255,255,255,0.75)]"
             >
-              {durationMs / 1000}s
+              Stop
             </button>
-          );
-        })}
-      </div>
+          ) : (
+            <button
+              type="button"
+              onClick={props.onStart}
+              disabled={!props.canRecord}
+              className="h-[5rem] w-[5rem] rounded-full border-[6px] border-white/85 bg-[#e94b3f] text-[10px] font-semibold uppercase tracking-[0.08em] text-white shadow-[0_22px_56px_-22px_rgba(233,75,63,0.95)] disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              Rec
+            </button>
+          )}
 
-      <div className="h-2 overflow-hidden rounded-full bg-white/[0.08]">
-        <div className="h-full rounded-full bg-rose-300/85 transition-all duration-200" style={{ width: `${progress}%` }} />
-      </div>
-
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <button
-          type="button"
-          onClick={props.onRequestLibrary}
-          className="justify-self-start rounded-full border border-white/14 bg-white/[0.05] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/74 hover:bg-white/[0.1]"
-        >
-          Library
-        </button>
-
-        {!props.isRecording ? (
-          <button
-            type="button"
-            onClick={props.onStart}
-            disabled={!props.canRecord}
-            className="h-16 w-16 rounded-full border border-rose-200/40 bg-rose-300/85 text-[11px] font-semibold uppercase tracking-[0.08em] text-rose-950 shadow-[0_18px_30px_-20px_rgba(255,120,150,0.9)] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Record
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={props.onStop}
-            className="h-16 w-16 rounded-full border border-white/20 bg-white/90 text-[11px] font-semibold uppercase tracking-[0.08em] text-black shadow-[0_18px_30px_-20px_rgba(255,255,255,0.9)]"
-          >
-            Stop
-          </button>
-        )}
-
-        {props.canSwitchCamera && props.onSwitchCamera ? (
           <button
             type="button"
             onClick={props.onSwitchCamera}
-            className="justify-self-end rounded-full border border-white/14 bg-white/[0.05] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/74 hover:bg-white/[0.1]"
+            disabled={!props.canSwitchCamera}
+            className="justify-self-end rounded-full border border-white/14 bg-white/[0.06] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/78 disabled:cursor-not-allowed disabled:opacity-45"
           >
             Flip
           </button>
-        ) : (
-          <span className="justify-self-end text-xs text-white/58">{props.isRecording ? 'On camera' : 'Vertical 9:16'}</span>
-        )}
+        </div>
+        <p className="mt-4 text-center text-xs leading-relaxed text-white/46">
+          Nothing uploads until review and confirmation.
+        </p>
       </div>
     </div>
   );

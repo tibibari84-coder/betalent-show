@@ -15,18 +15,6 @@ export function PremiumEmptyState(props: {
         props.className,
       )}
     >
-      <div
-        className="pointer-events-none absolute -left-16 top-0 h-48 w-48 rounded-full bg-[radial-gradient(circle,rgba(130,140,220,0.35),transparent_68%)] blur-2xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-10 bottom-0 h-44 w-44 rounded-full bg-[radial-gradient(circle,rgba(220,190,140,0.18),transparent_68%)] blur-2xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_50%_120%,rgba(255,255,255,0.05),transparent_58%)]"
-        aria-hidden
-      />
       <div className="relative flex min-h-[12rem] flex-col justify-center">
         <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-foreground/48">
           {props.title}

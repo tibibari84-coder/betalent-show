@@ -1,43 +1,43 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 export function CaptureStudioShell(props: {
-  eyebrow: string;
   title: string;
-  subtitle: string;
+  eyebrow?: string;
   onClose: () => void;
   stage: ReactNode;
-  footer: ReactNode;
+  controls: ReactNode;
+  closeLabel?: string;
 }) {
-  return (
-    <div className="fixed inset-0 z-[120] bg-black text-white">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/42 via-transparent to-black/78" />
+  if (typeof document === 'undefined') return null;
 
-      <div className="relative flex min-h-screen flex-col px-4 pb-[calc(var(--bt-safe-bottom)+1rem)] pt-[calc(var(--bt-safe-top)+0.9rem)]">
-        <div className="capture-studio-float flex items-center justify-between rounded-[1.15rem] border border-white/10 bg-black/34 px-4 py-3 backdrop-blur-xl">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/48">{props.eyebrow}</p>
-            <p className="mt-1 text-[15px] font-semibold tracking-[-0.03em] text-white">{props.title}</p>
-            <p className="mt-1 text-xs leading-relaxed text-white/60">{props.subtitle}</p>
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] overflow-hidden bg-black text-white">
+      <div className="absolute inset-0">{props.stage}</div>
+      <div className="pointer-events-none absolute inset-0 capture-studio-vignette" />
+
+      <div className="pointer-events-none relative z-10 flex min-h-dvh flex-col justify-between px-4 pb-[calc(var(--bt-safe-bottom)+1rem)] pt-[calc(var(--bt-safe-top)+0.85rem)]">
+        <div className="capture-studio-float flex items-start justify-between gap-4 rounded-[1.45rem] border border-white/10 bg-black/22 px-4 py-3 shadow-[0_18px_52px_-34px_rgba(0,0,0,1)] backdrop-blur-xl">
+          <div className="min-w-0">
+            {props.eyebrow ? (
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">{props.eyebrow}</p>
+            ) : null}
+            <h2 className="mt-1 text-[1.1rem] font-semibold tracking-[-0.04em] text-white">{props.title}</h2>
           </div>
           <button
             type="button"
             onClick={props.onClose}
-            className="rounded-full border border-white/14 bg-white/[0.06] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-white/84"
+            className="pointer-events-auto rounded-full border border-white/14 bg-white/[0.06] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-white/84"
           >
-            Exit
+            {props.closeLabel || 'Exit'}
           </button>
         </div>
 
-        <div className="flex flex-1 items-center justify-center py-5">
-          {props.stage}
-        </div>
-
-        <div className="capture-studio-float-delay">
-          {props.footer}
-        </div>
+        <div className="pointer-events-auto capture-studio-float-delay">{props.controls}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

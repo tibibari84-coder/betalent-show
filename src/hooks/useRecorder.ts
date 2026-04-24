@@ -2,24 +2,32 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-const DEFAULT_MAX_DURATION_MS = 120_000;
+const RECORDER_MIME_TYPES = [
+  'video/mp4;codecs=h264,aac',
+  'video/webm;codecs=vp9,opus',
+  'video/webm;codecs=vp8,opus',
+  'video/webm',
+];
 
-function selectRecorderMimeType() {
+export const MAX_RECORDING_DURATION_MS = 120_000;
+
+function getRecorderMimeType() {
   if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
     return undefined;
   }
 
-  const preferredTypes = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
-  return preferredTypes.find((type) => MediaRecorder.isTypeSupported(type));
+  return RECORDER_MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type));
 }
 
-export function useRecorder(stream: MediaStream | null, maxDurationMs = DEFAULT_MAX_DURATION_MS) {
+export function useRecorder(stream: MediaStream | null, maxDurationMs: number, onRecorded?: () => void) {
+  const cappedDurationMs = Math.min(maxDurationMs, MAX_RECORDING_DURATION_MS);
   const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunkRef = useRef<BlobPart[]>([]);
-  const timeoutRef = useRef<number | null>(null);
-  const intervalRef = useRef<number | null>(null);
-  const startedAtRef = useRef<number>(0);
-  const activeDurationMsRef = useRef<number>(maxDurationMs);
+  const chunksRef = useRef<BlobPart[]>([]);
+  const startedAtRef = useRef(0);
+  const maxDurationRef = useRef(cappedDurationMs);
+  const onRecordedRef = useRef(onRecorded);
+  const autoStopRef = useRef<number | null>(null);
+  const tickRef = useRef<number | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
@@ -27,96 +35,114 @@ export function useRecorder(stream: MediaStream | null, maxDurationMs = DEFAULT_
   const [elapsedMs, setElapsedMs] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    onRecordedRef.current = onRecorded;
+  }, [onRecorded]);
+
   const clearTimers = useCallback(() => {
-    if (timeoutRef.current) {
-      window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+    if (autoStopRef.current) {
+      window.clearTimeout(autoStopRef.current);
+      autoStopRef.current = null;
     }
-    if (intervalRef.current) {
-      window.clearInterval(intervalRef.current);
-      intervalRef.current = null;
+
+    if (tickRef.current) {
+      window.clearInterval(tickRef.current);
+      tickRef.current = null;
     }
+  }, []);
+
+  const clearPreview = useCallback(() => {
+    setPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return null;
+    });
+    setRecordedBlob(null);
   }, []);
 
   const stopRecording = useCallback(() => {
     const recorder = recorderRef.current;
     if (!recorder || recorder.state === 'inactive') return;
+
+    setElapsedMs(Math.min(maxDurationRef.current, Date.now() - startedAtRef.current));
     recorder.stop();
   }, []);
 
   const resetRecording = useCallback(() => {
     clearTimers();
+    if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+      recorderRef.current.stop();
+    }
+    recorderRef.current = null;
+    chunksRef.current = [];
     setIsRecording(false);
     setElapsedMs(0);
-    setRecordedBlob(null);
-    setPreviewUrl((current) => {
-      if (current) URL.revokeObjectURL(current);
-      return null;
-    });
     setError(null);
-  }, [clearTimers]);
+    clearPreview();
+  }, [clearPreview, clearTimers]);
 
   const startRecording = useCallback(() => {
     if (!stream) {
-      setError('Camera stream is not available yet.');
+      setError('Camera is not ready yet.');
       return;
     }
+
     if (typeof MediaRecorder === 'undefined') {
-      setError('This browser cannot record video from camera stream.');
+      setError('This browser can open the camera, but it cannot record video here.');
       return;
     }
 
-    setError(null);
-    setRecordedBlob(null);
-    setPreviewUrl((current) => {
-      if (current) URL.revokeObjectURL(current);
-      return null;
-    });
+    const mimeType = getRecorderMimeType();
+    chunksRef.current = [];
+    clearTimers();
+    clearPreview();
     setElapsedMs(0);
+    setError(null);
 
-    chunkRef.current = [];
-    const recorder = new MediaRecorder(stream, {
-      mimeType: selectRecorderMimeType(),
-    });
-    recorderRef.current = recorder;
+    try {
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      maxDurationRef.current = cappedDurationMs;
 
-    recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        chunkRef.current.push(event.data);
-      }
-    };
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
 
-    recorder.onerror = () => {
-      setError('Recording failed on this device. You can retry or import from library.');
-      clearTimers();
+      recorder.onerror = () => {
+        clearTimers();
+        setIsRecording(false);
+        setError('Recording failed on this device. Retake or choose a finished video from library.');
+      };
+
+      recorder.onstop = () => {
+        clearTimers();
+        setIsRecording(false);
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'video/webm' });
+        setRecordedBlob(blob);
+        setPreviewUrl((current) => {
+          if (current) URL.revokeObjectURL(current);
+          return URL.createObjectURL(blob);
+        });
+        onRecordedRef.current?.();
+      };
+
+      startedAtRef.current = Date.now();
+      setIsRecording(true);
+      recorder.start(250);
+
+      autoStopRef.current = window.setTimeout(() => {
+        stopRecording();
+      }, cappedDurationMs);
+
+      tickRef.current = window.setInterval(() => {
+        setElapsedMs(Math.min(maxDurationRef.current, Date.now() - startedAtRef.current));
+      }, 100);
+    } catch {
       setIsRecording(false);
-    };
-
-    recorder.onstop = () => {
-      clearTimers();
-      setIsRecording(false);
-      const blob = new Blob(chunkRef.current, { type: recorder.mimeType || 'video/webm' });
-      setRecordedBlob(blob);
-      setPreviewUrl((current) => {
-        if (current) URL.revokeObjectURL(current);
-        return URL.createObjectURL(blob);
-      });
-    };
-
-    startedAtRef.current = Date.now();
-    activeDurationMsRef.current = maxDurationMs;
-    setIsRecording(true);
-    recorder.start(250);
-
-    timeoutRef.current = window.setTimeout(() => {
-      stopRecording();
-    }, activeDurationMsRef.current);
-
-    intervalRef.current = window.setInterval(() => {
-      const elapsed = Date.now() - startedAtRef.current;
-      setElapsedMs(Math.min(activeDurationMsRef.current, elapsed));
-    }, 200);
-  }, [clearTimers, maxDurationMs, stopRecording, stream]);
+      setError('This device could not start a BETALENT recording session.');
+    }
+  }, [cappedDurationMs, clearPreview, clearTimers, stopRecording, stream]);
 
   useEffect(() => {
     if (!stream && isRecording) {
@@ -140,13 +166,14 @@ export function useRecorder(stream: MediaStream | null, maxDurationMs = DEFAULT_
       recordedBlob,
       previewUrl,
       elapsedMs,
-      remainingMs: Math.max(0, maxDurationMs - elapsedMs),
-      maxDurationMs,
+      remainingMs: Math.max(0, cappedDurationMs - elapsedMs),
+      maxDurationMs: cappedDurationMs,
       error,
       startRecording,
       stopRecording,
       resetRecording,
+      clearPreview,
     }),
-    [elapsedMs, error, isRecording, maxDurationMs, previewUrl, recordedBlob, resetRecording, startRecording, stopRecording],
+    [cappedDurationMs, clearPreview, elapsedMs, error, isRecording, previewUrl, recordedBlob, resetRecording, startRecording, stopRecording],
   );
 }

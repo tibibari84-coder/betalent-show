@@ -42,10 +42,6 @@ export function FeatureSurface(props: {
         className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-[#050508] via-[#050508]/84 to-transparent"
         aria-hidden
       />
-      <div
-        className="pointer-events-none absolute inset-y-0 right-0 w-2/3 bg-[radial-gradient(circle_at_78%_35%,rgba(255,255,255,0.08),transparent_30%)]"
-        aria-hidden
-      />
       <div className="relative grid gap-6 px-5 pb-6 pt-6 sm:px-7 sm:pb-7 sm:pt-7 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-end">
         <div className="flex min-h-[18rem] flex-col justify-end">
           {props.eyebrow ? (

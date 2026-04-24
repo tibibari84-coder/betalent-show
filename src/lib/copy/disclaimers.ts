@@ -13,9 +13,9 @@ export const UPLOAD_ORIGINALITY_DECLARATION =
   "I confirm this upload contains only my own original song or production, and I have the rights required to upload and submit it in BETALENT.";
 
 export const UPLOAD_RIGHTS_CONFIRMATIONS = {
-  performance: "I confirm this is my own performance recording or I have all necessary rights to upload it.",
-  rights: "I confirm I am responsible for the music and content rights in this upload.",
-  platform: "I understand BETALENT may remove, restrict, or reject content that violates rights, policy, or platform rules.",
+  performance: "I confirm this is my own performance recording or I have the necessary rights to upload it.",
+  rights: "I confirm I am responsible for the music/content rights in this upload.",
+  platform: "I understand BETALENT may remove or restrict content that violates rights or platform rules.",
 } as const;
 
 export const UPLOAD_RIGHTS_HELPER_COPY =

@@ -63,16 +63,6 @@ body {
   color: var(--foreground);
 }
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.02), transparent 18%),
-    radial-gradient(circle at 50% 0%, rgba(255,255,255,0.04), transparent 22%);
-}
-
 /* Apple TV–style ambient canvas (dark): immersive, glossy, no layout side-effects. */
 @media (prefers-color-scheme: dark) {
   .streaming-shell {
@@ -130,30 +120,15 @@ body::before {
   position: relative;
   min-height: 100vh;
   padding-bottom: 4rem;
-  background:
-    radial-gradient(circle at top, rgba(255,255,255,0.07), transparent 26%),
-    linear-gradient(180deg, #090a0f 0%, #050508 42%, #030305 100%);
+  background: #08080c;
 }
 
 .foundation-shell::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 18% 12%, rgba(193, 61, 45, 0.16), transparent 24%),
-    radial-gradient(circle at 86% 10%, rgba(130, 146, 216, 0.12), transparent 24%),
-    radial-gradient(circle at 50% -10%, rgba(255,255,255,0.1), transparent 30%),
-    linear-gradient(180deg, rgba(255,255,255,0.04), transparent 22%);
+  content: none;
 }
 
 .foundation-shell::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(5,5,8,0), rgba(5,5,8,0.32) 54%, rgba(5,5,8,0.82) 100%);
+  content: none;
 }
 
 .foundation-panel {
@@ -204,9 +179,7 @@ body::before {
     linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02)),
     rgba(8,8,10,0.72);
   padding: 0.95rem 1rem 0.85rem;
-  box-shadow:
-    0 24px 60px -42px rgba(0,0,0,0.9),
-    inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
   backdrop-filter: blur(26px);
 }
 
