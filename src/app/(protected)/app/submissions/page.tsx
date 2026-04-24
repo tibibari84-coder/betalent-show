@@ -163,6 +163,9 @@ export default async function SubmissionsPage() {
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/62">
                 Build from READY media, keep drafts editable, and submit only when the entry is final.
               </p>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/52">
+                Accepted submissions become the source for discovery, public creator rails, and performance destinations.
+              </p>
               {nonCompliantReadyAssetCount > 0 ? (
                 <p className="mt-3 max-w-2xl text-sm leading-relaxed text-amber-100/82">
                   {nonCompliantReadyAssetCount} ready {nonCompliantReadyAssetCount === 1 ? 'asset is' : 'assets are'} excluded because originality confirmation is missing.

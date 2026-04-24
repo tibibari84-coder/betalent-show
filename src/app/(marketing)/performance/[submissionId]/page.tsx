@@ -24,7 +24,7 @@ export default async function PublicPerformancePage(props: { params: Promise<{ s
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-5 sm:gap-6 sm:px-6 sm:py-7">
       <section className="foundation-panel rounded-[1.68rem] p-4 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-white/44">Public performance destination</p>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-white/44">Public performance reel</p>
           <div className="flex items-center gap-3 text-xs text-white/52">
             <Link href="/app/discovery" className="foundation-quiet-link">
               Discovery
@@ -38,6 +38,10 @@ export default async function PublicPerformancePage(props: { params: Promise<{ s
 
         <h1 className="text-[1.4rem] font-semibold tracking-[-0.035em] text-white sm:text-[1.65rem]">{item.title}</h1>
         {item.description ? <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/66">{item.description}</p> : null}
+        <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/54">
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">Accepted short video</span>
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">Creator destination</span>
+        </div>
 
         <div className="mt-4 relative overflow-hidden rounded-[1.25rem] border border-white/10 bg-black/45">
           {(item.media.playbackUrl || item.media.previewUrl) ? (

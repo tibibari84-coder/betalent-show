@@ -20,7 +20,7 @@ export default async function DiscoveryPage() {
           eyebrow="Discovery"
           tone="cobalt"
           title="Discover short performances"
-          description="Accepted entries only. Creator identity and engagement signals stay clear and trustworthy."
+          description="Accepted short videos only. Creator identity, vertical playback, and engagement stay clear, premium, and reels-first."
           primaryAction={<Link href="/app/submissions" className="foundation-hero-cta-primary">Open submissions</Link>}
           secondaryAction={<Link href="/app/uploads" className="foundation-hero-cta-secondary">Open uploads</Link>}
           meta={
@@ -45,8 +45,8 @@ export default async function DiscoveryPage() {
           {featuredItem ? (
             <section className="foundation-panel rounded-[1.65rem] p-4 sm:p-5">
               <div className="mb-4 flex items-center justify-between">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/46">Featured discovery</p>
-                <span className="text-xs text-white/44">Accepted entry</span>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/46">Featured discovery reel</p>
+                <span className="text-xs text-white/44">Accepted short video</span>
               </div>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-[0.8fr_1.2fr]">
                 <Link href={`/performance/${featuredItem.submissionId}`} className="block">
@@ -94,6 +94,10 @@ export default async function DiscoveryPage() {
                   </div>
 
                   <div className="mt-5">
+                    <div className="mb-3 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/54">
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">Discovery live</span>
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">Creator-first</span>
+                    </div>
                     <DiscoveryEngagementStrip
                       submissionId={featuredItem.submissionId}
                       creatorId={featuredItem.creator.id}
@@ -162,6 +166,10 @@ export default async function DiscoveryPage() {
                     ) : null}
 
                     <div className="mt-4">
+                      <div className="mb-3 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/54">
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">Short video</span>
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">Accepted</span>
+                      </div>
                       <DiscoveryEngagementStrip
                         submissionId={item.submissionId}
                         creatorId={item.creator.id}

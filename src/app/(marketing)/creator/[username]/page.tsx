@@ -28,7 +28,7 @@ export default async function PublicCreatorPage(props: { params: Promise<{ usern
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-5 sm:gap-6 sm:px-6 sm:py-7">
       <section className="foundation-panel rounded-[1.7rem] p-4 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-white/46">Public creator destination</p>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-white/46">Public creator reel</p>
           <Link href="/app/discovery" className="foundation-quiet-link">
             Back to discovery
           </Link>
@@ -67,6 +67,9 @@ export default async function PublicCreatorPage(props: { params: Promise<{ usern
           <span className="inline-flex min-h-[2rem] items-center rounded-full border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[11px] uppercase tracking-[0.09em] text-white/56">
             {destination.items.length} public performances
           </span>
+          <span className="inline-flex min-h-[2rem] items-center rounded-full border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[11px] uppercase tracking-[0.09em] text-white/56">
+            Shorts-first surface
+          </span>
         </div>
       </section>
 
@@ -88,7 +91,7 @@ export default async function PublicCreatorPage(props: { params: Promise<{ usern
             <section className="foundation-panel rounded-[1.6rem] p-4 sm:p-5">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <p className="text-[11px] uppercase tracking-[0.22em] text-white/46">Featured performance</p>
-                <span className="text-xs text-white/44">Creator highlight</span>
+                <span className="text-xs text-white/44">Creator highlight reel</span>
               </div>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-[0.9fr_1.1fr]">
                 <Link href={`/performance/${featuredItem.submissionId}`} className="block">

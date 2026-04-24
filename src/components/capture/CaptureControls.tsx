@@ -27,7 +27,7 @@ export function CaptureControls(props: {
   return (
     <div className="space-y-4 rounded-[1.4rem] border border-white/10 bg-black/45 p-4 shadow-[0_-20px_50px_-35px_rgba(0,0,0,0.95)] backdrop-blur-xl">
       <div className="flex items-center justify-between text-xs uppercase tracking-[0.1em] text-white/62">
-        <span>{props.isRecording ? 'Recording' : 'Ready to record'}</span>
+        <span>{props.isRecording ? 'Recording' : 'Duration selected'}</span>
         <span>{formatDuration(props.remainingMs)} left</span>
       </div>
 
@@ -93,7 +93,7 @@ export function CaptureControls(props: {
             Flip
           </button>
         ) : (
-          <span className="justify-self-end text-xs text-white/58">{props.isRecording ? 'Capture live' : 'Vertical 9:16'}</span>
+          <span className="justify-self-end text-xs text-white/58">{props.isRecording ? 'On camera' : 'Vertical 9:16'}</span>
         )}
       </div>
     </div>

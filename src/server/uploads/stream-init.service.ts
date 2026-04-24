@@ -1,5 +1,5 @@
 import { type VideoAssetStatus } from '@prisma/client';
-import { UPLOAD_ORIGINALITY_DECLARATION } from '@/lib/copy/disclaimers';
+import { UPLOAD_RIGHTS_CONFIRMATIONS, UPLOAD_RIGHTS_HELPER_COPY } from '@/lib/copy/disclaimers';
 
 type StreamInitInput = {
   filename: string;
@@ -10,6 +10,13 @@ type StreamInitInput = {
 };
 
 export const MAX_SHORT_VIDEO_DURATION_SECONDS = 120;
+
+const STORED_UPLOAD_DECLARATION = [
+  UPLOAD_RIGHTS_CONFIRMATIONS.performance,
+  UPLOAD_RIGHTS_CONFIRMATIONS.rights,
+  UPLOAD_RIGHTS_CONFIRMATIONS.platform,
+  UPLOAD_RIGHTS_HELPER_COPY,
+].join(' ');
 
 type StreamInitDeps = {
   createDraftVideoAsset: (input: {
@@ -58,7 +65,7 @@ export async function initializeStreamUploadWithDeps(
     mimeType: input.mimeType,
     originalityConfirmed: true,
     originalityConfirmedAt: new Date(),
-    originalityDeclarationText: UPLOAD_ORIGINALITY_DECLARATION,
+    originalityDeclarationText: STORED_UPLOAD_DECLARATION,
   });
 
   const directUpload = await deps.createDirectUpload({
