@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export type CameraStatus = 'idle' | 'requesting' | 'ready' | 'denied' | 'unsupported' | 'error';
+type FacingMode = 'user' | 'environment';
 
 export function useCamera() {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [status, setStatus] = useState<CameraStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [isFrontCamera, setIsFrontCamera] = useState(false);
+  const [preferredFacingMode, setPreferredFacingMode] = useState<FacingMode>('environment');
 
   const isSupported =
     typeof window !== 'undefined' &&
@@ -24,7 +26,7 @@ export function useCamera() {
     setIsFrontCamera(false);
   }, []);
 
-  const startCamera = useCallback(async () => {
+  const startCamera = useCallback(async (nextFacingMode?: FacingMode) => {
     if (!isSupported) {
       setStatus('unsupported');
       setError('Camera capture is not supported in this browser.');
@@ -34,10 +36,15 @@ export function useCamera() {
     setStatus('requesting');
     setError(null);
 
+    const targetFacingMode = nextFacingMode ?? preferredFacingMode;
+    if (nextFacingMode) {
+      setPreferredFacingMode(nextFacingMode);
+    }
+
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: { ideal: 'environment' },
+          facingMode: { ideal: targetFacingMode },
           aspectRatio: { ideal: 9 / 16 },
           width: { ideal: 720 },
           height: { ideal: 1280 },
@@ -60,7 +67,13 @@ export function useCamera() {
       setStatus('error');
       setError('BETALENT could not initialize the camera on this device.');
     }
-  }, [isSupported]);
+  }, [isSupported, preferredFacingMode]);
+
+  const switchCamera = useCallback(() => {
+    const nextFacingMode = preferredFacingMode === 'environment' ? 'user' : 'environment';
+    stopCamera();
+    void startCamera(nextFacingMode);
+  }, [preferredFacingMode, startCamera, stopCamera]);
 
   useEffect(() => {
     return () => {
@@ -75,9 +88,11 @@ export function useCamera() {
       error,
       isFrontCamera,
       isSupported,
+      preferredFacingMode,
       startCamera,
       stopCamera,
+      switchCamera,
     }),
-    [stream, status, error, isFrontCamera, isSupported, startCamera, stopCamera],
+    [stream, status, error, isFrontCamera, isSupported, preferredFacingMode, startCamera, stopCamera, switchCamera],
   );
 }

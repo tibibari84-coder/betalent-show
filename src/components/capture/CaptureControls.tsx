@@ -13,30 +13,56 @@ export function CaptureControls(props: {
   elapsedMs: number;
   remainingMs: number;
   maxDurationMs: number;
+  durationOptions: number[];
+  selectedDurationMs: number;
+  canSwitchCamera?: boolean;
   onStart: () => void;
   onStop: () => void;
   onRequestLibrary: () => void;
+  onSelectDuration: (durationMs: number) => void;
+  onSwitchCamera?: () => void;
 }) {
   const progress = Math.min(100, Math.round((props.elapsedMs / props.maxDurationMs) * 100));
 
   return (
-    <div className="space-y-3 rounded-[1.1rem] border border-white/10 bg-black/35 p-4">
+    <div className="space-y-4 rounded-[1.4rem] border border-white/10 bg-black/45 p-4 shadow-[0_-20px_50px_-35px_rgba(0,0,0,0.95)] backdrop-blur-xl">
       <div className="flex items-center justify-between text-xs uppercase tracking-[0.1em] text-white/62">
         <span>{props.isRecording ? 'Recording' : 'Ready to record'}</span>
         <span>{formatDuration(props.remainingMs)} left</span>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {props.durationOptions.map((durationMs) => {
+          const isSelected = durationMs === props.selectedDurationMs;
+          return (
+            <button
+              key={durationMs}
+              type="button"
+              onClick={() => props.onSelectDuration(durationMs)}
+              disabled={props.isRecording}
+              className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] transition ${
+                isSelected
+                  ? 'border-white/28 bg-white text-black'
+                  : 'border-white/12 bg-white/[0.05] text-white/74 hover:bg-white/[0.1]'
+              } disabled:cursor-not-allowed disabled:opacity-50`}
+            >
+              {durationMs / 1000}s
+            </button>
+          );
+        })}
       </div>
 
       <div className="h-2 overflow-hidden rounded-full bg-white/[0.08]">
         <div className="h-full rounded-full bg-rose-300/85 transition-all duration-200" style={{ width: `${progress}%` }} />
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <button
           type="button"
           onClick={props.onRequestLibrary}
-          className="justify-self-start rounded-full border border-white/14 bg-white/[0.05] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-white/74 hover:bg-white/[0.1]"
+          className="justify-self-start rounded-full border border-white/14 bg-white/[0.05] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/74 hover:bg-white/[0.1]"
         >
-          Choose from library
+          Library
         </button>
 
         {!props.isRecording ? (
@@ -58,7 +84,17 @@ export function CaptureControls(props: {
           </button>
         )}
 
-        <span className="justify-self-end text-xs text-white/58">{props.isRecording ? 'Capture live' : 'Vertical 9:16'}</span>
+        {props.canSwitchCamera && props.onSwitchCamera ? (
+          <button
+            type="button"
+            onClick={props.onSwitchCamera}
+            className="justify-self-end rounded-full border border-white/14 bg-white/[0.05] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/74 hover:bg-white/[0.1]"
+          >
+            Flip
+          </button>
+        ) : (
+          <span className="justify-self-end text-xs text-white/58">{props.isRecording ? 'Capture live' : 'Vertical 9:16'}</span>
+        )}
       </div>
     </div>
   );

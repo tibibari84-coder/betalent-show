@@ -4,14 +4,27 @@ export function VideoPreviewView(props: {
   previewUrl: string;
   onRetake: () => void;
   onUseVideo: () => void;
+  fullscreen?: boolean;
 }) {
   return (
-    <div className="space-y-3">
-      <div className="overflow-hidden rounded-[1.2rem] border border-white/12 bg-black/60">
-        <video controls playsInline preload="metadata" className="aspect-[9/16] w-full bg-black object-cover" src={props.previewUrl} />
+    <div className={props.fullscreen ? 'flex h-full min-h-screen flex-col bg-black' : 'space-y-4'}>
+      <div
+        className={
+          props.fullscreen
+            ? 'flex-1 overflow-hidden bg-black'
+            : 'overflow-hidden rounded-[1.2rem] border border-white/12 bg-black/90 shadow-[0_24px_80px_-40px_rgba(0,0,0,0.95)]'
+        }
+      >
+        <video
+          controls
+          playsInline
+          preload="metadata"
+          className={props.fullscreen ? 'h-full min-h-screen w-full bg-black object-cover' : 'min-h-[20rem] w-full bg-black object-cover'}
+          src={props.previewUrl}
+        />
       </div>
 
-      <div className="rounded-[1rem] border border-white/10 bg-black/35 p-4">
+      <div className={props.fullscreen ? 'hidden' : 'rounded-[1.2rem] border border-white/10 bg-black/45 p-4 backdrop-blur-xl'}>
         <p className="text-sm text-white/72">Review this take before upload. Keep only your final performance cut.</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-const MAX_DURATION_MS = 120_000;
+const DEFAULT_MAX_DURATION_MS = 120_000;
 
 function selectRecorderMimeType() {
   if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
@@ -13,12 +13,13 @@ function selectRecorderMimeType() {
   return preferredTypes.find((type) => MediaRecorder.isTypeSupported(type));
 }
 
-export function useRecorder(stream: MediaStream | null) {
+export function useRecorder(stream: MediaStream | null, maxDurationMs = DEFAULT_MAX_DURATION_MS) {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunkRef = useRef<BlobPart[]>([]);
   const timeoutRef = useRef<number | null>(null);
   const intervalRef = useRef<number | null>(null);
   const startedAtRef = useRef<number>(0);
+  const activeDurationMsRef = useRef<number>(maxDurationMs);
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
@@ -103,18 +104,19 @@ export function useRecorder(stream: MediaStream | null) {
     };
 
     startedAtRef.current = Date.now();
+    activeDurationMsRef.current = maxDurationMs;
     setIsRecording(true);
     recorder.start(250);
 
     timeoutRef.current = window.setTimeout(() => {
       stopRecording();
-    }, MAX_DURATION_MS);
+    }, activeDurationMsRef.current);
 
     intervalRef.current = window.setInterval(() => {
       const elapsed = Date.now() - startedAtRef.current;
-      setElapsedMs(Math.min(MAX_DURATION_MS, elapsed));
+      setElapsedMs(Math.min(activeDurationMsRef.current, elapsed));
     }, 200);
-  }, [clearTimers, stopRecording, stream]);
+  }, [clearTimers, maxDurationMs, stopRecording, stream]);
 
   useEffect(() => {
     if (!stream && isRecording) {
@@ -138,13 +140,13 @@ export function useRecorder(stream: MediaStream | null) {
       recordedBlob,
       previewUrl,
       elapsedMs,
-      remainingMs: Math.max(0, MAX_DURATION_MS - elapsedMs),
-      maxDurationMs: MAX_DURATION_MS,
+      remainingMs: Math.max(0, maxDurationMs - elapsedMs),
+      maxDurationMs,
       error,
       startRecording,
       stopRecording,
       resetRecording,
     }),
-    [elapsedMs, error, isRecording, previewUrl, recordedBlob, resetRecording, startRecording, stopRecording],
+    [elapsedMs, error, isRecording, maxDurationMs, previewUrl, recordedBlob, resetRecording, startRecording, stopRecording],
   );
 }
