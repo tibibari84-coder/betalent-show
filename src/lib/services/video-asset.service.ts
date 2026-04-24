@@ -18,6 +18,9 @@ export type CreateDraftVideoAssetInput = {
   originalName: string;
   size: number;
   mimeType: string;
+  originalityConfirmed: boolean;
+  originalityConfirmedAt: Date;
+  originalityDeclarationText: string;
 };
 
 export type ReadyVideoAsset = Prisma.VideoAssetGetPayload<{
@@ -60,6 +63,9 @@ export class VideoAssetService {
         originalName: data.originalName,
         size: data.size,
         mimeType: data.mimeType,
+        originalityConfirmed: data.originalityConfirmed,
+        originalityConfirmedAt: data.originalityConfirmedAt,
+        originalityDeclarationText: data.originalityDeclarationText,
         status: VideoAssetStatus.UPLOADING,
       },
     });
@@ -237,6 +243,7 @@ export class VideoAssetService {
         filename: true,
         size: true,
         mimeType: true,
+        originalityConfirmed: true,
         updatedAt: true,
       },
     });
@@ -247,6 +254,10 @@ export class VideoAssetService {
 
     if (asset.status !== VideoAssetStatus.READY) {
       throw new Error('Only READY video assets can be attached to a submission.');
+    }
+
+    if (!asset.originalityConfirmed) {
+      throw new Error('Only originality-confirmed video assets can be attached to a submission.');
     }
 
     return asset;

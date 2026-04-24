@@ -1,10 +1,12 @@
 import { type VideoAssetStatus } from '@prisma/client';
+import { UPLOAD_ORIGINALITY_DECLARATION } from '@/lib/copy/disclaimers';
 
 type StreamInitInput = {
   filename: string;
   mimeType: string;
   size: number;
   maxDurationSeconds: number;
+  originalityConfirmed: boolean;
 };
 
 export const MAX_SHORT_VIDEO_DURATION_SECONDS = 120;
@@ -16,6 +18,9 @@ type StreamInitDeps = {
     originalName: string;
     size: number;
     mimeType: string;
+    originalityConfirmed: boolean;
+    originalityConfirmedAt: Date;
+    originalityDeclarationText: string;
   }) => Promise<{
     id: string;
     originalName: string;
@@ -41,12 +46,19 @@ export async function initializeStreamUploadWithDeps(
     throw new Error(`BETALENT supports short uploaded performances up to ${MAX_SHORT_VIDEO_DURATION_SECONDS} seconds.`);
   }
 
+  if (!input.originalityConfirmed) {
+    throw new Error('Confirm originality rights before starting an upload.');
+  }
+
   const draftAsset = await deps.createDraftVideoAsset({
     userId,
     filename: input.filename,
     originalName: input.filename,
     size: input.size,
     mimeType: input.mimeType,
+    originalityConfirmed: true,
+    originalityConfirmedAt: new Date(),
+    originalityDeclarationText: UPLOAD_ORIGINALITY_DECLARATION,
   });
 
   const directUpload = await deps.createDirectUpload({

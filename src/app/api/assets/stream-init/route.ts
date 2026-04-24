@@ -13,6 +13,7 @@ const streamInitSchema = z.object({
   mimeType: z.string().min(1),
   size: z.number().int().positive(),
   maxDurationSeconds: z.number().int().positive().max(MAX_SHORT_VIDEO_DURATION_SECONDS).default(MAX_SHORT_VIDEO_DURATION_SECONDS),
+  originalityConfirmed: z.boolean().refine((value) => value, 'Originality confirmation is required before upload.'),
 });
 
 export async function POST(request: NextRequest) {

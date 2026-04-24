@@ -33,6 +33,7 @@ test('upload init route baseline: creates draft asset, direct upload, and provid
       mimeType: 'video/mp4',
       size: 1024,
       maxDurationSeconds: 120,
+      originalityConfirmed: true,
     },
   );
 
@@ -66,8 +67,36 @@ test('upload init route baseline: rejects durations above short-form limit', asy
         mimeType: 'video/mp4',
         size: 1024,
         maxDurationSeconds: 121,
+        originalityConfirmed: true,
       },
     ),
     /up to 120 seconds/,
+  );
+});
+
+test('upload init route baseline: rejects uploads without originality confirmation', async () => {
+  await assert.rejects(
+    initializeStreamUploadWithDeps(
+      {
+        async createDraftVideoAsset() {
+          throw new Error('should not create draft');
+        },
+        async createDirectUpload() {
+          throw new Error('should not create direct upload');
+        },
+        async attachDirectUpload() {
+          throw new Error('should not attach direct upload');
+        },
+      },
+      'user_1',
+      {
+        filename: 'demo.mp4',
+        mimeType: 'video/mp4',
+        size: 1024,
+        maxDurationSeconds: 60,
+        originalityConfirmed: false,
+      },
+    ),
+    /Confirm originality rights/,
   );
 });

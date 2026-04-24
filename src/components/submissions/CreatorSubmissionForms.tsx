@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
+import { ORIGINALS_ONLY_SHORT } from "@/lib/copy/disclaimers";
 import {
   createSubmissionDraftAction,
   submitSubmissionDraftAction,
@@ -47,6 +48,9 @@ export function SubmissionDraftCreateForm({
   return (
     <form action={action} className="space-y-4">
       <SubmissionActionFeedback state={state} />
+      <p className="rounded-[1rem] border border-amber-500/20 bg-amber-500/[0.08] px-4 py-3 text-sm text-amber-100/90">
+        {ORIGINALS_ONLY_SHORT} Only originality-confirmed READY assets can be attached to a submission.
+      </p>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-2">
@@ -120,6 +124,9 @@ export function SubmissionDraftEditor({
       <form action={updateAction} className="space-y-4">
         <input type="hidden" name="id" value={draft.id} />
         <SubmissionActionFeedback state={updateState} />
+        <p className="rounded-[1rem] border border-amber-500/20 bg-amber-500/[0.08] px-4 py-3 text-sm text-amber-100/90">
+          {ORIGINALS_ONLY_SHORT} Drafts can only use originality-confirmed READY assets.
+        </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="space-y-2">

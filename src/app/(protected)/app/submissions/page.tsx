@@ -37,11 +37,12 @@ export default async function SubmissionsPage() {
     VideoAssetService.getVideoAssetsByUser(session.user.id),
   ]);
 
-  const readyAssets = assets.filter((asset) => asset.status === VideoAssetStatus.READY);
+  const readyAssets = assets.filter((asset) => asset.status === VideoAssetStatus.READY && asset.originalityConfirmed);
   const readyAssetOptions = readyAssets.map((asset) => ({
     id: asset.id,
     label: `${asset.originalName} • ${(asset.size / (1024 * 1024)).toFixed(1)} MB`,
   }));
+  const nonCompliantReadyAssetCount = assets.filter((asset) => asset.status === VideoAssetStatus.READY && !asset.originalityConfirmed).length;
   const draftSubmissions = submissions.filter((submission) => submission.status === SubmissionStatus.DRAFT);
   const reviewSubmissions = submissions.filter(
     (submission) =>
@@ -162,6 +163,11 @@ export default async function SubmissionsPage() {
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/62">
                 Build from READY media, keep drafts editable, and submit only when the entry is final.
               </p>
+              {nonCompliantReadyAssetCount > 0 ? (
+                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-amber-100/82">
+                  {nonCompliantReadyAssetCount} ready {nonCompliantReadyAssetCount === 1 ? 'asset is' : 'assets are'} excluded because originality confirmation is missing.
+                </p>
+              ) : null}
             </div>
             <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-white/58 sm:min-w-[15.5rem]">
               {readyAssetCount > 0

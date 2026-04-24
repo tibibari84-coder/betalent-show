@@ -654,6 +654,9 @@ model VideoAsset {
   thumbnailUrl    String?
   size            Int
   mimeType        String
+  originalityConfirmed Boolean       @default(false)
+  originalityConfirmedAt DateTime?
+  originalityDeclarationText String?
   status          VideoAssetStatus   @default(UPLOADING)
   errorCode       String?
   errorMessage    String?

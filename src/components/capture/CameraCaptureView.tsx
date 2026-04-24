@@ -54,7 +54,7 @@ export function CameraCaptureView(props: {
     <div
       className={
         props.fullscreen
-          ? 'h-full min-h-screen overflow-hidden bg-black'
+          ? 'flex h-full min-h-screen items-center justify-center overflow-hidden bg-black'
           : 'overflow-hidden rounded-[1.2rem] border border-white/12 bg-black/90 shadow-[0_24px_80px_-40px_rgba(0,0,0,0.95)]'
       }
     >
@@ -64,7 +64,7 @@ export function CameraCaptureView(props: {
         muted
         playsInline
         className={props.fullscreen
-          ? `h-full min-h-screen w-full bg-black object-cover ${props.isFrontCamera ? '-scale-x-100' : ''}`
+          ? `h-full max-h-screen w-full bg-black object-contain ${props.isFrontCamera ? '-scale-x-100' : ''}`
           : `min-h-[20rem] w-full bg-black object-cover ${props.isFrontCamera ? '-scale-x-100' : ''}`}
       />
     </div>

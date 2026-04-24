@@ -11,7 +11,7 @@ export function VideoPreviewView(props: {
       <div
         className={
           props.fullscreen
-            ? 'flex-1 overflow-hidden bg-black'
+            ? 'flex flex-1 items-center justify-center overflow-hidden bg-black'
             : 'overflow-hidden rounded-[1.2rem] border border-white/12 bg-black/90 shadow-[0_24px_80px_-40px_rgba(0,0,0,0.95)]'
         }
       >
@@ -19,7 +19,7 @@ export function VideoPreviewView(props: {
           controls
           playsInline
           preload="metadata"
-          className={props.fullscreen ? 'h-full min-h-screen w-full bg-black object-cover' : 'min-h-[20rem] w-full bg-black object-cover'}
+          className={props.fullscreen ? 'h-full max-h-screen w-full bg-black object-contain' : 'min-h-[20rem] w-full bg-black object-cover'}
           src={props.previewUrl}
         />
       </div>
