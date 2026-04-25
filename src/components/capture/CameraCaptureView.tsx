@@ -64,14 +64,14 @@ export function CameraCaptureView(props: {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] h-[100dvh] w-screen isolate overflow-hidden bg-black">
+    <div className="fixed inset-0 z-[100] w-screen h-[100dvh] overflow-hidden bg-black text-white">
       <video
         ref={videoRef}
         autoPlay
         muted
         playsInline
         disablePictureInPicture
-        className={`absolute inset-0 h-full w-full object-cover -z-10 ${props.isFrontCamera ? '-scale-x-100' : ''}`}
+        className="absolute inset-0 w-full h-[100dvh] object-cover bg-black -z-10"
       />
     </div>
   );
