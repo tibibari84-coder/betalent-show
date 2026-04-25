@@ -23,12 +23,10 @@ Implemented:
 - Prisma schema, migration, and seed flow
 - public-safe provider routes
 - Cloudflare R2 signed upload URL API
-- Cloudflare Stream direct upload architecture
 - provider wrappers for R2, Resend, Sentry, and PostHog
 
 Intentionally not presented as finished product UI:
 
-- formal Cloudflare Stream ingestion workflow
 - moderation action UI for admin
 - stage detail pages and episode detail pages
 - public archive browsing beyond persisted archive state
@@ -120,23 +118,6 @@ Recommended local flow:
 3. `npm run db:migrate`
 4. `npm run db:seed`
 
-## Cloudflare Stream Setup
-
-1. Create a Cloudflare Stream-enabled account.
-2. Create an API token with Stream permissions.
-3. Fill:
-   - `CLOUDFLARE_STREAM_ACCOUNT_ID`
-   - `CLOUDFLARE_STREAM_API_TOKEN`
-   - `NEXT_PUBLIC_CLOUDFLARE_STREAM_CUSTOMER_SUBDOMAIN`
-   - `CLOUDFLARE_STREAM_WEBHOOK_SECRET`
-
-Production notes:
-
-- `POST /api/assets/stream-init` is disabled unless all direct-upload env values are present.
-- upload initialization creates a `VideoAsset`, but submission attachment still requires a separate READY asset flow.
-- READY and FAILED states are only finalized by the verified webhook handler.
-- Cloudflare must be configured to send the webhook to `/api/webhooks/cloudflare-stream`.
-
 ## Cloudflare R2 Setup
 
 1. Create an R2 bucket.
@@ -152,7 +133,8 @@ Production notes:
 Current usage:
 
 - `POST /api/assets/r2-upload-url` is authenticated and returns a signed PUT URL.
-- avatar/profile/static uploads also require `R2_PUBLIC_BASE_URL`, otherwise the route stays explicitly disabled for those asset types.
+- creator short-video uploads use R2 multipart route handlers: init, sign part URLs, complete, and abort.
+- avatar/profile/static/video uploads also require `R2_PUBLIC_BASE_URL`, otherwise the route stays explicitly disabled for those asset types.
 - never expose `R2_ACCESS_KEY_ID` or `R2_SECRET_ACCESS_KEY` to the client.
 
 ## Sentry Setup
@@ -243,8 +225,7 @@ Recommended production setup:
 - Prisma migration command in deploy flow: `npx prisma migrate deploy`
 - set `NEXT_PUBLIC_APP_URL` to the final production domain
 - enable only the provider env groups you actually intend to run in production
-- verify the Stream webhook secret in Cloudflare matches `CLOUDFLARE_STREAM_WEBHOOK_SECRET`
-- verify `R2_PUBLIC_BASE_URL` resolves publicly before enabling avatar uploads
+- verify `R2_PUBLIC_BASE_URL` resolves publicly before enabling avatar and video uploads
 
 ## Verification Commands
 
@@ -261,7 +242,6 @@ npm run build
 
 ## Known Next Steps
 
-- add real Cloudflare Stream ingestion and playback abstraction
 - connect submission creation to uploaded media assets
 - add audited admin mutation workflows through server actions
 - add public stage and episode detail routes

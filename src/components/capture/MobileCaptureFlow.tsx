@@ -68,7 +68,15 @@ function ProcessingView(props: { isUploading: boolean; error?: string | null; on
 }
 
 export async function uploadVideoToExistingPipeline(file: File, selectedDurationMs: number) {
-  const initResponse = await fetch('/api/assets/stream-init', {
+  let activeUpload:
+    | {
+        videoAssetId: string;
+        storageKey: string;
+        uploadId: string;
+      }
+    | null = null;
+
+  const initResponse = await fetch('/api/assets/video-upload-init', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -82,10 +90,12 @@ export async function uploadVideoToExistingPipeline(file: File, selectedDuration
 
   const initData = (await initResponse.json()) as {
     error?: string;
-    upload?: { url: string; formField: string };
+    videoAsset?: { id: string };
+    upload?: { uploadId: string; partSize: number };
+    storage?: { key: string; assetUrl: string };
   };
 
-  if (!initResponse.ok || !initData.upload) {
+  if (!initResponse.ok || !initData.videoAsset || !initData.upload || !initData.storage) {
     if (initResponse.status === 503) {
       throw new Error('Upload service is unavailable in this environment.');
     }
@@ -95,16 +105,81 @@ export async function uploadVideoToExistingPipeline(file: File, selectedDuration
     throw new Error(initData.error || 'Unable to initialize upload.');
   }
 
-  const form = new FormData();
-  form.append(initData.upload.formField, file);
+  activeUpload = {
+    videoAssetId: initData.videoAsset.id,
+    storageKey: initData.storage.key,
+    uploadId: initData.upload.uploadId,
+  };
+  const uploadSession = activeUpload;
 
-  const uploadResponse = await fetch(initData.upload.url, {
-    method: 'POST',
-    body: form,
-  });
+  try {
+    const partSize = initData.upload.partSize;
+    const partCount = Math.max(1, Math.ceil(file.size / partSize));
+    const uploadedParts: Array<{ partNumber: number; etag: string }> = [];
 
-  if (!uploadResponse.ok) {
-    throw new Error('Direct upload to Cloudflare Stream failed.');
+    for (let partNumber = 1; partNumber <= partCount; partNumber += 1) {
+      const start = (partNumber - 1) * partSize;
+      const end = Math.min(start + partSize, file.size);
+      const part = file.slice(start, end);
+
+      const partResponse = await fetch('/api/assets/video-upload-part', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...uploadSession,
+          partNumber,
+        }),
+      });
+
+      const partData = (await partResponse.json()) as {
+        error?: string;
+        uploadPart?: { uploadUrl: string; partNumber: number };
+      };
+
+      if (!partResponse.ok || !partData.uploadPart) {
+        throw new Error(partData.error || 'Unable to prepare video upload part.');
+      }
+
+      const uploadResponse = await fetch(partData.uploadPart.uploadUrl, {
+        method: 'PUT',
+        body: part,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Video upload failed. Please try again.');
+      }
+
+      const etag = uploadResponse.headers.get('ETag');
+      if (!etag) {
+        throw new Error('Video upload part did not return a completion tag.');
+      }
+
+      uploadedParts.push({ partNumber: partData.uploadPart.partNumber, etag });
+    }
+
+    const completeResponse = await fetch('/api/assets/video-upload-complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...uploadSession,
+        parts: uploadedParts,
+      }),
+    });
+
+    const completeData = (await completeResponse.json()) as { error?: string };
+    if (!completeResponse.ok) {
+      throw new Error(completeData.error || 'Unable to complete upload.');
+    }
+  } catch (uploadError) {
+    if (activeUpload) {
+      await fetch('/api/assets/video-upload-abort', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(activeUpload),
+      }).catch(() => undefined);
+    }
+
+    throw uploadError;
   }
 }
 

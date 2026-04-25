@@ -1,14 +1,3 @@
-export type StreamDirectUploadRequest = {
-  creatorId: string;
-  maxDurationSeconds: number;
-  metadata: Record<string, string>;
-};
-
-export type StreamDirectUploadResult = {
-  uid: string;
-  uploadURL: string;
-};
-
 export type StreamVideoStatus = {
   state?: string | null;
   pctComplete?: string | null;

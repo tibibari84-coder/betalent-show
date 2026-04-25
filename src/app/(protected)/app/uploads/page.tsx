@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { VideoAssetStatus } from '@prisma/client';
 
 import { DirectVideoUploadCard } from '@/components/uploads/DirectVideoUploadCard';
+import { OpenUploadCameraButton } from '@/components/uploads/OpenUploadCameraButton';
 import {
   AppPage,
   FeatureSurface,
@@ -11,7 +12,7 @@ import {
   SupportPanel,
 } from '@/components/premium';
 import { getAssetTheme } from '@/lib/content-presentation';
-import { streamEnabled, streamWebhookVerificationEnabled } from '@/lib/stream';
+import { getR2ConfigState } from '@/lib/r2';
 import { VideoAssetService } from '@/lib/services/video-asset.service';
 import { requireAuthenticatedOnboarded } from '@/server/auth/guard';
 
@@ -39,6 +40,8 @@ export default async function UploadsPage(props: {
   const detailAsset = assets.find((asset) => asset.id === selectedAssetId) ?? featuredAsset;
   const detailPlaybackUrl = detailAsset?.playbackUrl || detailAsset?.previewUrl || null;
   const detailStatus = detailAsset?.status;
+  const uploadStorageConfig = getR2ConfigState('video');
+  const uploadsEnabled = uploadStorageConfig.enabled;
   const detailPrimaryAction =
     detailStatus === VideoAssetStatus.READY
       ? {
@@ -66,7 +69,7 @@ export default async function UploadsPage(props: {
         <FeatureSurface
           eyebrow="Uploads"
           tone={
-            !streamEnabled
+            !uploadsEnabled
               ? 'ember'
               : featuredAsset?.status === VideoAssetStatus.READY
                 ? 'emerald'
@@ -77,22 +80,22 @@ export default async function UploadsPage(props: {
                     : 'cobalt'
           }
           title={
-            !streamEnabled
+            !uploadsEnabled
               ? 'Uploads are unavailable in this environment'
               : featuredAsset
                 ? 'Short-performance composer'
                 : 'Start your short-performance library with one standout vertical upload'
           }
           description={
-            !streamEnabled
+            !uploadsEnabled
               ? 'This environment cannot create new media right now, but your existing library still stays visible.'
               : featuredAsset
                 ? 'Select an asset, keep focus on preview, then move READY work into submission.'
                 : 'Import one short vertical performance to activate composer flow and preview.'
           }
           primaryAction={
-            streamEnabled
-              ? <Link href="#upload-panel" className="foundation-hero-cta-primary">Add media</Link>
+            uploadsEnabled
+              ? <OpenUploadCameraButton />
               : <Link href="/app/submissions" className="foundation-hero-cta-primary">Open entries</Link>
           }
           secondaryAction={<Link href="/app/submissions" className="foundation-hero-cta-secondary">View entries</Link>}
@@ -118,11 +121,12 @@ export default async function UploadsPage(props: {
               className="min-h-[15rem]"
             />
           }
+          className="hidden sm:block"
         />
       }
     >
       <div className="foundation-page-stack">
-        {streamEnabled ? (
+        {uploadsEnabled ? (
           <div id="upload-panel">
             <DirectVideoUploadCard />
           </div>
@@ -158,13 +162,13 @@ export default async function UploadsPage(props: {
           />
           <SupportPanel
             eyebrow="Delivery"
-            title={streamWebhookVerificationEnabled ? 'Automatic readiness is turned on' : 'Readiness updates are limited here'}
+            title={uploadsEnabled ? 'R2 upload storage is turned on' : 'R2 upload storage is not configured'}
             description={
-              streamWebhookVerificationEnabled
-                ? 'READY appears automatically when secure processing completes.'
-                : 'READY state may update with a short delay in this environment.'
+              uploadsEnabled
+                ? 'Uploads are stored in Cloudflare R2 and become READY after the multipart transfer completes.'
+                : `Missing upload configuration: ${uploadStorageConfig.missing.join(', ')}.`
             }
-            tone={streamWebhookVerificationEnabled ? 'violet' : 'gold'}
+            tone={uploadsEnabled ? 'emerald' : 'gold'}
           />
         </div>
 

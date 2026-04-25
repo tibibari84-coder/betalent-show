@@ -73,7 +73,7 @@ export function DirectVideoUploadCard() {
   const isMobile = deviceMode === 'mobile';
   const isDesktop = deviceMode === 'desktop';
   const desktopInputRef = useRef<HTMLInputElement | null>(null);
-  const [isCaptureOpen, setIsCaptureOpen] = useState(true);
+  const [isCaptureOpen, setIsCaptureOpen] = useState(false);
   const [desktopFile, setDesktopFile] = useState<File | null>(null);
   const [desktopPreviewUrl, setDesktopPreviewUrl] = useState<string | null>(null);
   const [desktopDurationMs, setDesktopDurationMs] = useState<number>(60_000);
@@ -87,6 +87,29 @@ export function DirectVideoUploadCard() {
       if (desktopPreviewUrl) URL.revokeObjectURL(desktopPreviewUrl);
     };
   }, [desktopPreviewUrl]);
+
+  useEffect(() => {
+    const openCapture = () => {
+      setIsCaptureOpen(true);
+      setInfo(null);
+      setError(null);
+    };
+    const openCaptureFromHash = () => {
+      if (window.location.hash === '#upload-panel') {
+        openCapture();
+      }
+    };
+
+    openCaptureFromHash();
+
+    window.addEventListener('betalent:open-upload-camera', openCapture);
+    window.addEventListener('hashchange', openCaptureFromHash);
+
+    return () => {
+      window.removeEventListener('betalent:open-upload-camera', openCapture);
+      window.removeEventListener('hashchange', openCaptureFromHash);
+    };
+  }, []);
 
   function setDesktopPreview(file: File | null) {
     setDesktopPreviewUrl((current) => {
@@ -119,6 +142,12 @@ export function DirectVideoUploadCard() {
 
   function toggleLegalCheck(key: LegalCheckKey, checked: boolean) {
     setLegalChecks((current) => ({ ...current, [key]: checked }));
+  }
+
+  function openMobileCapture() {
+    setIsCaptureOpen(true);
+    setInfo(null);
+    setError(null);
   }
 
   async function submitDesktopUpload() {
@@ -194,14 +223,14 @@ export function DirectVideoUploadCard() {
             <div className="rounded-[1.35rem] border border-white/10 bg-black/35 p-4">
               <p className="text-xs uppercase tracking-[0.14em] text-white/48">Mobile capture</p>
               <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-white">
-                TikTok-style recording mode
+                Open the full-screen camera
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-white/64">
                 Full-screen vertical capture with 30, 60, or 120 second limits. Review, confirm rights, then upload.
               </p>
               <button
                 type="button"
-                onClick={() => setIsCaptureOpen(true)}
+                onClick={openMobileCapture}
                 className="foundation-primary-button mt-4 min-h-[2.9rem] px-4 text-xs font-semibold uppercase tracking-[0.08em]"
               >
                 Open camera

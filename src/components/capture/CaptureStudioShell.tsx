@@ -19,23 +19,31 @@ export function CaptureStudioShell(props: {
       <div className="pointer-events-none absolute inset-0 capture-studio-vignette" />
 
       <div className="pointer-events-none relative z-10 flex min-h-dvh flex-col justify-between px-4 pb-[calc(var(--bt-safe-bottom)+1rem)] pt-[calc(var(--bt-safe-top)+0.85rem)]">
-        <div className="capture-studio-float flex items-start justify-between gap-4 rounded-[1.45rem] border border-white/10 bg-black/22 px-4 py-3 shadow-[0_18px_52px_-34px_rgba(0,0,0,1)] backdrop-blur-xl">
-          <div className="min-w-0">
+        <div className="capture-studio-float flex items-center justify-between gap-4">
+          <button
+            type="button"
+            onClick={props.onClose}
+            aria-label={props.closeLabel || 'Exit'}
+            className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-white/16 bg-black/34 text-[1.9rem] font-light leading-none text-white shadow-[0_18px_42px_-30px_rgba(0,0,0,1)] backdrop-blur-xl"
+          >
+            ‹
+          </button>
+          <div className="min-w-0 text-center">
             {props.eyebrow ? (
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">{props.eyebrow}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/54">{props.eyebrow}</p>
             ) : null}
-            <h2 className="mt-1 text-[1.1rem] font-semibold tracking-[-0.04em] text-white">{props.title}</h2>
+            <h2 className="mt-0.5 text-sm font-semibold tracking-[-0.02em] text-white/90">{props.title}</h2>
           </div>
           <button
             type="button"
             onClick={props.onClose}
-            className="pointer-events-auto rounded-full border border-white/14 bg-white/[0.06] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-white/84"
+            className="pointer-events-auto min-h-11 rounded-full border border-white/16 bg-black/34 px-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-white/86 shadow-[0_18px_42px_-30px_rgba(0,0,0,1)] backdrop-blur-xl"
           >
             {props.closeLabel || 'Exit'}
           </button>
         </div>
 
-        <div className="pointer-events-auto capture-studio-float-delay">{props.controls}</div>
+        <div className="pointer-events-auto capture-studio-float-delay pb-2">{props.controls}</div>
       </div>
     </div>,
     document.body,

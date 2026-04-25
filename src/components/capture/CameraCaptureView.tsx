@@ -71,9 +71,8 @@ export function CameraCaptureView(props: {
         muted
         playsInline
         disablePictureInPicture
-        className={`h-full w-full bg-black object-contain ${props.isFrontCamera ? '-scale-x-100' : ''}`}
+        className={`h-full w-full bg-black object-cover ${props.isFrontCamera ? '-scale-x-100' : ''}`}
       />
-      <div className="pointer-events-none absolute inset-x-[8vw] top-[13dvh] bottom-[17dvh] rounded-[2.4rem] border border-white/10 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.18)]" />
     </div>
   );
 }

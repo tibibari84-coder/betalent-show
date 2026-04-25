@@ -203,6 +203,7 @@ enum VideoAssetStatus {
 
 enum VideoAssetProvider {
   CLOUDFLARE_STREAM
+  R2_OBJECT
 }
 
 enum SubmissionStatus {
@@ -643,7 +644,7 @@ model VideoAsset {
   id              String             @id @default(cuid())
   userId          String
   user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider        VideoAssetProvider @default(CLOUDFLARE_STREAM)
+  provider        VideoAssetProvider @default(R2_OBJECT)
   providerAssetId String?            @unique
   filename        String
   originalName    String

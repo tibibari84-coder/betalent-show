@@ -8,7 +8,7 @@ import { createR2UploadUrl, getR2ConfigState, isR2PublicDeliveryRequiredForPurpo
 const createUploadUrlSchema = z.object({
   fileName: z.string().min(1),
   contentType: z.string().min(1),
-  purpose: z.enum(['avatar', 'profile', 'static', 'document', 'export']).default('avatar'),
+  purpose: z.enum(['avatar', 'profile', 'static', 'document', 'export', 'video']).default('avatar'),
 });
 
 function sanitizeFileName(fileName: string) {

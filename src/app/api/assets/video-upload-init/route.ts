@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { POSTHOG_EVENTS, trackEvent } from '@/lib/analytics/posthog';
+import { createR2MultipartUpload, getR2ConfigState } from '@/lib/r2';
 import { captureException, captureMessage } from '@/lib/sentry';
-import { getStreamConfigState, streamAdapter } from '@/lib/stream';
 import { VideoAssetService } from '@/lib/services/video-asset.service';
 import { AccessError, requireApiOnboarded } from '@/server/auth/guard';
-import { initializeStreamUploadWithDeps, MAX_SHORT_VIDEO_DURATION_SECONDS } from '@/server/uploads/stream-init.service';
+import { initializeVideoUploadWithDeps, MAX_SHORT_VIDEO_DURATION_SECONDS } from '@/server/uploads/video-upload.service';
 
-const streamInitSchema = z.object({
+const videoUploadInitSchema = z.object({
   filename: z.string().min(1),
   mimeType: z.string().min(1),
   size: z.number().int().positive(),
@@ -17,15 +17,14 @@ const streamInitSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const streamConfig = getStreamConfigState();
+  const storageConfig = getR2ConfigState('video');
 
-  if (!streamConfig.enabled) {
+  if (!storageConfig.enabled) {
     return NextResponse.json(
       {
-        provider: streamConfig.provider,
-        error: 'Cloudflare Stream is not configured.',
-        missing: streamConfig.missingDirectUpload,
-        webhookVerificationMissing: streamConfig.missingWebhookVerification,
+        provider: storageConfig.provider,
+        error: 'Video upload storage is not configured.',
+        missing: storageConfig.missing,
       },
       { status: 503 },
     );
@@ -38,12 +37,12 @@ export async function POST(request: NextRequest) {
     const session = await requireApiOnboarded();
     sessionUserId = session.user.id;
 
-    const body = streamInitSchema.parse(await request.json());
-    const initialized = await initializeStreamUploadWithDeps(
+    const body = videoUploadInitSchema.parse(await request.json());
+    const initialized = await initializeVideoUploadWithDeps(
       {
         createDraftVideoAsset: VideoAssetService.createDraftVideoAsset,
-        createDirectUpload: streamAdapter.createDirectUpload.bind(streamAdapter),
-        attachDirectUpload: VideoAssetService.attachDirectUpload,
+        createObjectUpload: createR2MultipartUpload,
+        attachStoredUpload: VideoAssetService.attachStoredUpload,
       },
       session.user.id,
       body,
@@ -54,14 +53,16 @@ export async function POST(request: NextRequest) {
     await trackEvent(POSTHOG_EVENTS.upload_started, {
       distinctId: session.user.id,
       videoAssetId: initialized.videoAsset.id,
-      providerAssetId: initialized.providerAssetId,
+      storageKey: initialized.storage.key,
       filename: initialized.originalName,
+      provider: storageConfig.provider,
     });
 
     return NextResponse.json({
       ok: true,
       videoAsset: initialized.videoAsset,
       upload: initialized.upload,
+      storage: initialized.storage,
     });
   } catch (error) {
     if (error instanceof AccessError) {
@@ -93,19 +94,16 @@ export async function POST(request: NextRequest) {
     }
 
     captureException(error, {
-      route: 'api/assets/stream-init',
+      route: 'api/assets/video-upload-init',
       videoAssetId,
       userId: sessionUserId,
     });
-    captureMessage('Cloudflare Stream direct upload initialization failed.', 'error', {
+    captureMessage('Video upload initialization failed.', 'error', {
       videoAssetId,
       userId: sessionUserId,
-      provider: 'cloudflare-stream',
+      provider: storageConfig.provider,
     });
 
-    return NextResponse.json(
-      { error: 'Unable to initialize direct upload.' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: 'Unable to initialize video upload.' }, { status: 500 });
   }
 }

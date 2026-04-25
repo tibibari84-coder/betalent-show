@@ -1,7 +1,8 @@
-import { type VideoAssetStatus } from '@prisma/client';
+import { VideoAssetProvider, type VideoAssetStatus } from '@prisma/client';
+
 import { UPLOAD_RIGHTS_CONFIRMATIONS, UPLOAD_RIGHTS_HELPER_COPY } from '@/lib/copy/disclaimers';
 
-type StreamInitInput = {
+export type VideoUploadInitInput = {
   filename: string;
   mimeType: string;
   size: number;
@@ -18,9 +19,10 @@ const STORED_UPLOAD_DECLARATION = [
   UPLOAD_RIGHTS_HELPER_COPY,
 ].join(' ');
 
-type StreamInitDeps = {
+type VideoUploadInitDeps = {
   createDraftVideoAsset: (input: {
     userId: string;
+    provider: VideoAssetProvider;
     filename: string;
     originalName: string;
     size: number;
@@ -33,21 +35,39 @@ type StreamInitDeps = {
     originalName: string;
     status: VideoAssetStatus;
   }>;
-  createDirectUpload: (input: {
-    creatorId: string;
-    maxDurationSeconds: number;
-    metadata: Record<string, string>;
+  createObjectUpload: (input: {
+    key: string;
+    contentType: string;
+    purpose: 'video';
   }) => Promise<{
-    uid: string;
-    uploadURL: string;
+    uploadId: string;
+    assetUrl: string;
+    key: string;
   }>;
-  attachDirectUpload: (id: string, input: { providerAssetId: string; uploadUrl: string }) => Promise<unknown>;
+  attachStoredUpload: (
+    id: string,
+    input: { providerAssetId: string; uploadUrl: string; assetUrl: string },
+  ) => Promise<unknown>;
 };
 
-export async function initializeStreamUploadWithDeps(
-  deps: StreamInitDeps,
+function sanitizeFilename(filename: string): string {
+  return filename
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .toLowerCase();
+}
+
+export function buildVideoObjectKey(input: { userId: string; videoAssetId: string; filename: string }) {
+  const safeName = sanitizeFilename(input.filename) || `upload-${Date.now()}`;
+  return `video/${input.userId}/${input.videoAssetId}/${safeName}`;
+}
+
+export async function initializeVideoUploadWithDeps(
+  deps: VideoUploadInitDeps,
   userId: string,
-  input: StreamInitInput,
+  input: VideoUploadInitInput,
 ) {
   if (input.maxDurationSeconds > MAX_SHORT_VIDEO_DURATION_SECONDS) {
     throw new Error(`BETALENT supports short uploaded performances up to ${MAX_SHORT_VIDEO_DURATION_SECONDS} seconds.`);
@@ -59,6 +79,7 @@ export async function initializeStreamUploadWithDeps(
 
   const draftAsset = await deps.createDraftVideoAsset({
     userId,
+    provider: VideoAssetProvider.R2_OBJECT,
     filename: input.filename,
     originalName: input.filename,
     size: input.size,
@@ -68,19 +89,20 @@ export async function initializeStreamUploadWithDeps(
     originalityDeclarationText: STORED_UPLOAD_DECLARATION,
   });
 
-  const directUpload = await deps.createDirectUpload({
-    creatorId: userId,
-    maxDurationSeconds: input.maxDurationSeconds,
-    metadata: {
-      videoAssetId: draftAsset.id,
+  const multipartUpload = await deps.createObjectUpload({
+    key: buildVideoObjectKey({
       userId,
+      videoAssetId: draftAsset.id,
       filename: draftAsset.originalName,
-    },
+    }),
+    contentType: input.mimeType,
+    purpose: 'video',
   });
 
-  await deps.attachDirectUpload(draftAsset.id, {
-    providerAssetId: directUpload.uid,
-    uploadUrl: directUpload.uploadURL,
+  await deps.attachStoredUpload(draftAsset.id, {
+    providerAssetId: multipartUpload.key,
+    uploadUrl: multipartUpload.uploadId,
+    assetUrl: multipartUpload.assetUrl,
   });
 
   return {
@@ -89,10 +111,13 @@ export async function initializeStreamUploadWithDeps(
       status: draftAsset.status,
     },
     upload: {
-      url: directUpload.uploadURL,
-      formField: 'file' as const,
+      uploadId: multipartUpload.uploadId,
+      partSize: 8 * 1024 * 1024,
     },
-    providerAssetId: directUpload.uid,
+    storage: {
+      key: multipartUpload.key,
+      assetUrl: multipartUpload.assetUrl,
+    },
     originalName: draftAsset.originalName,
   };
 }

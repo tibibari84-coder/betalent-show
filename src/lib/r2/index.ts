@@ -5,6 +5,12 @@ import { captureMessage } from '@/lib/sentry';
 
 import { CloudflareR2Adapter } from './cloudflare-r2.adapter';
 import {
+  R2AbortMultipartUploadOptions,
+  R2CompleteMultipartUploadOptions,
+  R2MultipartUploadOptions,
+  R2MultipartUploadPartUrlOptions,
+  R2MultipartUploadPartUrlResult,
+  R2MultipartUploadResult,
   R2AssetPurpose,
   R2SignedUploadUrlOptions,
   R2SignedUploadUrlResult,
@@ -20,7 +26,7 @@ const storageConfigured = Boolean(
 );
 
 const publicDeliveryConfigured = Boolean(env.R2_PUBLIC_BASE_URL);
-const publicAssetPurposes = new Set<R2AssetPurpose>(['avatar', 'profile', 'static']);
+const publicAssetPurposes = new Set<R2AssetPurpose>(['avatar', 'profile', 'static', 'video']);
 
 const adapter = storageConfigured ? new CloudflareR2Adapter() : null;
 
@@ -80,7 +86,7 @@ export async function createR2UploadUrl(
 
     throw new Error(
       needsPublicDelivery
-        ? 'Avatar delivery is not available in this environment.'
+        ? 'Public asset delivery is not available in this environment.'
         : 'Cloudflare R2 storage is not configured.',
     );
   }
@@ -90,6 +96,47 @@ export async function createR2UploadUrl(
   }
 
   return adapter.getSignedUploadUrl(options);
+}
+
+function assertR2Configured(purpose: R2AssetPurpose) {
+  const config = getR2ConfigState(purpose);
+
+  if (!config.enabled || !adapter) {
+    const needsPublicDelivery =
+      publicAssetPurposes.has(purpose) && !config.publicDeliveryConfigured;
+
+    throw new Error(
+      needsPublicDelivery
+        ? 'Public asset delivery is not available in this environment.'
+        : 'Cloudflare R2 storage is not configured.',
+    );
+  }
+
+  return adapter;
+}
+
+export async function createR2MultipartUpload(
+  options: R2MultipartUploadOptions,
+): Promise<R2MultipartUploadResult> {
+  return assertR2Configured(options.purpose).createMultipartUpload(options);
+}
+
+export async function createR2MultipartUploadPartUrl(
+  options: R2MultipartUploadPartUrlOptions,
+): Promise<R2MultipartUploadPartUrlResult> {
+  return assertR2Configured('video').getSignedMultipartUploadPartUrl(options);
+}
+
+export async function completeR2MultipartUpload(
+  options: R2CompleteMultipartUploadOptions,
+): Promise<void> {
+  return assertR2Configured('video').completeMultipartUpload(options);
+}
+
+export async function abortR2MultipartUpload(
+  options: R2AbortMultipartUploadOptions,
+): Promise<void> {
+  return assertR2Configured('video').abortMultipartUpload(options);
 }
 
 export async function deleteR2ObjectForUser(options: {

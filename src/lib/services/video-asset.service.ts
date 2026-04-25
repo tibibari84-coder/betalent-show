@@ -14,6 +14,7 @@ import type { StreamVideoWebhookPayload } from '@/lib/stream';
 
 export type CreateDraftVideoAssetInput = {
   userId: string;
+  provider?: VideoAssetProvider;
   filename: string;
   originalName: string;
   size: number;
@@ -58,7 +59,7 @@ export class VideoAssetService {
     return prisma.videoAsset.create({
       data: {
         userId: data.userId,
-        provider: VideoAssetProvider.CLOUDFLARE_STREAM,
+        provider: data.provider ?? VideoAssetProvider.R2_OBJECT,
         filename: safeFilename,
         originalName: data.originalName,
         size: data.size,
@@ -71,18 +72,23 @@ export class VideoAssetService {
     });
   }
 
-  static async attachDirectUpload(
+  static async attachStoredUpload(
     id: string,
-    directUpload: {
+    upload: {
       providerAssetId: string;
       uploadUrl: string;
+      assetUrl: string;
     },
   ): Promise<VideoAsset> {
     return prisma.videoAsset.update({
       where: { id },
       data: {
-        providerAssetId: directUpload.providerAssetId,
-        uploadUrl: directUpload.uploadUrl,
+        provider: VideoAssetProvider.R2_OBJECT,
+        providerAssetId: upload.providerAssetId,
+        uploadUrl: upload.uploadUrl,
+        url: upload.assetUrl,
+        playbackUrl: upload.assetUrl,
+        previewUrl: upload.assetUrl,
         errorCode: null,
         errorMessage: null,
         status: VideoAssetStatus.UPLOADING,
@@ -95,6 +101,48 @@ export class VideoAssetService {
       where: { id },
       data: {
         status: VideoAssetStatus.PROCESSING,
+      },
+    });
+  }
+
+  static async markStoredUploadProcessing(input: {
+    id: string;
+    userId: string;
+    providerAssetId: string;
+  }): Promise<VideoAsset> {
+    return prisma.videoAsset.update({
+      where: {
+        id: input.id,
+        userId: input.userId,
+        providerAssetId: input.providerAssetId,
+      },
+      data: {
+        status: VideoAssetStatus.PROCESSING,
+      },
+    });
+  }
+
+  static async markStoredUploadReady(input: {
+    id: string;
+    userId: string;
+    providerAssetId: string;
+    assetUrl: string;
+  }): Promise<VideoAsset> {
+    return prisma.videoAsset.update({
+      where: {
+        id: input.id,
+        userId: input.userId,
+        providerAssetId: input.providerAssetId,
+      },
+      data: {
+        status: VideoAssetStatus.READY,
+        url: input.assetUrl,
+        playbackUrl: input.assetUrl,
+        previewUrl: input.assetUrl,
+        errorCode: null,
+        errorMessage: null,
+        uploadUrl: null,
+        readyAt: new Date(),
       },
     });
   }
@@ -222,6 +270,21 @@ export class VideoAssetService {
   static async getVideoAssetById(id: string): Promise<VideoAsset | null> {
     return prisma.videoAsset.findUnique({
       where: { id },
+    });
+  }
+
+  static async getOwnedStoredUpload(input: {
+    id: string;
+    userId: string;
+    providerAssetId: string;
+  }): Promise<VideoAsset | null> {
+    return prisma.videoAsset.findFirst({
+      where: {
+        id: input.id,
+        userId: input.userId,
+        provider: VideoAssetProvider.R2_OBJECT,
+        providerAssetId: input.providerAssetId,
+      },
     });
   }
 
