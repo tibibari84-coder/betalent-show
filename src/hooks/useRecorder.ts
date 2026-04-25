@@ -1,179 +1,164 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-const RECORDER_MIME_TYPES = [
-  'video/mp4;codecs=h264,aac',
-  'video/webm;codecs=vp9,opus',
-  'video/webm;codecs=vp8,opus',
-  'video/webm',
+export type RecorderState = "idle" | "recording" | "preview";
+
+const MIME_TYPES = [
+  "video/mp4;codecs=h264,aac",
+  "video/webm;codecs=vp9,opus",
+  "video/webm;codecs=vp8,opus",
+  "video/webm",
+  "",
 ];
 
-export const MAX_RECORDING_DURATION_MS = 120_000;
-
-function getRecorderMimeType() {
-  if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
-    return undefined;
-  }
-
-  return RECORDER_MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type));
+function getSupportedMimeType(): string {
+  if (typeof MediaRecorder === "undefined") return "";
+  return MIME_TYPES.find((type) => !type || MediaRecorder.isTypeSupported(type)) ?? "";
 }
 
-export function useRecorder(stream: MediaStream | null, maxDurationMs: number, onRecorded?: () => void) {
-  const cappedDurationMs = Math.min(maxDurationMs, MAX_RECORDING_DURATION_MS);
+type UseRecorderOptions = {
+  stream: MediaStream | null;
+  durationSeconds: number;
+};
+
+export function useRecorder({ stream, durationSeconds }: UseRecorderOptions) {
+  const [state, setState] = useState<RecorderState>("idle");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [remainingSeconds, setRemainingSeconds] = useState(durationSeconds);
+
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
-  const startedAtRef = useRef(0);
-  const maxDurationRef = useRef(cappedDurationMs);
-  const onRecordedRef = useRef(onRecorded);
-  const autoStopRef = useRef<number | null>(null);
-  const tickRef = useRef<number | null>(null);
+  const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tickIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [elapsedMs, setElapsedMs] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    onRecordedRef.current = onRecorded;
-  }, [onRecorded]);
+  const selectedMimeType = useMemo(() => getSupportedMimeType(), []);
+  const progressPercent = useMemo(() => {
+    const elapsed = durationSeconds - remainingSeconds;
+    return Math.max(0, Math.min(100, (elapsed / durationSeconds) * 100));
+  }, [durationSeconds, remainingSeconds]);
 
   const clearTimers = useCallback(() => {
-    if (autoStopRef.current) {
-      window.clearTimeout(autoStopRef.current);
-      autoStopRef.current = null;
+    if (stopTimeoutRef.current) {
+      clearTimeout(stopTimeoutRef.current);
+      stopTimeoutRef.current = null;
     }
-
-    if (tickRef.current) {
-      window.clearInterval(tickRef.current);
-      tickRef.current = null;
+    if (tickIntervalRef.current) {
+      clearInterval(tickIntervalRef.current);
+      tickIntervalRef.current = null;
     }
   }, []);
 
   const clearPreview = useCallback(() => {
-    setPreviewUrl((current) => {
-      if (current) URL.revokeObjectURL(current);
-      return null;
-    });
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
     setRecordedBlob(null);
-  }, []);
+  }, [previewUrl]);
 
   const stopRecording = useCallback(() => {
-    const recorder = recorderRef.current;
-    if (!recorder || recorder.state === 'inactive') return;
-
-    setElapsedMs(Math.min(maxDurationRef.current, Date.now() - startedAtRef.current));
-    recorder.stop();
-  }, []);
-
-  const resetRecording = useCallback(() => {
-    clearTimers();
-    if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+    if (recorderRef.current && recorderRef.current.state !== "inactive") {
       recorderRef.current.stop();
     }
-    recorderRef.current = null;
-    chunksRef.current = [];
-    setIsRecording(false);
-    setElapsedMs(0);
-    setError(null);
+    clearTimers();
+  }, [clearTimers]);
+
+  const resetRecording = useCallback(() => {
+    stopRecording();
     clearPreview();
-  }, [clearPreview, clearTimers]);
+    setRemainingSeconds(durationSeconds);
+    setError(null);
+    setState("idle");
+  }, [clearPreview, durationSeconds, stopRecording]);
 
   const startRecording = useCallback(() => {
     if (!stream) {
-      setError('Camera is not ready yet.');
+      setError("Camera is not ready yet.");
       return;
     }
 
-    if (typeof MediaRecorder === 'undefined') {
-      setError('This browser can open the camera, but it cannot record video here.');
-      return;
-    }
-
-    const mimeType = getRecorderMimeType();
-    chunksRef.current = [];
-    clearTimers();
-    clearPreview();
-    setElapsedMs(0);
     setError(null);
+    clearPreview();
+    chunksRef.current = [];
 
     try {
-      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      const recorder = selectedMimeType
+        ? new MediaRecorder(stream, { mimeType: selectedMimeType })
+        : new MediaRecorder(stream);
+
       recorderRef.current = recorder;
-      maxDurationRef.current = cappedDurationMs;
 
       recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (event.data && event.data.size > 0) {
           chunksRef.current.push(event.data);
         }
       };
 
-      recorder.onerror = () => {
-        clearTimers();
-        setIsRecording(false);
-        setError('Recording failed on this device. Retake or choose a finished video from library.');
-      };
-
       recorder.onstop = () => {
-        clearTimers();
-        setIsRecording(false);
-        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'video/webm' });
+        const blobType = selectedMimeType || "video/webm";
+        const blob = new Blob(chunksRef.current, { type: blobType });
+        const url = URL.createObjectURL(blob);
+
         setRecordedBlob(blob);
-        setPreviewUrl((current) => {
-          if (current) URL.revokeObjectURL(current);
-          return URL.createObjectURL(blob);
-        });
-        onRecordedRef.current?.();
+        setPreviewUrl(url);
+        setState("preview");
+        clearTimers();
       };
 
-      startedAtRef.current = Date.now();
-      setIsRecording(true);
       recorder.start(250);
+      setState("recording");
+      setRemainingSeconds(durationSeconds);
 
-      autoStopRef.current = window.setTimeout(() => {
+      const startedAt = Date.now();
+
+      tickIntervalRef.current = setInterval(() => {
+        const elapsedMs = Date.now() - startedAt;
+        const nextRemaining = Math.max(0, durationSeconds - Math.floor(elapsedMs / 1000));
+        setRemainingSeconds(nextRemaining);
+      }, 250);
+
+      stopTimeoutRef.current = setTimeout(() => {
         stopRecording();
-      }, cappedDurationMs);
-
-      tickRef.current = window.setInterval(() => {
-        setElapsedMs(Math.min(maxDurationRef.current, Date.now() - startedAtRef.current));
-      }, 100);
+      }, durationSeconds * 1000);
     } catch {
-      setIsRecording(false);
-      setError('This device could not start a BETALENT recording session.');
+      setError("Recording could not start on this device.");
     }
-  }, [cappedDurationMs, clearPreview, clearTimers, stopRecording, stream]);
+  }, [clearPreview, clearTimers, durationSeconds, selectedMimeType, stopRecording, stream]);
 
-  useEffect(() => {
-    if (!stream && isRecording) {
-      stopRecording();
-    }
-  }, [isRecording, stopRecording, stream]);
+  const createRecordedFile = useCallback(
+    (prefix = "betalent-performance") => {
+      if (!recordedBlob) return null;
+
+      const extension = recordedBlob.type.includes("mp4") ? "mp4" : "webm";
+      return new File([recordedBlob], `${prefix}-${Date.now()}.${extension}`, {
+        type: recordedBlob.type || `video/${extension}`,
+      });
+    },
+    [recordedBlob],
+  );
 
   useEffect(() => {
     return () => {
       clearTimers();
-      setPreviewUrl((current) => {
-        if (current) URL.revokeObjectURL(current);
-        return null;
-      });
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
-  }, [clearTimers]);
+  }, [clearTimers, previewUrl]);
 
-  return useMemo(
-    () => ({
-      isRecording,
-      recordedBlob,
-      previewUrl,
-      elapsedMs,
-      remainingMs: Math.max(0, cappedDurationMs - elapsedMs),
-      maxDurationMs: cappedDurationMs,
-      error,
-      startRecording,
-      stopRecording,
-      resetRecording,
-      clearPreview,
-    }),
-    [cappedDurationMs, clearPreview, elapsedMs, error, isRecording, previewUrl, recordedBlob, resetRecording, startRecording, stopRecording],
-  );
+  return {
+    state,
+    error,
+    previewUrl,
+    recordedBlob,
+    remainingSeconds,
+    progressPercent,
+    startRecording,
+    stopRecording,
+    resetRecording,
+    createRecordedFile,
+    isRecording: state === "recording",
+    hasPreview: state === "preview" && !!previewUrl,
+  };
 }

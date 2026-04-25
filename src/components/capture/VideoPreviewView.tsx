@@ -1,47 +1,53 @@
-'use client';
+"use client";
 
-export function VideoPreviewView(props: {
+type VideoPreviewViewProps = {
   previewUrl: string;
-  isImported?: boolean;
   onRetake: () => void;
   onUseVideo: () => void;
-}) {
+};
+
+export function VideoPreviewView({
+  previewUrl,
+  onRetake,
+  onUseVideo,
+}: VideoPreviewViewProps) {
   return (
-    <div className="relative h-full w-full">
+    <div className="absolute inset-0 bg-black">
       <video
+        src={previewUrl}
         controls
         playsInline
-        preload="metadata"
-        className="h-full w-full bg-black object-contain"
-        src={props.previewUrl}
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{ objectPosition: "50% 40%" }}
       />
 
-      <div className="pointer-events-auto absolute inset-x-4 bottom-[calc(var(--bt-safe-bottom)+1rem)] z-20 space-y-4 rounded-[1.45rem] border border-white/10 bg-black/44 p-4 shadow-[0_-24px_60px_-36px_rgba(0,0,0,1)] backdrop-blur-xl">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/48">Review</p>
-            <h3 className="mt-1 text-[1.1rem] font-semibold tracking-[-0.04em] text-white">
-              {props.isImported ? 'Review imported video' : 'Review your take'}
-            </h3>
-          </div>
-          <p className="text-right text-xs leading-relaxed text-white/54">Local preview. Nothing uploads until confirmation.</p>
-        </div>
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/85 to-transparent px-4 pb-[calc(env(safe-area-inset-bottom,0px)+18px)] pt-24">
+        <div className="mx-auto max-w-xl rounded-[34px] border border-white/10 bg-black/58 p-5 backdrop-blur-2xl">
+          <p className="text-[11px] uppercase tracking-[0.32em] text-white/55">Review</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+            Check your take
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-white/65">
+            Retake if the framing, energy, or sound is off. Use video to move into rights
+            confirmation and upload.
+          </p>
 
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={props.onRetake}
-            className="min-h-12 rounded-full border border-white/14 bg-white/[0.06] px-4 text-xs font-semibold uppercase tracking-[0.08em] text-white/82"
-          >
-            {props.isImported ? 'Choose again' : 'Retake'}
-          </button>
-          <button
-            type="button"
-            onClick={props.onUseVideo}
-            className="foundation-primary-button min-h-12 px-4 text-xs font-semibold uppercase tracking-[0.08em]"
-          >
-            Use video
-          </button>
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={onRetake}
+              className="h-14 rounded-full border border-white/12 bg-white/[0.05] text-base font-semibold text-white transition hover:bg-white/[0.08]"
+            >
+              Retake
+            </button>
+            <button
+              type="button"
+              onClick={onUseVideo}
+              className="h-14 rounded-full bg-[#f78f84] text-base font-semibold text-white shadow-[0_14px_34px_rgba(247,143,132,0.28)] transition hover:brightness-105"
+            >
+              Use video
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,27 +1,131 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
 
-import {
-  MobileCaptureFlow,
-  uploadVideoToExistingPipeline,
-} from '@/components/capture/MobileCaptureFlow';
-import { LegalConfirmationStep, type LegalCheckKey } from '@/components/capture/LegalConfirmationStep';
-import { ORIGINALS_ONLY_SHORT } from '@/lib/copy/disclaimers';
+import { MobileCaptureFlow } from "@/components/capture/MobileCaptureFlow";
+import { LegalConfirmationStep } from "@/components/capture/LegalConfirmationStep";
+import { ORIGINALS_ONLY_SHORT } from "@/lib/copy/disclaimers";
 
-type LegalChecks = Record<LegalCheckKey, boolean>;
-type UploadPhase = 'idle' | 'selected' | 'uploading' | 'processing' | 'failed';
-type DeviceMode = 'mobile' | 'desktop';
+type UploadPhase = "idle" | "selected" | "uploading" | "processing" | "failed";
+type DeviceMode = "mobile" | "desktop";
 
-const DURATION_OPTIONS_MS = [30_000, 60_000, 120_000] as const;
+const DURATION_OPTIONS_SECONDS = [30, 60, 120] as const;
 
-function createEmptyLegalChecks(): LegalChecks {
-  return {
-    performance: false,
-    rights: false,
-    platform: false,
+async function uploadVideoToExistingPipeline(file: File) {
+  let activeUpload:
+    | {
+        videoAssetId: string;
+        storageKey: string;
+        uploadId: string;
+      }
+    | null = null;
+
+  const initResponse = await fetch("/api/assets/video-upload-init", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      filename: file.name,
+      mimeType: file.type || "video/mp4",
+      size: file.size,
+      maxDurationSeconds: 120,
+      originalityConfirmed: true,
+    }),
+  });
+
+  const initData = (await initResponse.json()) as {
+    error?: string;
+    videoAsset?: { id: string };
+    upload?: { uploadId: string; partSize: number };
+    storage?: { key: string; assetUrl: string };
   };
+
+  if (!initResponse.ok || !initData.videoAsset || !initData.upload || !initData.storage) {
+    if (initResponse.status === 503) {
+      throw new Error("Upload service is unavailable in this environment.");
+    }
+    if (initResponse.status === 409) {
+      throw new Error(initData.error || "Finish onboarding before starting uploads.");
+    }
+    throw new Error(initData.error || "Unable to initialize upload.");
+  }
+
+  activeUpload = {
+    videoAssetId: initData.videoAsset.id,
+    storageKey: initData.storage.key,
+    uploadId: initData.upload.uploadId,
+  };
+  const uploadSession = activeUpload;
+
+  try {
+    const partSize = initData.upload.partSize;
+    const partCount = Math.max(1, Math.ceil(file.size / partSize));
+    const uploadedParts: Array<{ partNumber: number; etag: string }> = [];
+
+    for (let partNumber = 1; partNumber <= partCount; partNumber += 1) {
+      const start = (partNumber - 1) * partSize;
+      const end = Math.min(start + partSize, file.size);
+      const part = file.slice(start, end);
+
+      const partResponse = await fetch("/api/assets/video-upload-part", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...uploadSession,
+          partNumber,
+        }),
+      });
+
+      const partData = (await partResponse.json()) as {
+        error?: string;
+        uploadPart?: { uploadUrl: string; partNumber: number };
+      };
+
+      if (!partResponse.ok || !partData.uploadPart) {
+        throw new Error(partData.error || "Unable to prepare video upload part.");
+      }
+
+      const uploadResponse = await fetch(partData.uploadPart.uploadUrl, {
+        method: "PUT",
+        body: part,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Video upload failed. Please try again.");
+      }
+
+      const etag = uploadResponse.headers.get("ETag");
+      if (!etag) {
+        throw new Error("Video upload part did not return a completion tag.");
+      }
+
+      uploadedParts.push({ partNumber: partData.uploadPart.partNumber, etag });
+    }
+
+    const completeResponse = await fetch("/api/assets/video-upload-complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...uploadSession,
+        parts: uploadedParts,
+      }),
+    });
+
+    const completeData = (await completeResponse.json()) as { error?: string };
+    if (!completeResponse.ok) {
+      throw new Error(completeData.error || "Unable to complete upload.");
+    }
+  } catch (uploadError) {
+    if (activeUpload) {
+      await fetch("/api/assets/video-upload-abort", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(activeUpload),
+      }).catch(() => undefined);
+    }
+
+    throw uploadError;
+  }
 }
 
 function formatMegabytes(bytes: number) {
@@ -29,23 +133,23 @@ function formatMegabytes(bytes: number) {
 }
 
 function getDeviceMode(): DeviceMode {
-  if (typeof window === 'undefined') return 'mobile';
+  if (typeof window === "undefined") return "mobile";
 
   const userAgent = window.navigator.userAgent;
   const isMobileUserAgent = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
   const isTouchDevice = window.navigator.maxTouchPoints > 1;
   const width = window.visualViewport?.width ?? window.innerWidth;
-  const isFineDesktopPointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const isFineDesktopPointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
   if (isMobileUserAgent || isTouchDevice || width < 900) {
-    return 'mobile';
+    return "mobile";
   }
 
-  return isFineDesktopPointer ? 'desktop' : 'mobile';
+  return isFineDesktopPointer ? "desktop" : "mobile";
 }
 
 function useDeviceMode() {
-  const [deviceMode, setDeviceMode] = useState<DeviceMode>('mobile');
+  const [deviceMode, setDeviceMode] = useState<DeviceMode>("mobile");
   const [hasHydrated, setHasHydrated] = useState(false);
 
   useEffect(() => {
@@ -55,12 +159,12 @@ function useDeviceMode() {
     };
 
     update();
-    window.addEventListener('resize', update);
-    window.visualViewport?.addEventListener('resize', update);
+    window.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("resize", update);
 
     return () => {
-      window.removeEventListener('resize', update);
-      window.visualViewport?.removeEventListener('resize', update);
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
     };
   }, []);
 
@@ -70,15 +174,14 @@ function useDeviceMode() {
 export function DirectVideoUploadCard() {
   const router = useRouter();
   const { deviceMode, hasHydrated } = useDeviceMode();
-  const isMobile = deviceMode === 'mobile';
-  const isDesktop = deviceMode === 'desktop';
+  const isMobile = deviceMode === "mobile";
+  const isDesktop = deviceMode === "desktop";
   const desktopInputRef = useRef<HTMLInputElement | null>(null);
   const [isCaptureOpen, setIsCaptureOpen] = useState(false);
   const [desktopFile, setDesktopFile] = useState<File | null>(null);
   const [desktopPreviewUrl, setDesktopPreviewUrl] = useState<string | null>(null);
-  const [desktopDurationMs, setDesktopDurationMs] = useState<number>(60_000);
-  const [legalChecks, setLegalChecks] = useState<LegalChecks>(createEmptyLegalChecks());
-  const [phase, setPhase] = useState<UploadPhase>('idle');
+  const [desktopDurationSeconds, setDesktopDurationSeconds] = useState<30 | 60 | 120>(60);
+  const [phase, setPhase] = useState<UploadPhase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
@@ -95,19 +198,19 @@ export function DirectVideoUploadCard() {
       setError(null);
     };
     const openCaptureFromHash = () => {
-      if (window.location.hash === '#upload-panel') {
+      if (window.location.hash === "#upload-panel") {
         openCapture();
       }
     };
 
     openCaptureFromHash();
 
-    window.addEventListener('betalent:open-upload-camera', openCapture);
-    window.addEventListener('hashchange', openCaptureFromHash);
+    window.addEventListener("betalent:open-upload-camera", openCapture);
+    window.addEventListener("hashchange", openCaptureFromHash);
 
     return () => {
-      window.removeEventListener('betalent:open-upload-camera', openCapture);
-      window.removeEventListener('hashchange', openCaptureFromHash);
+      window.removeEventListener("betalent:open-upload-camera", openCapture);
+      window.removeEventListener("hashchange", openCaptureFromHash);
     };
   }, []);
 
@@ -121,82 +224,75 @@ export function DirectVideoUploadCard() {
   function resetDesktopSelection() {
     setDesktopFile(null);
     setDesktopPreview(null);
-    setLegalChecks(createEmptyLegalChecks());
-    setPhase('idle');
+    setPhase("idle");
     setError(null);
     setInfo(null);
   }
 
   function onDesktopFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] || null;
-    event.target.value = '';
+    event.target.value = "";
     if (!file) return;
 
     setDesktopFile(file);
     setDesktopPreview(file);
-    setLegalChecks(createEmptyLegalChecks());
-    setPhase('selected');
+    setPhase("selected");
     setError(null);
     setInfo(null);
   }
 
-  function toggleLegalCheck(key: LegalCheckKey, checked: boolean) {
-    setLegalChecks((current) => ({ ...current, [key]: checked }));
-  }
-
-  function openMobileCapture() {
-    setIsCaptureOpen(true);
-    setInfo(null);
-    setError(null);
+  async function handleUploadConfirmed(file: File) {
+    await uploadVideoToExistingPipeline(file);
+    router.refresh();
   }
 
   async function submitDesktopUpload() {
     if (!desktopFile) {
-      setError('Choose a finished short video before upload.');
+      setError("Choose a finished short video before upload.");
       return;
     }
 
-    if (!legalChecks.performance || !legalChecks.rights || !legalChecks.platform) {
-      setError('Complete all required confirmations before uploading.');
-      return;
-    }
-
-    setPhase('uploading');
+    setPhase("uploading");
     setError(null);
-    setInfo('Preparing secure upload.');
+    setInfo("Preparing secure upload.");
 
     try {
-      await uploadVideoToExistingPipeline(desktopFile, desktopDurationMs);
+      await handleUploadConfirmed(desktopFile);
       resetDesktopSelection();
-      setPhase('processing');
-      setInfo('Upload complete. Processing started and this asset will switch to READY automatically.');
-      router.refresh();
+      setPhase("processing");
+      setInfo("Upload complete. Processing started and this asset will switch to READY automatically.");
     } catch (uploadError) {
-      setPhase('failed');
+      setPhase("failed");
       setInfo(null);
-      setError(uploadError instanceof Error ? uploadError.message : 'Upload failed.');
+      setError(uploadError instanceof Error ? uploadError.message : "Upload failed.");
     }
   }
 
   const phaseCopy =
-    phase === 'idle'
+    phase === "idle"
       ? isMobile
-        ? 'Mobile opens directly into BETALENT recording mode. Library import stays secondary.'
-        : 'Desktop can import a finished short video. The premium recorder is optimized for mobile.'
-      : phase === 'selected'
-        ? 'Video selected. Legal confirmation is required before upload.'
-        : phase === 'uploading'
-          ? 'Uploading now. Keep this screen open until transfer completes.'
-          : phase === 'processing'
-            ? 'Upload complete. BETALENT processing continues until the asset is READY.'
-            : 'Upload did not complete. Review the message and try again.';
+        ? "Mobile opens directly into BETALENT recording mode. Library import stays secondary."
+        : "Desktop can import a finished short video. The premium recorder is optimized for mobile."
+      : phase === "selected"
+        ? "Video selected. Legal confirmation is required before upload."
+        : phase === "uploading"
+          ? "Uploading now. Keep this screen open until transfer completes."
+          : phase === "processing"
+            ? "Upload complete. BETALENT processing continues until the asset is READY."
+            : "Upload did not complete. Review the message and try again.";
 
   return (
     <>
-      {isMobile ? (
+      {isMobile && hasHydrated && isCaptureOpen ? (
         <MobileCaptureFlow
-          active={hasHydrated && isCaptureOpen}
-          onClose={() => setIsCaptureOpen(false)}
+          onExit={() => setIsCaptureOpen(false)}
+          onUploadConfirmed={async (file) => {
+            setPhase("uploading");
+            setError(null);
+            await handleUploadConfirmed(file);
+            setPhase("processing");
+            setInfo("Upload complete. Processing started and this asset will switch to READY automatically.");
+          }}
         />
       ) : null}
 
@@ -208,7 +304,7 @@ export function DirectVideoUploadCard() {
         className="sr-only"
       />
 
-      <div className="foundation-panel foundation-tint-cobalt rounded-[1.8rem] p-5 sm:rounded-[2rem] sm:p-6" aria-busy={phase === 'uploading'}>
+      <div className="foundation-panel foundation-tint-cobalt rounded-[1.8rem] p-5 sm:rounded-[2rem] sm:p-6" aria-busy={phase === "uploading"}>
         <p className="foundation-kicker">Uploads</p>
         <h2 className="mt-3 text-[1.45rem] font-semibold tracking-[-0.04em] text-white sm:text-[1.7rem]">
           Create a short-video asset
@@ -230,7 +326,7 @@ export function DirectVideoUploadCard() {
               </p>
               <button
                 type="button"
-                onClick={openMobileCapture}
+                onClick={() => setIsCaptureOpen(true)}
                 className="foundation-primary-button mt-4 min-h-[2.9rem] px-4 text-xs font-semibold uppercase tracking-[0.08em]"
               >
                 Open camera
@@ -249,19 +345,19 @@ export function DirectVideoUploadCard() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {DURATION_OPTIONS_MS.map((durationMs) => (
+                {DURATION_OPTIONS_SECONDS.map((durationSeconds) => (
                   <button
-                    key={durationMs}
+                    key={durationSeconds}
                     type="button"
-                    onClick={() => setDesktopDurationMs(durationMs)}
-                    disabled={phase === 'uploading'}
+                    onClick={() => setDesktopDurationSeconds(durationSeconds)}
+                    disabled={phase === "uploading"}
                     className={`min-h-10 rounded-full px-4 text-xs font-semibold transition ${
-                      desktopDurationMs === durationMs
-                        ? 'bg-white text-black'
-                        : 'border border-white/14 bg-white/[0.06] text-white/78'
+                      desktopDurationSeconds === durationSeconds
+                        ? "bg-white text-black"
+                        : "border border-white/14 bg-white/[0.06] text-white/78"
                     } disabled:cursor-not-allowed disabled:opacity-55`}
                   >
-                    {durationMs / 1000}s
+                    {durationSeconds}s
                   </button>
                 ))}
               </div>
@@ -269,7 +365,7 @@ export function DirectVideoUploadCard() {
               <button
                 type="button"
                 onClick={() => desktopInputRef.current?.click()}
-                disabled={phase === 'uploading'}
+                disabled={phase === "uploading"}
                 className="foundation-primary-button min-h-[2.8rem] px-4 text-xs font-semibold uppercase tracking-[0.08em] disabled:cursor-not-allowed disabled:opacity-55"
               >
                 Choose short video
@@ -293,15 +389,11 @@ export function DirectVideoUploadCard() {
                 />
               ) : null}
               <LegalConfirmationStep
-                checks={legalChecks}
-                disabled={phase === 'uploading'}
-                isSubmitting={phase === 'uploading'}
-                error={error}
-                sourceLabel="Desktop import"
-                durationLabel={`${desktopDurationMs / 1000}s max`}
+                durationSeconds={desktopDurationSeconds}
+                uploadError={error}
+                isUploading={phase === "uploading"}
                 onBack={resetDesktopSelection}
-                onSubmit={submitDesktopUpload}
-                onToggle={toggleLegalCheck}
+                onConfirmUpload={submitDesktopUpload}
               />
             </div>
           ) : null}
@@ -311,7 +403,7 @@ export function DirectVideoUploadCard() {
             <p className="mt-2 text-sm leading-relaxed text-white/62">{phaseCopy}</p>
           </div>
 
-          {phase === 'uploading' ? <div className="foundation-loading-skeleton h-2 rounded-full" aria-hidden /> : null}
+          {phase === "uploading" ? <div className="foundation-loading-skeleton h-2 rounded-full" aria-hidden /> : null}
           {info ? <p className="text-sm text-emerald-300" role="status">{info}</p> : null}
           {error && !(desktopFile && isDesktop) ? <p className="text-sm text-red-300" role="alert">{error}</p> : null}
         </div>

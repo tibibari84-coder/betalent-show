@@ -1,126 +1,127 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
-export type CameraStatus = 'idle' | 'requesting' | 'ready' | 'denied' | 'unsupported' | 'error';
-export type CameraFacingMode = 'user' | 'environment';
+export type CameraFacingMode = "user" | "environment";
+export type CameraStatus = "idle" | "requesting" | "ready" | "denied" | "error";
 
-function stopStream(stream: MediaStream | null) {
-  stream?.getTracks().forEach((track) => track.stop());
+type UseCameraOptions = {
+  initialFacingMode?: CameraFacingMode;
+};
+
+function mapCameraError(error: unknown): string {
+  if (!(error instanceof DOMException)) {
+    return "Camera access failed.";
+  }
+
+  switch (error.name) {
+    case "NotAllowedError":
+      return "Camera and microphone access was denied.";
+    case "NotFoundError":
+      return "No camera was found on this device.";
+    case "NotReadableError":
+      return "The camera is already in use by another app.";
+    case "OverconstrainedError":
+      return "This device could not satisfy the requested camera settings.";
+    default:
+      return "Unable to start the camera right now.";
+  }
 }
 
-export function useCamera() {
-  const streamRef = useRef<MediaStream | null>(null);
-  const requestTimeoutRef = useRef<number | null>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [status, setStatus] = useState<CameraStatus>('idle');
-  const [error, setError] = useState<string | null>(null);
-  const [facingMode, setFacingMode] = useState<CameraFacingMode>('user');
+function getMediaConstraints(facingMode: CameraFacingMode): MediaStreamConstraints {
+  return {
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+    video: {
+      facingMode: { ideal: facingMode },
+      width: { ideal: 1080 },
+      height: { ideal: 1920 },
+      aspectRatio: { ideal: 9 / 16 },
+      frameRate: { ideal: 30, max: 30 },
+    },
+  };
+}
 
-  const isSupported =
-    typeof window !== 'undefined' &&
-    typeof navigator !== 'undefined' &&
-    window.isSecureContext &&
-    Boolean(navigator.mediaDevices?.getUserMedia);
+export function useCamera(options: UseCameraOptions = {}) {
+  const { initialFacingMode = "user" } = options;
+
+  const [status, setStatus] = useState<CameraStatus>("idle");
+  const [error, setError] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<CameraFacingMode>(initialFacingMode);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+
+  const streamRef = useRef<MediaStream | null>(null);
 
   const stopCamera = useCallback(() => {
-    if (requestTimeoutRef.current) {
-      window.clearTimeout(requestTimeoutRef.current);
-      requestTimeoutRef.current = null;
-    }
-    stopStream(streamRef.current);
+    const current = streamRef.current;
+    if (!current) return;
+
+    current.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     setStream(null);
-    setStatus('idle');
+    setStatus("idle");
   }, []);
 
-  const startCamera = useCallback(async (nextFacingMode: CameraFacingMode = facingMode) => {
-    if (!isSupported) {
-      setStatus('unsupported');
-      setError(
-        typeof window !== 'undefined' && !window.isSecureContext
-          ? 'Camera recording requires a secure browser session. Open BETALENT over HTTPS to record here, or choose a finished short video from your library.'
-          : 'Camera recording is not supported in this browser. Choose a finished short video from your library instead.',
-      );
-      return;
-    }
+  const startCamera = useCallback(
+    async (nextFacingMode?: CameraFacingMode) => {
+      const targetFacing = nextFacingMode ?? facingMode;
 
-    stopStream(streamRef.current);
-    streamRef.current = null;
-    setStream(null);
-    setStatus('requesting');
-    setError(null);
-    setFacingMode(nextFacingMode);
+      setStatus("requesting");
+      setError(null);
 
-    if (requestTimeoutRef.current) {
-      window.clearTimeout(requestTimeoutRef.current);
-    }
-    requestTimeoutRef.current = window.setTimeout(() => {
-      if (!streamRef.current) {
-        setStatus('error');
-        setError('Camera did not start. Allow camera access in the browser, or choose a finished short video from your library.');
+      try {
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
+
+        const mediaStream = await navigator.mediaDevices.getUserMedia(
+          getMediaConstraints(targetFacing),
+        );
+
+        streamRef.current = mediaStream;
+        setFacingMode(targetFacing);
+        setStream(mediaStream);
+        setStatus("ready");
+      } catch (err) {
+        const message = mapCameraError(err);
+        setError(message);
+        setStream(null);
+
+        if (err instanceof DOMException && err.name === "NotAllowedError") {
+          setStatus("denied");
+        } else {
+          setStatus("error");
+        }
       }
-    }, 7000);
+    },
+    [facingMode],
+  );
 
-    try {
-      const nextStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-        },
-        video: {
-          facingMode: nextFacingMode,
-          width: { ideal: 1080 },
-          height: { ideal: 1920 },
-        },
-      });
-
-      streamRef.current = nextStream;
-      if (requestTimeoutRef.current) {
-        window.clearTimeout(requestTimeoutRef.current);
-        requestTimeoutRef.current = null;
-      }
-      setStream(nextStream);
-      setStatus('ready');
-    } catch (cameraError) {
-      if (requestTimeoutRef.current) {
-        window.clearTimeout(requestTimeoutRef.current);
-        requestTimeoutRef.current = null;
-      }
-      const isPermissionDenied =
-        cameraError instanceof DOMException &&
-        (cameraError.name === 'NotAllowedError' || cameraError.name === 'SecurityError');
-
-      setStatus(isPermissionDenied ? 'denied' : 'error');
-      setError(
-        isPermissionDenied
-          ? 'Camera permission was denied. You can still choose a finished short video from your library.'
-          : 'BETALENT could not open the camera on this device.',
-      );
-    }
-  }, [facingMode, isSupported]);
-
-  const switchCamera = useCallback(() => {
-    const nextFacingMode = facingMode === 'environment' ? 'user' : 'environment';
-    void startCamera(nextFacingMode);
+  const switchCamera = useCallback(async () => {
+    const nextFacing: CameraFacingMode = facingMode === "user" ? "environment" : "user";
+    await startCamera(nextFacing);
   }, [facingMode, startCamera]);
 
   useEffect(() => {
-    return () => stopCamera();
-  }, [stopCamera]);
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
 
-  return useMemo(
-    () => ({
-      stream,
-      status,
-      error,
-      facingMode,
-      isFrontCamera: facingMode === 'user',
-      isSupported,
-      startCamera,
-      stopCamera,
-      switchCamera,
-    }),
-    [error, facingMode, isSupported, startCamera, status, stopCamera, stream, switchCamera],
-  );
+  return {
+    status,
+    error,
+    stream,
+    facingMode,
+    startCamera,
+    stopCamera,
+    switchCamera,
+    isReady: status === "ready" && !!stream,
+  };
 }

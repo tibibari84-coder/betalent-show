@@ -1,81 +1,84 @@
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
+import type { CameraFacingMode, CameraStatus } from "@/hooks/useCamera";
 
-import type { CameraStatus } from '@/hooks/useCamera';
-
-export function CameraCaptureView(props: {
+type CameraCaptureViewProps = {
   stream: MediaStream | null;
   status: CameraStatus;
   error: string | null;
-  isFrontCamera?: boolean;
-  onRequestLibrary?: () => void;
-}) {
+  facingMode: CameraFacingMode;
+  onRetry: () => void;
+};
+
+export function CameraCaptureView({
+  stream,
+  status,
+  error,
+  facingMode,
+  onRetry,
+}: CameraCaptureViewProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    if (!videoRef.current) return;
     const video = videoRef.current;
-    video.srcObject = props.stream;
-    if (!props.stream) return;
+    if (!video) return;
 
-    const playPromise = video.play();
-    if (playPromise && typeof playPromise.catch === 'function') {
-      playPromise.catch(() => {
-        // iOS may briefly reject play while camera permission is settling.
-      });
-    }
-
-    return () => {
+    if (stream) {
+      video.srcObject = stream;
+      void video.play().catch(() => {});
+    } else {
       video.srcObject = null;
-    };
-  }, [props.stream]);
-
-  if (props.status === 'requesting' || props.status === 'idle' || (props.status === 'ready' && !props.stream)) {
-    return (
-      <div className="fixed inset-0 z-[100] flex h-[100dvh] w-screen items-center justify-center overflow-hidden bg-black px-8 text-center">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.08),transparent_28%),linear-gradient(180deg,#0f1014_0%,#050506_100%)]" />
-        <div className="relative max-w-xs">
-          <div className="mx-auto h-14 w-14 rounded-full border border-white/12 bg-white/[0.04] p-2.5">
-            <div className="foundation-loading-skeleton h-full w-full rounded-full" />
-          </div>
-          <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/42">Camera</p>
-          <p className="mt-3 text-sm leading-relaxed text-white/66">Allow camera and microphone access. BETALENT will not upload anything until you approve the take.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (props.status === 'denied' || props.status === 'unsupported' || props.status === 'error') {
-    return (
-      <div className="fixed inset-0 z-[100] flex h-[100dvh] w-screen items-center justify-center overflow-hidden bg-black px-8 text-center">
-        <div className="max-w-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-100/58">Camera unavailable</p>
-          <h3 className="mt-3 text-[1.35rem] font-semibold tracking-[-0.04em] text-white">Secure camera access is required</h3>
-          <p className="mt-3 text-sm leading-relaxed text-white/66">{props.error || 'Camera recording is not available here.'}</p>
-          {props.onRequestLibrary ? (
-            <button
-              type="button"
-              onClick={props.onRequestLibrary}
-              className="mt-5 rounded-full border border-white/14 bg-white/[0.06] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/82"
-            >
-              Choose from library
-            </button>
-          ) : null}
-        </div>
-      </div>
-    );
-  }
+    }
+  }, [stream]);
 
   return (
-    <div className="fixed inset-0 z-[100] w-screen h-[100dvh] overflow-hidden bg-black text-white">
+    <div className="absolute inset-0 overflow-hidden bg-black">
       <video
         ref={videoRef}
         autoPlay
         muted
         playsInline
-        className="absolute inset-0 w-full h-full object-cover object-center transform-gpu scale-x-[-1] md:scale-x-100"
+        className={[
+          "absolute inset-0 h-full w-full object-cover",
+          facingMode === "user" ? "scale-x-[-1]" : "",
+        ].join(" ")}
+        style={{
+          objectPosition: facingMode === "user" ? "50% 36%" : "50% 44%",
+        }}
       />
+
+      {!stream && (
+        <div className="absolute inset-0 flex items-center justify-center px-6">
+          <div className="max-w-sm rounded-[32px] border border-white/10 bg-black/65 p-6 text-center backdrop-blur-xl">
+            <p className="text-[11px] uppercase tracking-[0.32em] text-white/55">Camera</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+              {status === "requesting" ? "Opening camera..." : "Allow camera and microphone access"}
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-white/70">
+              {status === "requesting"
+                ? "BETALENT is preparing your capture surface."
+                : "Nothing uploads until you review and confirm your take."}
+            </p>
+
+            {error && (
+              <p className="mt-4 rounded-2xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+                {error}
+              </p>
+            )}
+
+            {status !== "requesting" && (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="mt-5 inline-flex h-12 items-center justify-center rounded-full border border-white/12 bg-white/10 px-5 text-sm font-medium text-white transition hover:bg-white/14"
+              >
+                Retry camera
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
