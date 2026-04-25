@@ -14,12 +14,13 @@ export function CaptureStudioShell(props: {
   if (typeof document === 'undefined') return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] overflow-hidden bg-black text-white">
-      <div className="absolute inset-0">{props.stage}</div>
-      <div className="pointer-events-none absolute inset-0 capture-studio-vignette" />
+    <div className="fixed inset-0 z-[9999] h-[100dvh] w-screen overflow-hidden bg-black text-white">
+      <div className="absolute inset-0 z-[100]">{props.stage}</div>
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[120] h-[11rem] bg-gradient-to-b from-black/75 via-black/34 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[120] h-[24rem] bg-gradient-to-t from-black/90 via-black/62 to-transparent" />
 
-      <div className="pointer-events-none relative z-10 flex min-h-dvh flex-col justify-between px-4 pb-[calc(var(--bt-safe-bottom)+1rem)] pt-[calc(var(--bt-safe-top)+0.85rem)]">
-        <div className="capture-studio-float flex items-center justify-between gap-4">
+      <div className="pointer-events-none absolute inset-0 z-[130] h-[100dvh] w-screen">
+        <div className="capture-studio-float absolute inset-x-4 top-[calc(var(--bt-safe-top)+0.85rem)] flex items-center justify-between gap-4">
           <button
             type="button"
             onClick={props.onClose}
@@ -43,7 +44,9 @@ export function CaptureStudioShell(props: {
           </button>
         </div>
 
-        <div className="pointer-events-auto capture-studio-float-delay pb-2">{props.controls}</div>
+        <div className="pointer-events-auto capture-studio-float-delay absolute inset-x-0 bottom-[calc(var(--bt-safe-bottom)+1rem)] px-4">
+          {props.controls}
+        </div>
       </div>
     </div>,
     document.body,

@@ -15,7 +15,7 @@ export function useCamera() {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [status, setStatus] = useState<CameraStatus>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [facingMode, setFacingMode] = useState<CameraFacingMode>('environment');
+  const [facingMode, setFacingMode] = useState<CameraFacingMode>('user');
 
   const isSupported =
     typeof window !== 'undefined' &&
@@ -69,7 +69,7 @@ export function useCamera() {
           noiseSuppression: true,
         },
         video: {
-          facingMode: { ideal: nextFacingMode },
+          facingMode: nextFacingMode,
           width: { ideal: 1080 },
           height: { ideal: 1920 },
           aspectRatio: { ideal: 9 / 16 },
