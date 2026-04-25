@@ -25,6 +25,10 @@ export function CameraCaptureView(props: {
         // iOS may briefly reject play while camera permission is settling.
       });
     }
+
+    return () => {
+      video.srcObject = null;
+    };
   }, [props.stream]);
 
   if (props.status === 'requesting' || props.status === 'idle' || (props.status === 'ready' && !props.stream)) {
@@ -71,7 +75,9 @@ export function CameraCaptureView(props: {
         muted
         playsInline
         disablePictureInPicture
-        className="absolute inset-0 w-full h-[100dvh] object-cover bg-black -z-10"
+        className={`absolute inset-0 h-[100dvh] w-full object-cover object-center bg-black -z-10 transform-gpu ${
+          props.isFrontCamera ? 'scale-x-[-1]' : ''
+        }`}
       />
     </div>
   );

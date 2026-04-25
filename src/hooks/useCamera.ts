@@ -70,10 +70,8 @@ export function useCamera() {
         },
         video: {
           facingMode: nextFacingMode,
-          width: { ideal: 1080 },
-          height: { ideal: 1920 },
-          aspectRatio: { ideal: 0.5625 },
-          frameRate: { ideal: 30, max: 30 },
+          width: { ideal: 720 },
+          height: { ideal: 1280 },
         },
       });
 
