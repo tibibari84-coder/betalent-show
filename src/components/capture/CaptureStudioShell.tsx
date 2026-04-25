@@ -16,7 +16,7 @@ export function CaptureStudioShell({
   dimPreview = false,
 }: CaptureStudioShellProps) {
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black text-white">
+    <div className="fixed inset-0 z-[9999] w-screen h-[100dvh] overflow-hidden bg-black text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(102,65,255,0.12),_transparent_38%),radial-gradient(circle_at_bottom,_rgba(255,83,83,0.10),_transparent_42%)]" />
 
       <div className="absolute inset-0">
@@ -27,7 +27,7 @@ export function CaptureStudioShell({
       </div>
 
       <div
-        className="relative flex h-full flex-col justify-between"
+        className="relative flex h-full min-h-[100dvh] flex-col justify-between"
         style={{
           paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)",
           paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 18px)",
