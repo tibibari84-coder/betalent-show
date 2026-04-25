@@ -37,10 +37,10 @@ function getMediaConstraints(facingMode: CameraFacingMode): MediaStreamConstrain
     },
     video: {
       facingMode: { ideal: facingMode },
-      width: { ideal: 1080 },
-      height: { ideal: 1920 },
-      aspectRatio: { ideal: 9 / 16 },
-      frameRate: { ideal: 30, max: 30 },
+      // The exact aspect ratio forces iOS to return vertical video, stopping the zoom/crop issue.
+      aspectRatio: { exact: 0.5625 },
+      width: { ideal: 720 },
+      height: { ideal: 1280 },
     },
   };
 }
