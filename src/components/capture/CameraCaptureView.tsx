@@ -12,19 +12,26 @@ export function CameraCaptureView(props: {
   onRequestLibrary?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const backgroundVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    if (!videoRef.current) return;
-    const video = videoRef.current;
-    video.srcObject = props.stream;
+    const videos = [videoRef.current, backgroundVideoRef.current].filter(Boolean) as HTMLVideoElement[];
+    if (videos.length === 0) return;
+
+    videos.forEach((video) => {
+      video.srcObject = props.stream;
+    });
+
     if (!props.stream) return;
 
-    const playPromise = video.play();
-    if (playPromise && typeof playPromise.catch === 'function') {
-      playPromise.catch(() => {
-        // iOS may briefly reject play while camera permission is settling.
-      });
-    }
+    videos.forEach((video) => {
+      const playPromise = video.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+          // iOS may briefly reject play while camera permission is settling.
+        });
+      }
+    });
   }, [props.stream]);
 
   if (props.status === 'requesting' || props.status === 'idle' || (props.status === 'ready' && !props.stream)) {
@@ -66,12 +73,22 @@ export function CameraCaptureView(props: {
   return (
     <div className="relative h-full w-full overflow-hidden bg-black">
       <video
+        ref={backgroundVideoRef}
+        autoPlay
+        muted
+        playsInline
+        disablePictureInPicture
+        aria-hidden
+        className={`absolute inset-0 h-full w-full scale-110 bg-black object-cover opacity-55 blur-2xl ${props.isFrontCamera ? '-scale-x-110' : ''}`}
+      />
+      <div className="pointer-events-none absolute inset-0 bg-black/18" />
+      <video
         ref={videoRef}
         autoPlay
         muted
         playsInline
         disablePictureInPicture
-        className={`h-full w-full bg-black object-cover ${props.isFrontCamera ? '-scale-x-100' : ''}`}
+        className={`relative z-[1] h-full w-full bg-transparent object-contain ${props.isFrontCamera ? '-scale-x-100' : ''}`}
       />
     </div>
   );
