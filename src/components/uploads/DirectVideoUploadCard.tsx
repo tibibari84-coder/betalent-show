@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 
-import { MobileCaptureFlow } from "@/components/capture/MobileCaptureFlow";
+import { MobileCaptureFlow } from "@/app/camera/components/MobileCaptureFlow";
 import { LegalConfirmationStep } from "@/components/capture/LegalConfirmationStep";
 import { ORIGINALS_ONLY_SHORT } from "@/lib/copy/disclaimers";
 
