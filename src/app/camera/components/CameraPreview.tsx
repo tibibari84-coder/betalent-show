@@ -38,15 +38,13 @@ export function CameraPreview({
         autoPlay
         playsInline
         muted
-        className="absolute inset-0 z-0 h-full w-full object-cover object-[50%_34%]"
+        className="absolute inset-0 h-[100dvh] w-screen object-cover object-top -z-10 bg-black"
         style={{ transform: "scaleX(-1)" }}
       />
 
-      <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_50%_18%,rgba(255,255,255,0.08),transparent_34%),linear-gradient(180deg,rgba(0,0,0,0.44)_0%,transparent_24%,transparent_66%,rgba(0,0,0,0.62)_100%)]" />
-
       {status === "requesting" || status === "idle" ? (
         <div className="absolute inset-0 z-20 flex items-center justify-center">
-          <div className="rounded-full border border-white/12 bg-black/45 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/72 backdrop-blur-xl">
+          <div className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-medium tracking-[0.08em] text-white/80 shadow-2xl backdrop-blur-md">
             Starting camera
           </div>
         </div>

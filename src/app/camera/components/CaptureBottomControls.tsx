@@ -8,10 +8,8 @@ type CaptureBottomControlsProps = {
   onRecord: () => void;
   onStop: () => void;
   onLibrary: () => void;
-  onFlip: () => void;
   isRecording: boolean;
   remainingSeconds: number;
-  progressPercent: number;
   disabled?: boolean;
 };
 
@@ -27,16 +25,14 @@ export function CaptureBottomControls({
   onRecord,
   onStop,
   onLibrary,
-  onFlip,
   isRecording,
   remainingSeconds,
-  progressPercent,
   disabled = false,
 }: CaptureBottomControlsProps) {
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 px-5 pb-[calc(env(safe-area-inset-bottom)+18px)]">
-      <div className="mb-5 flex justify-center">
-        <div className="pointer-events-auto flex rounded-full border border-white/10 bg-black/28 p-1 shadow-[0_16px_50px_rgba(0,0,0,0.32)] backdrop-blur-xl">
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 px-6 pb-[calc(env(safe-area-inset-bottom)+24px)]">
+      <div className="mb-6 flex justify-center">
+        <div className="pointer-events-auto flex rounded-full border border-white/10 bg-white/10 p-1 shadow-[0_16px_50px_rgba(0,0,0,0.26)] backdrop-blur-md">
           {DURATION_OPTIONS.map((duration) => {
             const selected = durationSeconds === duration;
 
@@ -48,8 +44,8 @@ export function CaptureBottomControls({
                 disabled={isRecording || disabled}
                 className={`h-8 rounded-full px-3 text-[11px] font-semibold transition ${
                   selected
-                    ? "bg-white text-black shadow-[0_8px_20px_rgba(255,255,255,0.18)]"
-                    : "text-white/62 active:bg-white/10"
+                    ? "bg-white/90 text-black shadow-[0_8px_20px_rgba(255,255,255,0.16)]"
+                    : "text-white/68 active:bg-white/10"
                 } disabled:cursor-not-allowed disabled:opacity-50`}
               >
                 {duration}s
@@ -65,10 +61,10 @@ export function CaptureBottomControls({
             type="button"
             onClick={onLibrary}
             disabled={isRecording || disabled}
-            className="pointer-events-auto flex h-14 w-14 flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/30 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/72 backdrop-blur-xl transition active:scale-95 disabled:opacity-40"
+            aria-label="Open gallery"
+            className="pointer-events-auto h-14 w-14 rounded-[1.05rem] border border-white/55 bg-white/10 shadow-[0_12px_34px_rgba(0,0,0,0.28)] backdrop-blur-sm transition active:scale-95 disabled:opacity-40"
           >
-            <span className="mb-1 block h-4 w-5 rounded-[5px] border border-white/40" />
-            Library
+            <span className="mx-auto block h-full w-full rounded-[0.92rem] bg-[radial-gradient(circle_at_35%_30%,rgba(255,255,255,0.92),rgba(255,255,255,0.16)_34%,rgba(247,143,132,0.46)_66%,rgba(0,0,0,0.35)_100%)]" />
           </button>
         </div>
 
@@ -78,37 +74,26 @@ export function CaptureBottomControls({
             onClick={isRecording ? onStop : onRecord}
             disabled={disabled}
             aria-label={isRecording ? "Stop recording" : "Start recording"}
-            className="pointer-events-auto relative flex h-[86px] w-[86px] items-center justify-center rounded-full p-[5px] shadow-[0_18px_55px_rgba(0,0,0,0.5)] transition active:scale-95 disabled:opacity-40"
-            style={{
-              background: isRecording
-                ? `conic-gradient(rgb(248 113 113) ${progressPercent * 3.6}deg, rgba(255,255,255,0.24) 0deg)`
-                : "rgba(255,255,255,0.86)",
-            }}
+            className={`pointer-events-auto flex h-20 w-20 items-center justify-center rounded-full border-[4px] shadow-[0_18px_55px_rgba(0,0,0,0.42)] transition active:scale-95 disabled:opacity-40 ${
+              isRecording ? "border-red-400" : "border-white"
+            }`}
           >
-            <span className="flex h-full w-full items-center justify-center rounded-full bg-black/72 backdrop-blur-xl">
-              <span
-                className={`bg-[#f78f84] shadow-[0_0_32px_rgba(247,143,132,0.42)] transition-all ${
-                  isRecording ? "h-8 w-8 rounded-[10px]" : "h-[58px] w-[58px] rounded-full"
-                }`}
-              />
-            </span>
+            <span
+              className={`transition-all ${
+                isRecording
+                  ? "h-10 w-10 rounded-[0.8rem] bg-red-500"
+                  : "h-[58px] w-[58px] rounded-full bg-white"
+              }`}
+            />
           </button>
 
-          <div className="mt-3 h-5 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
-            {isRecording ? formatRemaining(remainingSeconds) : "Hold frame"}
+          <div className="mt-4 h-5 text-center text-[11px] font-semibold tracking-[0.18em] text-white drop-shadow-md">
+            {isRecording ? formatRemaining(remainingSeconds) : ""}
           </div>
         </div>
 
         <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={onFlip}
-            disabled={isRecording || disabled}
-            className="pointer-events-auto flex h-14 w-14 flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/30 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/72 backdrop-blur-xl transition active:scale-95 disabled:opacity-40"
-          >
-            <span className="mb-1 block text-lg leading-none">Flip</span>
-            Cam
-          </button>
+          <div className="h-14 w-14" aria-hidden />
         </div>
       </div>
     </div>
