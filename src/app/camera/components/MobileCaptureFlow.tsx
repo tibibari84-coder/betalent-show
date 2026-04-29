@@ -60,10 +60,10 @@ function mapCameraError(error: unknown): string {
   }
 }
 
-function getCameraConstraints(facingMode: CameraFacingMode): MediaStreamConstraints {
+function getCameraConstraints(): MediaStreamConstraints {
   return {
     video: {
-      facingMode,
+      facingMode: "user",
       width: { ideal: 1080 },
       height: { ideal: 1920 },
     },
@@ -266,7 +266,7 @@ export function MobileCaptureFlow({
         let nextStream: MediaStream;
         try {
           nextStream = await navigator.mediaDevices.getUserMedia(
-            getCameraConstraints(nextFacingMode),
+            getCameraConstraints(),
           );
           setConstraintMode("native-portrait");
         } catch {
