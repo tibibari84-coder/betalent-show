@@ -64,9 +64,8 @@ function getCameraConstraints(facingMode: CameraFacingMode): MediaStreamConstrai
   return {
     video: {
       facingMode,
-      aspectRatio: { exact: 0.5625 },
-      width: { ideal: 720 },
-      height: { ideal: 1280 },
+      width: { ideal: 1080 },
+      height: { ideal: 1920 },
     },
     audio: true,
   };
@@ -228,7 +227,8 @@ export function MobileCaptureFlow({
   const [status, setStatus] = useState<CameraStatus>("idle");
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [constraintMode, setConstraintMode] = useState<"exact-9-16" | "fallback" | "none">("none");
+  const [facingMode, setFacingMode] = useState<CameraFacingMode>("user");
+  const [constraintMode, setConstraintMode] = useState<"native-portrait" | "fallback" | "none">("none");
   const [libraryPreviewUrl, setLibraryPreviewUrl] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -268,7 +268,7 @@ export function MobileCaptureFlow({
           nextStream = await navigator.mediaDevices.getUserMedia(
             getCameraConstraints(nextFacingMode),
           );
-          setConstraintMode("exact-9-16");
+          setConstraintMode("native-portrait");
         } catch {
           nextStream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: nextFacingMode },
@@ -284,6 +284,7 @@ export function MobileCaptureFlow({
 
         streamRef.current = nextStream;
         facingModeRef.current = nextFacingMode;
+        setFacingMode(nextFacingMode);
         setStream(nextStream);
         setStatus("ready");
       } catch (error) {
@@ -433,6 +434,7 @@ export function MobileCaptureFlow({
             status={status}
             error={cameraError}
             constraintMode={constraintMode}
+            facingMode={facingMode}
             onRetry={() => void startCamera(facingModeRef.current)}
           />
 

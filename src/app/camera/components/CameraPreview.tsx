@@ -10,7 +10,8 @@ type CameraPreviewProps = {
   stream: MediaStream | null;
   status: CameraStatus;
   error?: string | null;
-  constraintMode?: "exact-9-16" | "fallback" | "none";
+  constraintMode?: "native-portrait" | "fallback" | "none";
+  facingMode: CameraFacingMode;
   onRetry: () => void;
 };
 
@@ -20,6 +21,7 @@ export function CameraPreview({
   status,
   error,
   constraintMode = "none",
+  facingMode,
   onRetry,
 }: CameraPreviewProps) {
   const [debugMetrics, setDebugMetrics] = useState({
@@ -81,8 +83,8 @@ export function CameraPreview({
         autoPlay
         playsInline
         muted
-        className="absolute inset-0 h-[100dvh] w-screen object-cover object-top -z-10 bg-black"
-        style={{ transform: "scaleX(-1)" }}
+        className="absolute inset-0 h-full w-full object-cover object-[50%_35%] -z-10"
+        style={{ transform: facingMode === "user" ? "scaleX(-1) scale(0.78)" : "scale(0.78)" }}
       />
 
       <div className="absolute left-4 top-24 z-[999999] rounded-md bg-black/80 p-2 font-mono text-[10px] leading-4 text-green-400">
