@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type RefObject } from "react";
+import { useEffect, useState, type RefObject } from "react";
 
 export type CameraFacingMode = "user" | "environment";
 export type CameraStatus = "idle" | "requesting" | "ready" | "denied" | "error";
@@ -10,6 +10,7 @@ type CameraPreviewProps = {
   stream: MediaStream | null;
   status: CameraStatus;
   error?: string | null;
+  constraintMode?: "exact-9-16" | "fallback" | "none";
   onRetry: () => void;
 };
 
@@ -18,8 +19,19 @@ export function CameraPreview({
   stream,
   status,
   error,
+  constraintMode = "none",
   onRetry,
 }: CameraPreviewProps) {
+  const [debugMetrics, setDebugMetrics] = useState({
+    screenWidth: 0,
+    screenHeight: 0,
+    videoWidth: 0,
+    videoHeight: 0,
+    trackWidth: 0,
+    trackHeight: 0,
+    trackAspectRatio: "n/a",
+  });
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -29,6 +41,37 @@ export function CameraPreview({
     if (stream) {
       void video.play().catch(() => undefined);
     }
+  }, [stream, videoRef]);
+
+  useEffect(() => {
+    const updateMetrics = () => {
+      const video = videoRef.current;
+      const settings = stream?.getVideoTracks()[0]?.getSettings();
+
+      setDebugMetrics({
+        screenWidth: window.innerWidth,
+        screenHeight: window.innerHeight,
+        videoWidth: video?.videoWidth ?? 0,
+        videoHeight: video?.videoHeight ?? 0,
+        trackWidth: settings?.width ?? 0,
+        trackHeight: settings?.height ?? 0,
+        trackAspectRatio:
+          typeof settings?.aspectRatio === "number"
+            ? settings.aspectRatio.toFixed(4)
+            : "n/a",
+      });
+    };
+
+    updateMetrics();
+    const interval = window.setInterval(updateMetrics, 500);
+    window.addEventListener("resize", updateMetrics);
+    window.visualViewport?.addEventListener("resize", updateMetrics);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("resize", updateMetrics);
+      window.visualViewport?.removeEventListener("resize", updateMetrics);
+    };
   }, [stream, videoRef]);
 
   return (
@@ -41,6 +84,14 @@ export function CameraPreview({
         className="absolute inset-0 h-[100dvh] w-screen object-cover object-top -z-10 bg-black"
         style={{ transform: "scaleX(-1)" }}
       />
+
+      <div className="absolute left-4 top-24 z-[999999] rounded-md bg-black/80 p-2 font-mono text-[10px] leading-4 text-green-400">
+        <div>Screen: {debugMetrics.screenWidth} x {debugMetrics.screenHeight}</div>
+        <div>Video Element: {debugMetrics.videoWidth} x {debugMetrics.videoHeight}</div>
+        <div>Track Settings: {debugMetrics.trackWidth} x {debugMetrics.trackHeight}</div>
+        <div>Track Aspect Ratio: {debugMetrics.trackAspectRatio}</div>
+        <div>Constraint: {constraintMode}</div>
+      </div>
 
       {status === "requesting" || status === "idle" ? (
         <div className="absolute inset-0 z-20 flex items-center justify-center">

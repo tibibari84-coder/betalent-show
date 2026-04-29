@@ -228,6 +228,7 @@ export function MobileCaptureFlow({
   const [status, setStatus] = useState<CameraStatus>("idle");
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [constraintMode, setConstraintMode] = useState<"exact-9-16" | "fallback" | "none">("none");
   const [libraryPreviewUrl, setLibraryPreviewUrl] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -260,17 +261,20 @@ export function MobileCaptureFlow({
       try {
         streamRef.current?.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
+        setConstraintMode("none");
 
         let nextStream: MediaStream;
         try {
           nextStream = await navigator.mediaDevices.getUserMedia(
             getCameraConstraints(nextFacingMode),
           );
+          setConstraintMode("exact-9-16");
         } catch {
           nextStream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: nextFacingMode },
             audio: true,
           });
+          setConstraintMode("fallback");
         }
 
         const videoTrack = nextStream.getVideoTracks()[0] ?? null;
@@ -285,6 +289,7 @@ export function MobileCaptureFlow({
       } catch (error) {
         setCameraError(mapCameraError(error));
         setStream(null);
+        setConstraintMode("none");
         setStatus(error instanceof DOMException && error.name === "NotAllowedError" ? "denied" : "error");
       }
     },
@@ -427,6 +432,7 @@ export function MobileCaptureFlow({
             stream={stream}
             status={status}
             error={cameraError}
+            constraintMode={constraintMode}
             onRetry={() => void startCamera(facingModeRef.current)}
           />
 
