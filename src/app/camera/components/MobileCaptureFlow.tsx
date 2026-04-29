@@ -228,6 +228,7 @@ export function MobileCaptureFlow({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<CameraFacingMode>("user");
+  const [trackSettings, setTrackSettings] = useState<MediaTrackSettings | null>(null);
   const [constraintMode, setConstraintMode] = useState<"native-portrait" | "fallback" | "none">("none");
   const [libraryPreviewUrl, setLibraryPreviewUrl] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -243,6 +244,7 @@ export function MobileCaptureFlow({
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    setTrackSettings(null);
     setStream(null);
     setStatus("idle");
   }, []);
@@ -262,6 +264,7 @@ export function MobileCaptureFlow({
         streamRef.current?.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
         setConstraintMode("none");
+        setTrackSettings(null);
 
         let nextStream: MediaStream;
         try {
@@ -281,16 +284,19 @@ export function MobileCaptureFlow({
         if (videoTrack) {
           await removeHardwareZoom(videoTrack);
         }
+        const nextTrackSettings = videoTrack?.getSettings() ?? null;
 
         streamRef.current = nextStream;
         facingModeRef.current = nextFacingMode;
         setFacingMode(nextFacingMode);
+        setTrackSettings(nextTrackSettings);
         setStream(nextStream);
         setStatus("ready");
       } catch (error) {
         setCameraError(mapCameraError(error));
         setStream(null);
         setConstraintMode("none");
+        setTrackSettings(null);
         setStatus(error instanceof DOMException && error.name === "NotAllowedError" ? "denied" : "error");
       }
     },
@@ -435,6 +441,7 @@ export function MobileCaptureFlow({
             error={cameraError}
             constraintMode={constraintMode}
             facingMode={facingMode}
+            trackSettings={trackSettings}
             onRetry={() => void startCamera(facingModeRef.current)}
           />
 

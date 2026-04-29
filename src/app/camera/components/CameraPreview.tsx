@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
 export type CameraFacingMode = "user" | "environment";
 export type CameraStatus = "idle" | "requesting" | "ready" | "denied" | "error";
@@ -12,6 +12,7 @@ type CameraPreviewProps = {
   error?: string | null;
   constraintMode?: "native-portrait" | "fallback" | "none";
   facingMode: CameraFacingMode;
+  trackSettings?: MediaTrackSettings | null;
   onRetry: () => void;
 };
 
@@ -22,8 +23,10 @@ export function CameraPreview({
   error,
   constraintMode = "none",
   facingMode,
+  trackSettings,
   onRetry,
 }: CameraPreviewProps) {
+  const backgroundVideoRef = useRef<HTMLVideoElement | null>(null);
   const [debugMetrics, setDebugMetrics] = useState({
     screenWidth: 0,
     screenHeight: 0,
@@ -33,17 +36,39 @@ export function CameraPreview({
     trackHeight: 0,
     trackAspectRatio: "n/a",
   });
+  const effectiveTrackWidth = trackSettings?.width ?? debugMetrics.trackWidth;
+  const effectiveTrackHeight = trackSettings?.height ?? debugMetrics.trackHeight;
+  const effectiveAspectRatio =
+    trackSettings?.aspectRatio ??
+    (effectiveTrackWidth > 0 && effectiveTrackHeight > 0
+      ? effectiveTrackWidth / effectiveTrackHeight
+      : 0);
+  const isWideStream =
+    effectiveTrackWidth > effectiveTrackHeight || effectiveAspectRatio > 1.2;
+  const mirrorTransform = facingMode === "user" ? "scaleX(-1)" : undefined;
+  const backgroundTransform =
+    facingMode === "user" ? "scaleX(-1) scale(1.1)" : "scale(1.1)";
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    const backgroundVideo = backgroundVideoRef.current;
 
-    video.srcObject = stream;
+    if (video) {
+      video.srcObject = stream;
 
-    if (stream) {
-      void video.play().catch(() => undefined);
+      if (stream) {
+        void video.play().catch(() => undefined);
+      }
     }
-  }, [stream, videoRef]);
+
+    if (backgroundVideo) {
+      backgroundVideo.srcObject = stream;
+
+      if (stream) {
+        void backgroundVideo.play().catch(() => undefined);
+      }
+    }
+  }, [isWideStream, stream, videoRef]);
 
   useEffect(() => {
     const updateMetrics = () => {
@@ -78,14 +103,36 @@ export function CameraPreview({
 
   return (
     <div className="absolute inset-0 z-0 overflow-hidden bg-black">
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="absolute inset-0 h-full w-full object-cover object-[50%_35%] -z-10"
-        style={{ transform: facingMode === "user" ? "scaleX(-1) scale(0.78)" : "scale(0.78)" }}
-      />
+      {isWideStream ? (
+        <>
+          <video
+            ref={backgroundVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="absolute inset-0 z-0 h-full w-full object-cover object-center blur-2xl brightness-[0.38]"
+            style={{ transform: backgroundTransform }}
+          />
+          <div className="absolute inset-0 z-[1] bg-black/28" />
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="absolute inset-0 z-[2] h-full w-full object-contain object-center"
+            style={{ transform: mirrorTransform }}
+          />
+        </>
+      ) : (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="absolute inset-0 z-0 h-full w-full object-cover object-[50%_35%]"
+          style={{ transform: mirrorTransform }}
+        />
+      )}
 
       <div className="absolute left-4 top-24 z-[999999] rounded-md bg-black/80 p-2 font-mono text-[10px] leading-4 text-green-400">
         <div>Screen: {debugMetrics.screenWidth} x {debugMetrics.screenHeight}</div>
@@ -93,6 +140,7 @@ export function CameraPreview({
         <div>Track Settings: {debugMetrics.trackWidth} x {debugMetrics.trackHeight}</div>
         <div>Track Aspect Ratio: {debugMetrics.trackAspectRatio}</div>
         <div>Constraint: {constraintMode}</div>
+        <div>Preview Strategy: {isWideStream ? "wide-contain" : "portrait-cover"}</div>
       </div>
 
       {status === "requesting" || status === "idle" ? (
