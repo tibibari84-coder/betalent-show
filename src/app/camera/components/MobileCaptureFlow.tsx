@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { useRecorder } from "@/hooks/useRecorder";
 import {
@@ -23,6 +24,18 @@ type MobileCaptureFlowProps = {
   onUploadConfirmed: (file: File) => Promise<void>;
 };
 
+type ZoomCapabilities = MediaTrackCapabilities & {
+  zoom?: {
+    min?: number;
+    max?: number;
+    step?: number;
+  };
+};
+
+type ZoomConstraintSet = MediaTrackConstraintSet & {
+  zoom?: number;
+};
+
 function mapCameraError(error: unknown): string {
   if (!(error instanceof DOMException)) return "Camera access failed.";
 
@@ -43,14 +56,28 @@ function mapCameraError(error: unknown): string {
 function getCameraConstraints(facingMode: CameraFacingMode): MediaStreamConstraints {
   return {
     video: {
-      facingMode: { ideal: facingMode },
-      width: { ideal: 1080 },
-      height: { ideal: 1920 },
-      aspectRatio: { ideal: 9 / 16 },
-      frameRate: { ideal: 30, max: 30 },
+      facingMode,
+      width: { ideal: 720 },
+      height: { ideal: 1280 },
     },
     audio: true,
   };
+}
+
+async function removeHardwareZoom(track: MediaStreamTrack) {
+  const capabilities =
+    typeof track.getCapabilities === "function"
+      ? (track.getCapabilities() as ZoomCapabilities)
+      : null;
+  const minZoom = capabilities?.zoom?.min;
+
+  if (typeof minZoom !== "number") return;
+
+  await track
+    .applyConstraints({
+      advanced: [{ zoom: minZoom } as ZoomConstraintSet],
+    })
+    .catch(() => undefined);
 }
 
 async function readVideoDuration(file: File): Promise<number> {
@@ -79,13 +106,12 @@ export function MobileCaptureFlow({
   const facingModeRef = useRef<CameraFacingMode>("user");
   const handledRecorderPreviewRef = useRef(false);
 
+  const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<FlowStep>("camera");
   const [durationSeconds, setDurationSeconds] = useState<CaptureDuration>(60);
   const [status, setStatus] = useState<CameraStatus>("idle");
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [facingMode, setFacingMode] = useState<CameraFacingMode>("user");
-  const [cameraSettings, setCameraSettings] = useState<MediaTrackSettings | null>(null);
   const [libraryPreviewUrl, setLibraryPreviewUrl] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -123,17 +149,16 @@ export function MobileCaptureFlow({
           getCameraConstraints(nextFacingMode),
         );
         const videoTrack = nextStream.getVideoTracks()[0] ?? null;
-        const settings = videoTrack?.getSettings() ?? null;
+        if (videoTrack) {
+          await removeHardwareZoom(videoTrack);
+        }
 
         streamRef.current = nextStream;
         facingModeRef.current = nextFacingMode;
-        setFacingMode(nextFacingMode);
-        setCameraSettings(settings);
         setStream(nextStream);
         setStatus("ready");
       } catch (error) {
         setCameraError(mapCameraError(error));
-        setCameraSettings(null);
         setStream(null);
         setStatus(error instanceof DOMException && error.name === "NotAllowedError" ? "denied" : "error");
       }
@@ -142,6 +167,22 @@ export function MobileCaptureFlow({
   );
 
   useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const previousOverscrollBehavior = document.body.style.overscrollBehavior;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    queueMicrotask(() => setMounted(true));
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.overscrollBehavior = previousOverscrollBehavior;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     queueMicrotask(() => {
       void startCamera("user");
     });
@@ -149,7 +190,7 @@ export function MobileCaptureFlow({
     return () => {
       streamRef.current?.getTracks().forEach((track) => track.stop());
     };
-  }, [startCamera]);
+  }, [mounted, startCamera]);
 
   useEffect(() => {
     return () => {
@@ -252,8 +293,8 @@ export function MobileCaptureFlow({
   const displayError = localError || recorder.error;
   const cameraDisabled = status !== "ready" || !stream;
 
-  return (
-    <div className="fixed inset-0 z-[99999] h-[100dvh] w-screen overflow-hidden bg-black text-white touch-none">
+  const captureView = (
+    <div className="fixed inset-0 z-[999999] h-[100dvh] w-screen overflow-hidden bg-black text-white touch-none">
       {step === "camera" ? (
         <>
           <CameraPreview
@@ -261,8 +302,6 @@ export function MobileCaptureFlow({
             stream={stream}
             status={status}
             error={cameraError}
-            facingMode={facingMode}
-            settings={cameraSettings}
             onRetry={() => void startCamera(facingModeRef.current)}
           />
 
@@ -326,4 +365,8 @@ export function MobileCaptureFlow({
       />
     </div>
   );
+
+  if (!mounted || typeof document === "undefined") return null;
+
+  return createPortal(captureView, document.body);
 }
