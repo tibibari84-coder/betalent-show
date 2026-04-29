@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { useRecorder } from "@/hooks/useRecorder";
@@ -22,13 +22,6 @@ type FlowStep = "camera" | "preview" | "confirm";
 type MobileCaptureFlowProps = {
   onExit: () => void;
   onUploadConfirmed: (file: File) => Promise<void>;
-};
-
-type ToolButtonProps = {
-  label: string;
-  onClick?: () => void;
-  disabled?: boolean;
-  children: ReactNode;
 };
 
 type ZoomCapabilities = MediaTrackCapabilities & {
@@ -101,114 +94,6 @@ async function readVideoDuration(file: File): Promise<number> {
   } finally {
     URL.revokeObjectURL(url);
   }
-}
-
-function ToolButton({ label, onClick, disabled = false, children }: ToolButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="pointer-events-auto flex flex-col items-center gap-1 text-white drop-shadow-md transition active:scale-95 disabled:opacity-40"
-    >
-      <span className="flex h-7 w-7 items-center justify-center">{children}</span>
-      <span className="text-[10px] font-medium tracking-[0.02em] text-white/90">{label}</span>
-    </button>
-  );
-}
-
-function CaptureToolRail({
-  onFlip,
-  disabled,
-}: {
-  onFlip: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <div className="pointer-events-none absolute right-4 top-24 z-40 flex flex-col items-center gap-6">
-      <ToolButton label="Flip" onClick={onFlip} disabled={disabled}>
-        <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" aria-hidden>
-          <path
-            d="M7.2 7.5a6.75 6.75 0 0 1 10.2-.45l1.1 1.1"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <path
-            d="M18.7 4.6v3.8h-3.8M16.8 16.5a6.75 6.75 0 0 1-10.2.45l-1.1-1.1"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M5.3 19.4v-3.8h3.8"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </ToolButton>
-
-      <ToolButton label="Speed" disabled={disabled}>
-        <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" aria-hidden>
-          <path
-            d="M4.5 15.2a8 8 0 1 1 15 0"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <path
-            d="m12 12 4.1-4.1"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <path
-            d="M8 19h8"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-      </ToolButton>
-
-      <ToolButton label="Timer" disabled={disabled}>
-        <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" aria-hidden>
-          <path
-            d="M9 3h6M12 8v5l3 2"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"
-            stroke="currentColor"
-            strokeWidth="2"
-          />
-        </svg>
-      </ToolButton>
-
-      <ToolButton label="Effects" disabled={disabled}>
-        <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" aria-hidden>
-          <path
-            d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
-          <path
-            d="m18.5 15 .7 2.1 2.1.7-2.1.7-.7 2.1-.7-2.1-2.1-.7 2.1-.7.7-2.1Z"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </ToolButton>
-    </div>
-  );
 }
 
 export function MobileCaptureFlow({
@@ -368,10 +253,6 @@ export function MobileCaptureFlow({
     recorder.startRecording();
   };
 
-  const handlePickLibrary = () => {
-    fileInputRef.current?.click();
-  };
-
   const handleLibraryFile = async (file: File | null) => {
     if (!file) return;
 
@@ -401,11 +282,6 @@ export function MobileCaptureFlow({
     } catch {
       setLocalError("BETALENT could not read that video file.");
     }
-  };
-
-  const handleFlip = () => {
-    const nextFacingMode = facingModeRef.current === "user" ? "environment" : "user";
-    void startCamera(nextFacingMode);
   };
 
   const handleConfirmUpload = async () => {
@@ -447,12 +323,8 @@ export function MobileCaptureFlow({
 
           <CaptureTopBar
             onBack={onExit}
+            onExit={onExit}
             isRecording={recorder.isRecording}
-          />
-
-          <CaptureToolRail
-            onFlip={handleFlip}
-            disabled={recorder.isRecording || cameraDisabled}
           />
 
           {displayError ? (
@@ -468,7 +340,6 @@ export function MobileCaptureFlow({
             onDurationChange={setDurationSeconds}
             onRecord={handleRecord}
             onStop={recorder.stopRecording}
-            onLibrary={handlePickLibrary}
             isRecording={recorder.isRecording}
             remainingSeconds={recorder.remainingSeconds}
             disabled={cameraDisabled}

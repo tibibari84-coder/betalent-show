@@ -7,7 +7,6 @@ type CaptureBottomControlsProps = {
   onDurationChange: (duration: CaptureDuration) => void;
   onRecord: () => void;
   onStop: () => void;
-  onLibrary: () => void;
   isRecording: boolean;
   remainingSeconds: number;
   disabled?: boolean;
@@ -24,7 +23,6 @@ export function CaptureBottomControls({
   onDurationChange,
   onRecord,
   onStop,
-  onLibrary,
   isRecording,
   remainingSeconds,
   disabled = false,
@@ -55,19 +53,7 @@ export function CaptureBottomControls({
         </div>
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center">
-        <div className="flex justify-start">
-          <button
-            type="button"
-            onClick={onLibrary}
-            disabled={isRecording || disabled}
-            aria-label="Open gallery"
-            className="pointer-events-auto h-14 w-14 rounded-[1.05rem] border border-white/55 bg-white/10 shadow-[0_12px_34px_rgba(0,0,0,0.28)] backdrop-blur-sm transition active:scale-95 disabled:opacity-40"
-          >
-            <span className="mx-auto block h-full w-full rounded-[0.92rem] bg-[radial-gradient(circle_at_35%_30%,rgba(255,255,255,0.92),rgba(255,255,255,0.16)_34%,rgba(247,143,132,0.46)_66%,rgba(0,0,0,0.35)_100%)]" />
-          </button>
-        </div>
-
+      <div className="flex items-center justify-center">
         <div className="flex flex-col items-center">
           <button
             type="button"
@@ -90,10 +76,6 @@ export function CaptureBottomControls({
           <div className="mt-4 h-5 text-center text-[11px] font-semibold tracking-[0.18em] text-white drop-shadow-md">
             {isRecording ? formatRemaining(remainingSeconds) : ""}
           </div>
-        </div>
-
-        <div className="flex justify-end">
-          <div className="h-14 w-14" aria-hidden />
         </div>
       </div>
     </div>
